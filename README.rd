@@ -7,12 +7,12 @@ a gamma-centroid estimator is ((*slightly*)) more accurate than an MEA
 estimator (Do et.al., 2005) under the same probability distribution. 
 
 CentroidFold can take various probability distributions. Currently,
-* McCaskill model implemented in Vienna RNA package,
-* CONTRAfold model, and
-* CG optimized model implemented in MultiRNAFold package
+* McCaskill models implemented in Vienna RNA package,
+* CONTRAfold models, and
+* CG optimized models implemented in MultiRNAFold package
 are supported. 
 
-According to our benchmark, CentroidFold with CONTRAfold model will
+According to our benchmark, CentroidFold with CONTRAfold models will
 predict the most accurate RNA secondary structures among currently
 available prediction tools at this time.
 
@@ -38,9 +38,9 @@ available prediction tools at this time.
 
 == Usage
 
-Our tools accept the FASTA format as input sequences.
+Our tools accept the FASTA format as an input sequence.
 
-=== CentroidFold with McCaskill model
+=== CentroidFold with McCaskill models
 
 (({centroid_fold})) is the main program of this package. It calculates
 a base-pairing probability matrix for a given sequence with McCaskill
@@ -60,7 +60,7 @@ If a negative value is given for the option '--gamma',
 of gamma at the same time ({2^k | -5 <= k <= 10} and 6). 
 
 Using the option '--aux', (({centroid_fold})) can take an auxiliary
-base-pairing probability matrix instead of McCaskill model.
+base-pairing probability matrix instead of McCaskill models.
 
 Example:
  % centroid_fold -g -1 RF00008_B.fa
@@ -85,7 +85,7 @@ Example:
  (((((((((((((...)))))..).(..(((((......)))))..)))))))) (g=1024,th=0.00097561)
 
 
-=== CentroidFold with CONTRAfold model
+=== CentroidFold with CONTRAfold models
 
 (({contrafold.rb})) is a wrapper script which executes
 (({contrafold})) to calculate a base-pairing probability matrix for a
@@ -95,7 +95,7 @@ probability matrix.
 
  Usage: contrafold.rb [options] seq
     -g, --gamma gamma                weight of base-pairs
-        --mea                        centroid estimators
+        --mea                        MEA estimators
         --viterbi                    viterbi estimators
     -t, --threshold th               threshold of posteriors
         --centroid_fold path         exec path of centroid_fold
@@ -125,14 +125,14 @@ Example:
  (((((((((((((...)))))..).(..((((((...).)))))..)))))))) (g=1024,th=0.00097561)
 
 
-=== CentroidFold with CG optimized model
+=== CentroidFold with CG optimized models
 
 (({simfold.rb})) is also a wrapper script which executes
 (({simfold_pf})) instead of (({contrafold})).
 
  Usage: simfold.rb [options] seq
     -g, --gamma gamma                weight of base-pairs
-        --mea                        centroid estimators
+        --mea                        MEA estimators
         --viterbi                    viterbi estimators
     -t, --threshold th               threshold of posteriors
         --centroid_fold path         exec path of centroid_fold
@@ -172,17 +172,17 @@ Example:
   * Hamada, M., Kiryu, H., Sato, K., Kin, T. and Asai, K.: Estimation
     of secondary structure of an RNA sequence using generalized
     centroid estimator, submitted, 2008.
-* CONTRAfold model and MEA estimators
+* CONTRAfold models and MEA estimators
   * Do, C. B., Woods, D. A. and Batzoglou, S.: CONTRAfold: RNA
     secondary structure prediction without physics-based
     models. Bioinformatics, 22, e90-e98, 2006.
-* McCaskill model
+* McCaskill models
   * McCaskill, J. S.: The equilibrium partition function and base pair
     binding probabilities for RNA secondary structure. Biopolymers,
     29, 1105-1119, 1990.
   * Hofacker, I. L.: Vienna RNA secondary structure server. Nucleic
     Acids Res, 31, 3429-3431, 2003
-* CG optimized model
+* CG optimized models
   * Andronescu, M., Condon, A., Hoos, H. H., Mathews, D. H. and
     Murphy, K. P.: Efficient parameter estimation for RNA secondary 
     structure prediction. Bioinformatics, 23, i19-i28, 2007

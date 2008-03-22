@@ -10,7 +10,7 @@ opts=""
 params=""
 OptionParser.new do |opt|
   opt.on('-g', '--gamma gamma', 'weight of base-pairs') {|v| opts+=" -g #{v}"}
-  opt.on('--mea', 'centroid estimators') {|v| opts+=" --mea" }
+  opt.on('--mea', 'MEA estimators') {|v| opts+=" --mea" }
   opt.on('-t', '--threshold th', 'threshold of posteriors') {|v| th=v.to_f}
   opt.on('--centroid_fold path', 'exec path of centroid_fold') {|v| centroid_fold = v}
   opt.on('--simfold_pf path', 'exec path of simfold_pf') {|v| simfold_pf = v}
