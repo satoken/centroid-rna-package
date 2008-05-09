@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 
 #ifdef HAVE_CONFIG_H
 #include "../config.h"
@@ -10,6 +10,7 @@
 #include <boost/program_options.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/range.hpp>
+#include <boost/algorithm/string.hpp>
 #include <deque>
 //#include "rule.h"
 #include "iupac.h"
@@ -18,11 +19,24 @@
 #include "fa.h"
 #include "aln.h"
 
+#ifdef HAVE_LIBRNA
+namespace Vienna {
+extern "C" {
+#include <ViennaRNA/PS_dot.h>
+#include <ViennaRNA/aln_util.h>
+};
+};
+#endif
 
 namespace po = boost::program_options;
 
 typedef SCFG::BP::Table<double> BPTable;
 typedef boost::shared_ptr<BPTable> BPTablePtr;
+
+#ifdef HAVE_LIBRNA
+bool ps_out;
+bool svg_out;
+#endif
 
 template < class BPTable >
 void
@@ -49,6 +63,31 @@ output(const std::string& name, const std::string& seq, const BPTable& bp,
       std::cout << paren << " (g=" << *g << ",EA=" << p << ")" << std::endl;
     }
   }
+#ifdef HAVE_LIBRNA
+  {
+    std::string fbase(name);
+    boost::algorithm::trim(fbase);
+    std::replace(boost::begin(fbase), boost::end(fbase), ' ', '_');
+    std::replace(boost::begin(fbase), boost::end(fbase), '/', '_');
+    if (ps_out) {
+      char fname[100];
+      sscanf(fbase.c_str(), "%12s", fname);
+      //Vienna::rna_plot_type=0;
+      strcat(fname, "_ss.ps");
+      Vienna::PS_rna_plot(const_cast<char*>(seq.c_str()),
+			  const_cast<char*>(paren.c_str()),
+			  fname);
+    }
+    if (svg_out) {
+      char fname[100];
+      sscanf(name.c_str(), "%12s", fname);
+      //Vienna::rna_plot_type=0;
+      strcat(fname, "_ss.svg");
+      Vienna::svg_rna_plot(const_cast<char*>(seq.c_str()),
+			   const_cast<char*>(paren.c_str()), fname);
+    }
+  }
+#endif
 }
 
 int
@@ -73,7 +112,12 @@ main(int argc, char* argv[])
 #endif
     ("aux", "use auxiliary base-pairing probabilities")
     ("posteriors", po::value<float>(&p_th),
-     "output base-pairing probability matrices which contain base-pairing probabilities more than the given value.");
+     "output base-pairing probability matrices which contain base-pairing probabilities more than the given value.")
+#ifdef HAVE_LIBRNA
+    ("ps", "draw secondary structures into a PS file")
+    ("svg", "draw secondary structures into a SVG file")
+#endif
+    ;
   po::options_description opts("Options");
   opts.add_options()
     ("seq-file", po::value<std::string>(&input), "training sequence filename")
@@ -106,6 +150,10 @@ main(int argc, char* argv[])
     std::copy(boost::begin(g), boost::end(g), gamma.begin());
   }
   if (gamma.empty()) gamma.push_back(centroid ? 1.0 : 6.0);
+#ifdef HAVE_LIBRNA
+  ps_out = vm.count("ps");
+  svg_out = vm.count("svg");
+#endif
 
   boost::spirit::file_iterator<> fi(input.c_str());
   if (!fi) {
