@@ -12,6 +12,15 @@
 #include <stdexcept>
 #include <boost/spirit.hpp>
 
+#ifdef HAVE_LIBRNA
+namespace Vienna {
+extern "C" {
+#include <ViennaRNA/PS_dot.h>
+#include <ViennaRNA/aln_util.h>
+};
+};
+#endif
+
 using namespace boost::spirit;
 
 struct aln_parser : public grammar< aln_parser >
@@ -186,3 +195,37 @@ main(int argc, char* argv[])
 #endif
 }
 #endif
+
+std::string
+Aln::
+consensus() const
+{
+#ifdef HAVE_LIBRNA
+  // prepare an alignment
+  uint length = seq_.front().size();
+  char **seqs = new char*[seq_.size()+1];
+  seqs[seq_.size()] = NULL;
+  std::list<std::string>::const_iterator x;
+  uint i=0;
+  for (x=seq_.begin(); x!=seq_.end(); ++x) {
+    assert(x->size()==length);
+    seqs[i] = new char[length+1];
+    strcpy(seqs[i++], x->c_str());
+  }
+
+  // make a consensus string
+  //char *cons = Vienna::consensus((const char**)seqs);
+  char *cons = Vienna::consens_mis((const char**)seqs);
+  std::string ret(cons);
+
+  // destroy the alignment
+  for (uint i=0; seqs[i]!=NULL; ++i) delete[] seqs[i];
+  delete[] seqs;
+  free(cons);
+
+  return ret;
+#else
+  return seq_.front();
+#endif
+}
+
