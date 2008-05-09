@@ -36,6 +36,7 @@ public:
   const std::list<std::string>& seq() const { return seq_; }
   uint size() const { return seq_.begin()->size(); }
   uint num_aln() const { return name_.size(); }
+  std::string consensus() const;
   
   static
   uint

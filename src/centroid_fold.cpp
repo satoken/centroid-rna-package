@@ -69,6 +69,7 @@ output(const std::string& name, const std::string& seq, const BPTable& bp,
     boost::algorithm::trim(fbase);
     std::replace(boost::begin(fbase), boost::end(fbase), ' ', '_');
     std::replace(boost::begin(fbase), boost::end(fbase), '/', '_');
+    if (fbase.empty()) fbase="rna";
     if (ps_out) {
       char fname[100];
       sscanf(fbase.c_str(), "%12s", fname);
@@ -114,8 +115,8 @@ main(int argc, char* argv[])
     ("posteriors", po::value<float>(&p_th),
      "output base-pairing probability matrices which contain base-pairing probabilities more than the given value.")
 #ifdef HAVE_LIBRNA
-    ("ps", "draw secondary structures into a PS file")
-    ("svg", "draw secondary structures into a SVG file")
+    ("ps", "draw predicted secondary structures with the postscript (PS) format")
+    ("svg", "draw predicted secondary structures with the scalable vector graphics (SVG) format")
 #endif
     ;
   po::options_description opts("Options");
@@ -182,7 +183,8 @@ main(int argc, char* argv[])
 	BPTable bp;
 	bp.alipf_fold(aln.seq());
 	if (!vm.count("posteriors")) {
-	  output(aln.name().front(), aln.seq().front(), bp, centroid, gamma);
+	  //output(aln.name().front(), aln.seq().front(), bp, centroid, gamma);
+	  output(aln.name().front(), aln.consensus(), bp, centroid, gamma);
 	} else {
 	  bp.save(std::cout, aln.seq().front(), p_th);
 	}
@@ -211,7 +213,8 @@ main(int argc, char* argv[])
 	}
 	bp.average(bps, idxmaps);
 	if (!vm.count("posteriors")) {
-	  output(aln.name().front(), aln.seq().front(), bp, centroid, gamma);
+	  //output(aln.name().front(), aln.seq().front(), bp, centroid, gamma);
+	  output(aln.name().front(), aln.consensus(), bp, centroid, gamma);
 	} else {
 	  bp.save(std::cout, aln.seq().front(), p_th);
 	}
