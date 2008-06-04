@@ -33,8 +33,34 @@ available prediction tools at this time.
 
 == Install
 
+=== simple build
+
  ./configure && make && make install
 
+=== build with CONTRAfold
+
+Currently, a patch for CONTRAfold v2.0.0 is provided, which makes it
+possible to link the routine for calculating base-pairing
+probabilities in CONTRAfold with CentroidFold.
+
+After applying this patch, you can build (({libcontrafold.a})).
+
+ cd /somewhere/contrafold/src
+ patch -p2 < /somewhere/centroid_fold-x.x.x/contrafold.patch
+ make lib
+
+Then, put (({libcontrafold.a})) into the CentroidFold build tree.
+
+ cp libcontrafold.a /somewhere/centroid_fold-x.x.x/src/
+
+Finnaly, build CentroidFold.
+
+ cd /somewhere/centroid_fold-x.x.x/
+ ./configure --with-contrafold && make && make install
+
+If you build CentroidFold with (({--with-contrafold})),
+CONTRAfold models are used as the default posterior probability
+distribution rather than McCaskill models.
 
 == Usage
 
@@ -87,11 +113,12 @@ Example:
 
 === CentroidFold with CONTRAfold models
 
-(({contrafold.rb})) is a wrapper script which executes
-(({contrafold})) to calculate a base-pairing probability matrix for a
-given sequence, and then executes (({centroid_fold})) with '--aux' to
-estimate the most accurate secondary structure from the base-pairing
-probability matrix.
+Even (({centroid_fold})) without (({libcontrafold.a})) can employ
+CONTRAfold models using a wrapper script, (({contrafold.rb})),
+which executes (({contrafold})) to calculate a base-pairing
+probability matrix for a given sequence, and then executes
+(({centroid_fold})) with '--aux' to estimate the most accurate
+secondary structure from the base-pairing probability matrix.
 
  Usage: contrafold.rb [options] seq
     -g, --gamma gamma                weight of base-pairs

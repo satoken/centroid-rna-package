@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(centroid_fold, 0.0.2, no-define)
+AC_INIT(centroid_fold, 0.0.3, no-define)
 AM_INIT_AUTOMAKE([-Wall foreign])
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR([src/centroid_fold.cpp])
@@ -12,6 +12,15 @@ AC_PROG_CXX
 AC_PROG_CC
 AC_LANG(C++)
 AC_CXX_HAVE_STL
+
+# CONTRAfold
+AC_ARG_WITH([contrafold], AS_HELP_STRING([--with-contrafold],[link the CONTRAfold library]),
+    [
+      AC_DEFINE([HAVE_LIBCONTRAFOLD], [], [link the CONTRAfold library])
+      LIBCONTRAFOLD="libcontrafold.a"
+    ]
+)
+AC_SUBST(LIBCONTRAFOLD)
 
 # boost libraries
 dnl AC_CHECK_HEADER(boost/lambda/lambda.hpp, ,
