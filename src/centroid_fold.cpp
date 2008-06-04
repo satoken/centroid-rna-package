@@ -133,7 +133,7 @@ main(int argc, char* argv[])
 
   opts.add(desc);
   po::positional_options_description pd;
-  pd.add("seq-file", 1).add("model-file", -1);
+  pd.add("seq-file", 1); pd.add("model-file", -1);
   po::parsed_options parsed =
     po::command_line_parser(argc, argv).options(opts).positional(pd).run();
   po::variables_map vm;
