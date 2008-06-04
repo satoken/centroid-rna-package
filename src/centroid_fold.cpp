@@ -38,6 +38,10 @@ bool ps_out;
 bool svg_out;
 #endif
 
+#ifdef HAVE_LIBCONTRAFOLD
+bool use_pf_fold;
+#endif
+
 template < class BPTable >
 void
 output(const std::string& name, const std::string& seq, const BPTable& bp,
@@ -111,6 +115,9 @@ main(int argc, char* argv[])
 #ifdef HAVE_LIBRNA
     ("alipf_fold", "use alipf_fold base-pairing probabilities")
 #endif
+#ifdef HAVE_LIBCONTRAFOLD
+    ("pf_fold", "use pf_fold base-pairing probabilities")
+#endif
     ("aux", "use auxiliary base-pairing probabilities")
     ("posteriors", po::value<float>(&p_th),
      "output base-pairing probability matrices which contain base-pairing probabilities more than the given value.")
@@ -135,7 +142,16 @@ main(int argc, char* argv[])
 
   if (vm.count("help") || !vm.count("seq-file") ||
       (vm.count("aux") && model.empty())) {
-    std::cout << "Centroid fold for structural RNAs" << std::endl
+    std::string features("aux files");
+#ifdef HAVE_LIBRNA
+    features += ", McCaskill model";
+#endif
+#ifdef HAVE_LIBCONTRAFOLD
+    features += ", CONTRAfold model";
+#endif
+    std::cout << "CentroidFold v" << VERSION 
+	      << " for predicting RNA secondary structures" << std::endl
+	      << "  (enabled features: " << features << ")" << std::endl
 	      << "Usage:" << std::endl
 	      << " " << argv[0]
 	      << " [options] seq [model ...]\n\n"
@@ -155,6 +171,9 @@ main(int argc, char* argv[])
   ps_out = vm.count("ps");
   svg_out = vm.count("svg");
 #endif
+#ifdef HAVE_LIBCONTRAFOLD
+  use_pf_fold = vm.count("pf_fold");
+#endif
 
   boost::spirit::file_iterator<> fi(input.c_str());
   if (!fi) {
@@ -168,8 +187,15 @@ main(int argc, char* argv[])
     if (fa.load(fi)) {		// for single sequences
       if (vm.count("aux")) {
 	bp.load(model[0].c_str());
+#ifdef HAVE_LIBCONTRAFOLD
+      } else if (use_pf_fold) {
+	bp.pf_fold(fa.seq());
+      } else {
+	bp.contra_fold(fa.seq());
+#else
       } else {
 	bp.pf_fold(fa.seq());
+#endif
       }
 
       if (!vm.count("posteriors")) {
@@ -206,8 +232,15 @@ main(int argc, char* argv[])
 	  BPTablePtr bp(new BPTable);
 	  if (vm.count("aux")) {
 	    bp->load(model[i++].c_str());
+#ifdef HAVE_LIBCONTRAFOLD
+	  } else if (use_pf_fold) {
+	    bp->pf_fold(*x);
+	  } else {
+	    bp->contra_fold(*x);
+#else
 	  } else {
 	    bp->pf_fold(*x);
+#endif
 	  }
 	  bps.push_back(bp);
 	}

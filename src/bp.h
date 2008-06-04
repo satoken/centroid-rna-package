@@ -65,6 +65,10 @@ namespace SCFG
       void alipf_fold(const std::list<std::string>& ma);
 #endif
 
+#ifdef HAVE_LIBCONTRAFOLD
+      void contra_fold(const std::string& seq);
+#endif
+
       static
       void
       convert_to_raw_sequences(const std::list<std::string>& ma,

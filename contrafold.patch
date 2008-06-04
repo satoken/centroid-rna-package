@@ -1,0 +1,112 @@
+diff -urN contrafold_v2.00.orig/src/Makefile contrafold/src/Makefile
+--- contrafold_v2.00.orig/src/Makefile	2008-01-10 10:51:36.000000000 +0900
++++ contrafold/src/Makefile	2008-06-04 19:17:03.285525922 +0900
+@@ -1,4 +1,5 @@
+ CXX = g++
++AR = ar
+ 
+ CXXFLAGS = -O3 -DNDEBUG -W -Wall -pipe -Wundef -Winline
+ LINKFLAGS = -lm
+@@ -29,14 +30,22 @@
+ 	SStruct.cpp \
+ 	Utilities.cpp
+ 
++LIB_SRCS = \
++	wrapper.cpp \
++	Parameters.cpp \
++	SStruct.cpp \
++	Utilities.cpp
++
+ CONTRAFOLD_OBJS = $(CONTRAFOLD_SRCS:%.cpp=%.o)
+ MAKECOORDS_OBJS = $(MAKECOORDS_SRCS:%.cpp=%.o)
+ PLOTRNA_OBJS = $(PLOTRNA_SRCS:%.cpp=%.o)
++LIB_OBJS = $(LIB_SRCS:%.cpp=%.o)
+ 
+ .PHONY: all viz clean
+ 
+-all: contrafold viz
++all: contrafold viz lib
+ viz: make_coords plot_rna
++lib: libcontrafold.a
+ 
+ contrafold: $(CONTRAFOLD_OBJS)
+ 	$(CXX) $(CXXFLAGS) $(OTHERFLAGS) $(CONTRAFOLD_OBJS) $(LINKFLAGS) -o contrafold
+@@ -53,6 +62,9 @@
+ plot_rna: $(PLOTRNA_OBJS)
+ 	$(CXX) $(CXXFLAGS) $(OTHERFLAGS) $(PLOTRNA_OBJS) $(LINKFLAGS) $(GDLINKFLAGS) -o plot_rna
+ 
++libcontrafold.a: $(LIB_OBJS)
++	$(AR) r libcontrafold.a $(LIB_OBJS)
++
+ ##########################################
+ 
+ gccathlon64:
+@@ -98,4 +110,4 @@
+ 	$(CXX) $(CXXFLAGS) $(OTHERFLAGS) -c $<
+ 
+ clean:
+-	rm -f contrafold make_coords plot_rna *.o Defaults.hpp
++	rm -f contrafold make_coords plot_rna *.o Defaults.hpp libcontrafold.a
+diff -urN contrafold_v2.00.orig/src/contrafold.h contrafold/src/contrafold.h
+--- contrafold_v2.00.orig/src/contrafold.h	1970-01-01 09:00:00.000000000 +0900
++++ contrafold/src/contrafold.h	2008-06-04 18:02:23.656519544 +0900
+@@ -0,0 +1,12 @@
++// wrapper routines for CONTRAfold
++#ifndef __INC_CONTRAFOLD_H__
++#define __INC_CONTRAFOLD_H__
++
++#include <string>
++
++namespace CONTRAfold {
++  template < class T >
++  T* ComputePosterior(const std::string& seq);
++};
++
++#endif	// __INC_CONTRAFOLD_H__
+diff -urN contrafold_v2.00.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
+--- contrafold_v2.00.orig/src/wrapper.cpp	1970-01-01 09:00:00.000000000 +0900
++++ contrafold/src/wrapper.cpp	2008-06-04 18:04:23.642066337 +0900
+@@ -0,0 +1,43 @@
++// wrapper routines for CONTRAfold
++
++#include "contrafold.h"
++#include <vector>
++#include "SStruct.hpp"
++#include "InferenceEngine.hpp"
++
++template < class T >
++T*
++CONTRAfold::
++ComputePosterior(const std::string& seq)
++{
++  Parameters params;
++  std::vector<double> values = params.GetDefaultValues();
++  InferenceEngine<T> engine(seq, false);
++  engine.LoadParameters(ConvertVector<T>(values));
++  engine.ComputeInside();
++  engine.ComputeOutside();
++  engine.ComputePosterior();
++  T *posterior = engine.GetPosterior(0);
++
++#if 0
++  // an example of using the posterior array
++  uint x=0;
++  for (uint i=0; i!=seq.size(); ++i) {
++    std::cout << i << ' ' << seq[i] << ' ';
++    for (uint j=i; j!=seq.size(); ++j) {
++      if (posterior[x]>0.0) {
++	std::cout << j << ':' << posterior[x] << ' ';
++      }
++      ++x;
++    }
++    std::cout << std::endl;
++  }
++#endif
++
++  return posterior;
++}
++
++// instantiation
++template
++double*
++CONTRAfold::ComputePosterior<double>(const std::string& seq);

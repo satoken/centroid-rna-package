@@ -35,6 +35,10 @@ extern "C" {
 };
 #endif
 
+#ifdef HAVE_LIBCONTRAFOLD
+#include <contrafold.h>
+#endif
+
 template < class BPTable >
 struct IgnoreAlonePair
 {
@@ -245,6 +249,27 @@ namespace SCFG
       for (uint i=0; seqs[i]!=NULL; ++i) delete[] seqs[i];
       delete[] seqs;
       
+    }
+#endif
+
+#ifdef HAVE_LIBCONTRAFOLD
+    template < class V >
+    void
+    Table<V>::
+    contra_fold(const std::string& seq)
+    {
+      resize(seq.size());
+      std::string s("@");
+      s+=seq;
+      double* posterior = CONTRAfold::ComputePosterior<double>(s);
+      uint k=0;
+      for (uint i=0; i!=s.size(); ++i) {
+	for (uint j=i; j!=s.size(); ++j) {
+	  if (i!=0) update(i-1, j-1, posterior[k]);
+	  ++k;
+	}
+      }
+      delete[] posterior;
     }
 #endif
 
