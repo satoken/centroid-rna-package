@@ -53,7 +53,7 @@ Then, put (({libcontrafold.a})) into the CentroidFold build tree.
 
  cp libcontrafold.a /somewhere/centroid_fold-x.x.x/src/
 
-Finnaly, build CentroidFold.
+Finally, build CentroidFold.
 
  cd /somewhere/centroid_fold-x.x.x/
  ./configure --with-contrafold && make && make install
@@ -196,9 +196,9 @@ Example:
   * Carvalho, L. E. and Lawrence, C. E.: Centroid estimation in
     discrete high-dimensional spaces with applications in
     biology. Proc Natl Sci USA, 105, 3209-3214, 2008.
-  * Hamada, M., Kiryu, H., Sato, K., Kin, T. and Asai, K.: Estimation
-    of secondary structure of an RNA sequence using generalized
-    centroid estimator, submitted, 2008.
+  * Hamada, M., Kiryu, H., Sato, K., Mituyama, T. and Asai, K.:
+    Estimation of secondary structure of an RNA sequence using
+    generalized centroid estimator, submitted, 2008.
 * CONTRAfold models and MEA estimators
   * Do, C. B., Woods, D. A. and Batzoglou, S.: CONTRAfold: RNA
     secondary structure prediction without physics-based
