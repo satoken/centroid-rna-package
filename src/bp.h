@@ -6,6 +6,9 @@
 #include <iosfwd>
 #include <list>
 #include "cyktable.h"
+#ifdef HAVE_LIBCONTRAFOLD
+#include "contrafold.h"
+#endif
 
 namespace SCFG
 {
@@ -18,23 +21,52 @@ namespace SCFG
       typedef T value_type;
       
     public:
-      Table() : bp_(), q_() { }
+#ifdef HAVE_LIBCONTRAFOLD
+      Table() : bp_(), q_(), size_(0), ws_(NULL) { }
+#else
+      Table() : bp_(), q_(), size_(0) { }
+#endif
       
-      Table(uint size) : bp_(size), q_(size)
+#ifdef HAVE_LIBCONTRAFOLD
+      Table(uint sz) : bp_(sz), q_(sz), size_(0), ws_(NULL)
+#else
+      Table(uint sz) : bp_(sz), q_(sz), size_(0)
+#endif
       {
+	reserve(sz);
+      }
+
+#ifdef HAVE_LIBCONTRAFOLD
+      ~Table() { if (ws_) delete ws_; }
+#endif      
+
+      void reserve(uint sz)
+      {
+	bp_.resize(sz);
 	bp_.fill(0);
+	q_.resize(sz);
 	std::fill(q_.begin(), q_.end(), 1);
       }
+
+      uint reserved_size() const { return q_.size(); }
 
       void resize(uint size)
       {
-	bp_.resize(size);
+	if (size>reserved_size()) {
+	  reserve(size);
+#ifdef HAVE_LIBCONTRAFOLD
+	  if (ws_) {
+	    delete ws_;
+	    ws_ = new CONTRAfold::WS<double>(reserved_size()+1);
+	  }
+#endif
+	}
+	size_ = size;
 	bp_.fill(0);
-	q_.resize(size);
 	std::fill(q_.begin(), q_.end(), 1);
       }
 
-      uint size() const { return q_.size(); }
+      uint size() const { return size_; }
 
       void update(uint i, uint j, T v)
       {
@@ -87,6 +119,10 @@ namespace SCFG
     private:
       CYKTable<T> bp_;
       std::vector<T> q_;
+      uint size_;
+#ifdef HAVE_LIBCONTRAFOLD
+      CONTRAfold::WS<double>* ws_;
+#endif      
     };
   }
 };

@@ -1,6 +1,305 @@
+diff -urN contrafold_v2.00.orig/src/InferenceEngine.hpp contrafold/src/InferenceEngine.hpp
+--- contrafold_v2.00.orig/src/InferenceEngine.hpp	2008-01-09 06:13:58.000000000 +0900
++++ contrafold/src/InferenceEngine.hpp	2008-06-17 10:59:26.153871589 +0900
+@@ -281,9 +281,101 @@
+     void ConvertCacheCounts();
+     void WriteCounts(std::vector<RealT> &counts);
+     
++#ifdef REUSE_MEMORY
+ public:
++    struct WS
++    {
++      WS(unsigned int m) : max_len(m)
++      {
++	uint L = m-1;
++	uint SIZE = (L+1)*(L+2)/2;
++	s                       = new int[L+1];
++	offset                  = new int[L+1];
++	allow_unpaired_position = new int[L+1];
++	allow_unpaired          = new int[SIZE];
++	allow_paired            = new int[SIZE];
++	loss_unpaired_position  = new RealT[SIZE];
++	loss_unpaired           = new RealT[SIZE];
++	loss_paired             = new RealT[SIZE];
++	
++	F5i = new RealT[L+1];
++	FCi = new RealT[SIZE];
++	FMi = new RealT[SIZE];
++	FM1i = new RealT[SIZE];
++#if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
++	FEi = new RealT[SIZE];
++	FNi = new RealT[SIZE];
++#endif
++
++	 F5o = new RealT[L+1];
++	 FCo = new RealT[SIZE];
++	 FMo = new RealT[SIZE];
++	 FM1o = new RealT[SIZE];
++#if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
++	 FEo = new RealT[SIZE];
++	 FNo = new RealT[SIZE];
++#endif
++
++	 posterior = new RealT[SIZE];
++      }
++
++      ~WS()
++      {
++	delete [] s;
++	delete [] offset;
++	delete [] allow_unpaired_position;
++	delete [] allow_unpaired;
++	delete [] allow_paired;
++	delete [] loss_unpaired_position;
++	delete [] loss_unpaired;
++	delete [] loss_paired;
++
++	delete [] FCi;
++	delete [] F5i;
++	delete [] FMi;
++	delete [] FM1i;
+     
++	delete [] FCo;
++	delete [] F5o;
++	delete [] FMo;
++	delete [] FM1o;
++    
++#if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
++	delete [] FEi;
++	delete [] FNi;
++	delete [] FEo;
++	delete [] FNo;
++#endif
++	delete [] posterior;
++      }
++
++      unsigned int max_len;
++      int *s, *offset;
++      int *allow_unpaired_position;
++      int *allow_unpaired, *allow_paired;
++      RealT *loss_unpaired_position;
++      RealT *loss_unpaired, *loss_paired;
++      // dynamic programming matrices
++      RealT *FCi, *F5i, *FMi, *FM1i;          // inside
++      RealT *FCo, *F5o, *FMo, *FM1o;          // outside
++#if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
++      RealT *FEi, *FNi;
++      RealT *FEo, *FNo;
++#endif
++      RealT *posterior;
++    };
++
++private:
++    WS *ws;
++#endif
++
++public:
++
++#ifdef REUSE_MEMORY
++    InferenceEngine(const std::string &sequence, bool toggle_complementary_only, WS* ws);
++#else    
+     InferenceEngine(const std::string &sequence, bool toggle_complementary_only);
++#endif
+     ~InferenceEngine();		   
+     
+     void LoadParameters(const std::vector<RealT> &values);
+diff -urN contrafold_v2.00.orig/src/InferenceEngine.ipp contrafold/src/InferenceEngine.ipp
+--- contrafold_v2.00.orig/src/InferenceEngine.ipp	2008-01-09 06:13:58.000000000 +0900
++++ contrafold/src/InferenceEngine.ipp	2008-06-17 14:47:37.630504282 +0900
+@@ -148,12 +148,62 @@
+ // Constructor
+ /////////////////////////////////////////////////////////////////
+ 
++#ifdef REUSE_MEMORY
++template<class RealT>
++InferenceEngine<RealT>::InferenceEngine(const std::string &sequence, 
++                                        bool toggle_complementary_only,
++					WS* w) : 
++    params(), L(sequence.length()-1), SIZE((L+1)*(L+2)/2), 
++    toggle_complementary_only(toggle_complementary_only), ws(w)
++#else
+ template<class RealT>
+ InferenceEngine<RealT>::InferenceEngine(const std::string &sequence, 
+                                         bool toggle_complementary_only) : 
+     params(), L(sequence.length()-1), SIZE((L+1)*(L+2)/2), 
+     toggle_complementary_only(toggle_complementary_only)
++#endif
+ {
++#ifdef REUSE_MEMORY
++    // allocate memory
++
++    s                       = ws->s;
++    offset                  = ws->offset;
++    allow_unpaired_position = ws->allow_unpaired_position;
++    allow_unpaired          = ws->allow_unpaired;
++    allow_paired            = ws->allow_paired;
++    loss_unpaired_position  = ws->loss_unpaired_position;
++    loss_unpaired           = ws->loss_unpaired;
++    loss_paired             = ws->loss_paired;
++    
++#if FAST_HELIX_LENGTHS
++    cache_score_helix_sums  = new RealT[(2*L+1)*L];
++    cache_counts_helix_sums = new RealT[(2*L+1)*L];
++#endif
++    
++    // initialize dynamic programming matrix pointers
++    
++    FCt = F5t = FMt = FM1t = NULL;
++    FCv = F5v = FMv = FM1v = NULL;
++
++    FCi = ws->FCi;
++    F5i = ws->F5i;
++    FMi = ws->FMi;
++    FM1i = ws->FM1i;
++    FCo = ws->FCo;
++    F5o = ws->F5o;
++    FMo = ws->FMo;
++    FM1o = ws->FM1o;
++    posterior = ws->posterior;
++    
++#if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
++    FEt = FNt = NULL;
++    FEv = FNv = NULL;
++    FEi = ws->FEi;
++    FNi = ws->FNi;
++    FEo = ws->FEo;
++    FNo = ws->FNo;
++#endif
++#else
+     // allocate memory
+ 
+     s                       = new int[L+1];
+@@ -184,6 +234,7 @@
+     FEi = FNi = NULL;
+     FEo = FNo = NULL;
+ #endif
++#endif
+     
+     // precompute mapping from characters to index representation
+ 
+@@ -277,6 +328,7 @@
+ template<class RealT>
+ InferenceEngine<RealT>::~InferenceEngine()
+ {
++#ifndef REUSE_MEMORY
+     delete [] s;
+     delete [] offset;
+     delete [] allow_unpaired_position;
+@@ -285,6 +337,7 @@
+     delete [] loss_unpaired_position;
+     delete [] loss_unpaired;
+     delete [] loss_paired;
++#endif
+     
+ #if FAST_HELIX_LENGTHS
+     delete [] cache_score_helix_sums;
+@@ -300,7 +353,8 @@
+     delete [] F5v;
+     delete [] FMv;
+     delete [] FM1v;
+-    
++
++#ifndef REUSE_MEMORY    
+     delete [] FCi;
+     delete [] F5i;
+     delete [] FMi;
+@@ -310,19 +364,24 @@
+     delete [] F5o;
+     delete [] FMo;
+     delete [] FM1o;
++#endif
+     
+ #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
+     delete [] FEt;
+     delete [] FNt;
+     delete [] FEv;
+     delete [] FNv;
++#ifndef REUSE_MEMORY
+     delete [] FEi;
+     delete [] FNi;
+     delete [] FEo;
+     delete [] FNo;
+ #endif
++#endif
+     
++#ifndef REUSE_MEMORY
+     delete [] posterior;
++#endif
+ }
+ 
+ /////////////////////////////////////////////////////////////////
+@@ -1851,7 +1910,7 @@
+     // Clearly, i and j must refer to actual letters of the sequence,
+     // and no letter may base-pair to itself.
+     
+-    Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
++    Assert(0 < i && i <= L && 0 < j && j <= L /*&& i != j*/, "Invalid base-pair");
+     
+     return 
+         loss_paired[offset[i]+j]
+@@ -3049,11 +3108,12 @@
+     //double starting_time = GetSystemTime();
+     
+     // initialization
+-    
++#ifndef REUSE_MEMORY    
+     delete [] F5i; F5i = new RealT[L+1];
+     delete [] FCi; FCi = new RealT[SIZE];
+     delete [] FMi; FMi = new RealT[SIZE];
+     delete [] FM1i; FM1i = new RealT[SIZE];
++#endif
+     
+     std::fill(F5i, F5i+L+1, RealT(NEG_INF));
+     std::fill(FCi, FCi+SIZE, RealT(NEG_INF));
+@@ -3061,8 +3121,10 @@
+     std::fill(FM1i, FM1i+SIZE, RealT(NEG_INF));
+     
+ #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
++#ifndef REUSE_MEMORY
+     delete [] FEi; FEi = new RealT[SIZE];
+     delete [] FNi; FNi = new RealT[SIZE];
++#endif
+     std::fill(FEi, FEi+SIZE, RealT(NEG_INF));
+     std::fill(FNi, FNi+SIZE, RealT(NEG_INF));
+ #endif
+@@ -3420,11 +3482,12 @@
+     //double starting_time = GetSystemTime();
+     
+     // initialization
+-    
++#ifndef REUSE_MEMORY    
+     delete [] F5o; F5o = new RealT[L+1];
+     delete [] FCo; FCo = new RealT[SIZE];
+     delete [] FMo; FMo = new RealT[SIZE];
+     delete [] FM1o; FM1o = new RealT[SIZE];
++#endif
+     
+     std::fill(F5o, F5o+L+1, RealT(NEG_INF));
+     std::fill(FCo, FCo+SIZE, RealT(NEG_INF));
+@@ -3432,8 +3495,10 @@
+     std::fill(FM1o, FM1o+SIZE, RealT(NEG_INF));
+     
+ #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
++#ifndef REUSE_MEMORY
+     delete [] FEo; FEo = new RealT[SIZE];
+     delete [] FNo; FNo = new RealT[SIZE];
++#endif
+     std::fill(FEo, FEo+SIZE, RealT(NEG_INF));
+     std::fill(FNo, FNo+SIZE, RealT(NEG_INF));
+ #endif
+@@ -4162,7 +4227,9 @@
+ template<class RealT>
+ void InferenceEngine<RealT>::ComputePosterior()
+ { 
++#ifndef REUSE_MEMORY
+     delete [] posterior; posterior = new RealT[SIZE];
++#endif
+     std::fill(posterior, posterior + SIZE, RealT(0));
+     
+     //double starting_time = GetSystemTime();
 diff -urN contrafold_v2.00.orig/src/Makefile contrafold/src/Makefile
 --- contrafold_v2.00.orig/src/Makefile	2008-01-10 10:51:36.000000000 +0900
-+++ contrafold/src/Makefile	2008-06-04 19:17:03.285525922 +0900
++++ contrafold/src/Makefile	2008-06-04 19:51:58.598167431 +0900
 @@ -1,4 +1,5 @@
  CXX = g++
 +AR = ar
@@ -47,10 +346,22 @@ diff -urN contrafold_v2.00.orig/src/Makefile contrafold/src/Makefile
  clean:
 -	rm -f contrafold make_coords plot_rna *.o Defaults.hpp
 +	rm -f contrafold make_coords plot_rna *.o Defaults.hpp libcontrafold.a
+diff -urN contrafold_v2.00.orig/src/OptimizationWrapper.cpp contrafold/src/OptimizationWrapper.cpp
+--- contrafold_v2.00.orig/src/OptimizationWrapper.cpp	2008-01-10 10:09:03.000000000 +0900
++++ contrafold/src/OptimizationWrapper.cpp	2008-06-17 11:08:35.645637276 +0900
+@@ -102,7 +102,7 @@
+         else
+         {
+             InnerOptimizationWrapper optimizer(this, units, C);
+-            optimizer.Minimize(cached_learned_values);
++            ooptimizer.Minimize(cached_learned_values);
+         }
+         
+     }
 diff -urN contrafold_v2.00.orig/src/contrafold.h contrafold/src/contrafold.h
 --- contrafold_v2.00.orig/src/contrafold.h	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/contrafold.h	2008-06-04 18:02:23.656519544 +0900
-@@ -0,0 +1,12 @@
++++ contrafold/src/contrafold.h	2008-06-17 11:39:40.983045040 +0900
+@@ -0,0 +1,27 @@
 +// wrapper routines for CONTRAfold
 +#ifndef __INC_CONTRAFOLD_H__
 +#define __INC_CONTRAFOLD_H__
@@ -58,35 +369,84 @@ diff -urN contrafold_v2.00.orig/src/contrafold.h contrafold/src/contrafold.h
 +#include <string>
 +
 +namespace CONTRAfold {
++
++  template < class T >
++  struct WSImpl;
++
++  template < class T >
++  struct WS {
++    WSImpl<T>* impl;
++
++    WS(uint size);
++    ~WS();
++  };
++  
 +  template < class T >
 +  T* ComputePosterior(const std::string& seq);
++
++  template < class T >
++  T* ComputePosterior(const std::string& seq, WS<T>& ws);
 +};
 +
 +#endif	// __INC_CONTRAFOLD_H__
 diff -urN contrafold_v2.00.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 --- contrafold_v2.00.orig/src/wrapper.cpp	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/wrapper.cpp	2008-06-04 18:04:23.642066337 +0900
-@@ -0,0 +1,43 @@
++++ contrafold/src/wrapper.cpp	2008-06-17 14:31:18.197423612 +0900
+@@ -0,0 +1,77 @@
 +// wrapper routines for CONTRAfold
 +
 +#include "contrafold.h"
 +#include <vector>
 +#include "SStruct.hpp"
++
++#define REUSE_MEMORY
 +#include "InferenceEngine.hpp"
++
++namespace CONTRAfold {
++  template < class T >
++  struct WSImpl
++  {
++    typename InferenceEngine<T>::WS ws;
++    WSImpl(uint size) : ws(size) { }
++  };
++};
++
++template < class T >
++CONTRAfold::WS<T>::
++WS(uint size) : impl(new WSImpl<T>(size))
++{
++}
++
++template < class T >
++CONTRAfold::WS<T>::
++~WS()
++{
++  delete impl;
++}
 +
 +template < class T >
 +T*
 +CONTRAfold::
 +ComputePosterior(const std::string& seq)
 +{
++  WS<T> ws(seq.size());
++  return ComputePosterior(seq, ws);
++}
++
++template < class T >
++T*
++CONTRAfold::
++ComputePosterior(const std::string& seq, WS<T>& ws)
++{
 +  Parameters params;
 +  std::vector<double> values = params.GetDefaultValues();
-+  InferenceEngine<T> engine(seq, false);
++  InferenceEngine<T> engine(seq, false, &(ws.impl->ws));
 +  engine.LoadParameters(ConvertVector<T>(values));
 +  engine.ComputeInside();
 +  engine.ComputeOutside();
 +  engine.ComputePosterior();
-+  T *posterior = engine.GetPosterior(0);
++  return ws.impl->ws.posterior;
++  //T *posterior = engine.GetPosterior(0);
 +
 +#if 0
 +  // an example of using the posterior array
@@ -103,7 +463,7 @@ diff -urN contrafold_v2.00.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +  }
 +#endif
 +
-+  return posterior;
++  //return posterior;
 +}
 +
 +// instantiation

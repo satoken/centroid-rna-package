@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 #ifdef HAVE_CONFIG_H
 #include "../config.h"
 #endif
@@ -14,7 +14,7 @@ typedef SCFG::BP::Table<double> BPTable;
 int
 centroidfold(const char *seq, char *str)
 {
-  BPTable bp;
+  BPTable bp(MAX_SEQ_LEN);
   bp.contra_fold(seq);
   unsigned int l=strlen(seq);
   std::string paren(l, '.');
