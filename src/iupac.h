@@ -49,7 +49,7 @@ public:
     if (this!=&s) iupac_ = s.iupac_;
     return *this;
   }
-  uint index() const { return static_cast<uint>(iupac_); }
+  unsigned int index() const { return static_cast<unsigned int>(iupac_); }
   char to_char() const;
 
   static void transform(IUPACsequence& r, const std::string& s);

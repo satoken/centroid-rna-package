@@ -11,6 +11,7 @@
 #include <map>
 #include <stdexcept>
 #include <boost/spirit.hpp>
+#include <cstring>
 
 #ifdef HAVE_LIBRNA
 namespace Vienna {
