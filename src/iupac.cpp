@@ -46,6 +46,6 @@ IUPACsymbol::
 transform(IUPACsequence& r, const std::string& s)
 {
   r.resize(s.size());
-  for (uint i=0; i!=s.size(); ++i)
+  for (unsigned int i=0; i!=s.size(); ++i)
     r[i] = IUPACsymbol(s[i]);
 }

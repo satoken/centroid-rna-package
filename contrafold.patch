@@ -1,6 +1,6 @@
 diff -urN contrafold_v2.00.orig/src/InferenceEngine.hpp contrafold/src/InferenceEngine.hpp
 --- contrafold_v2.00.orig/src/InferenceEngine.hpp	2008-01-09 06:13:58.000000000 +0900
-+++ contrafold/src/InferenceEngine.hpp	2008-06-17 10:59:26.153871589 +0900
++++ contrafold/src/InferenceEngine.hpp	2008-06-21 12:11:06.950452892 +0900
 @@ -281,9 +281,101 @@
      void ConvertCacheCounts();
      void WriteCounts(std::vector<RealT> &counts);
@@ -105,7 +105,7 @@ diff -urN contrafold_v2.00.orig/src/InferenceEngine.hpp contrafold/src/Inference
      void LoadParameters(const std::vector<RealT> &values);
 diff -urN contrafold_v2.00.orig/src/InferenceEngine.ipp contrafold/src/InferenceEngine.ipp
 --- contrafold_v2.00.orig/src/InferenceEngine.ipp	2008-01-09 06:13:58.000000000 +0900
-+++ contrafold/src/InferenceEngine.ipp	2008-06-17 14:47:37.630504282 +0900
++++ contrafold/src/InferenceEngine.ipp	2008-06-21 12:11:06.958578242 +0900
 @@ -148,12 +148,62 @@
  // Constructor
  /////////////////////////////////////////////////////////////////
@@ -299,7 +299,7 @@ diff -urN contrafold_v2.00.orig/src/InferenceEngine.ipp contrafold/src/Inference
      //double starting_time = GetSystemTime();
 diff -urN contrafold_v2.00.orig/src/Makefile contrafold/src/Makefile
 --- contrafold_v2.00.orig/src/Makefile	2008-01-10 10:51:36.000000000 +0900
-+++ contrafold/src/Makefile	2008-06-04 19:51:58.598167431 +0900
++++ contrafold/src/Makefile	2008-06-21 12:11:06.958578242 +0900
 @@ -1,4 +1,5 @@
  CXX = g++
 +AR = ar
@@ -348,7 +348,7 @@ diff -urN contrafold_v2.00.orig/src/Makefile contrafold/src/Makefile
 +	rm -f contrafold make_coords plot_rna *.o Defaults.hpp libcontrafold.a
 diff -urN contrafold_v2.00.orig/src/OptimizationWrapper.cpp contrafold/src/OptimizationWrapper.cpp
 --- contrafold_v2.00.orig/src/OptimizationWrapper.cpp	2008-01-10 10:09:03.000000000 +0900
-+++ contrafold/src/OptimizationWrapper.cpp	2008-06-17 11:08:35.645637276 +0900
++++ contrafold/src/OptimizationWrapper.cpp	2008-06-21 12:11:06.958578242 +0900
 @@ -102,7 +102,7 @@
          else
          {
@@ -358,9 +358,20 @@ diff -urN contrafold_v2.00.orig/src/OptimizationWrapper.cpp contrafold/src/Optim
          }
          
      }
+diff -urN contrafold_v2.00.orig/src/Utilities.cpp contrafold/src/Utilities.cpp
+--- contrafold_v2.00.orig/src/Utilities.cpp	2008-01-10 11:10:12.000000000 +0900
++++ contrafold/src/Utilities.cpp	2008-06-21 12:15:28.306997201 +0900
+@@ -3,6 +3,7 @@
+ /////////////////////////////////////////////////////////////////
+ 
+ #include "Utilities.hpp"
++#include <climits>
+ 
+ bool toggle_error = false;
+ 
 diff -urN contrafold_v2.00.orig/src/contrafold.h contrafold/src/contrafold.h
 --- contrafold_v2.00.orig/src/contrafold.h	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/contrafold.h	2008-06-17 11:39:40.983045040 +0900
++++ contrafold/src/contrafold.h	2008-06-21 12:15:10.258725726 +0900
 @@ -0,0 +1,27 @@
 +// wrapper routines for CONTRAfold
 +#ifndef __INC_CONTRAFOLD_H__
@@ -377,7 +388,7 @@ diff -urN contrafold_v2.00.orig/src/contrafold.h contrafold/src/contrafold.h
 +  struct WS {
 +    WSImpl<T>* impl;
 +
-+    WS(uint size);
++    WS(unsigned int size);
 +    ~WS();
 +  };
 +  
@@ -391,7 +402,7 @@ diff -urN contrafold_v2.00.orig/src/contrafold.h contrafold/src/contrafold.h
 +#endif	// __INC_CONTRAFOLD_H__
 diff -urN contrafold_v2.00.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 --- contrafold_v2.00.orig/src/wrapper.cpp	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/wrapper.cpp	2008-06-17 14:31:18.197423612 +0900
++++ contrafold/src/wrapper.cpp	2008-06-21 12:11:06.958578242 +0900
 @@ -0,0 +1,77 @@
 +// wrapper routines for CONTRAfold
 +

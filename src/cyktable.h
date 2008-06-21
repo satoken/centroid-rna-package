@@ -26,6 +26,8 @@
 #include <vector>
 #include <utility>
 
+typedef unsigned int uint;
+
 namespace SCFG
 {
   typedef std::pair<uint,uint> Pos;

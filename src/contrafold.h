@@ -13,7 +13,7 @@ namespace CONTRAfold {
   struct WS {
     WSImpl<T>* impl;
 
-    WS(uint size);
+    WS(unsigned int size);
     ~WS();
   };
   
