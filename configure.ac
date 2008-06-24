@@ -22,6 +22,16 @@ AC_ARG_WITH([contrafold], AS_HELP_STRING([--with-contrafold],[link the CONTRAfol
 )
 AC_SUBST(LIBCONTRAFOLD)
 
+# Memory Resevation
+AC_ARG_WITH([reserve], AS_HELP_STRING([--with-reserve],[the length of seqeunces for reserved memory (default: 500)]),
+    [
+      AC_DEFINE_UNQUOTED([RESERVED_LENGTH], $withval, [the length of seqeunces for reserved memory])
+    ],
+    [
+      AC_DEFINE_UNQUOTED([RESERVED_LENGTH], 500, [the length of seqeunces for reserved memory])
+    ]
+)
+
 # boost libraries
 dnl AC_CHECK_HEADER(boost/lambda/lambda.hpp, ,
 dnl                 AC_MSG_ERROR("boost/lambda/lambda.hpp is unavailable"))

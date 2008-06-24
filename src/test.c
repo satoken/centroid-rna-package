@@ -4,9 +4,16 @@
 int
 main()
 {
-  char seq[]="augcaugcaugcaugcaugcaugc";
-  char str[]="........................";
-  centroidfold(seq, str);
-  printf("%s\n%s\n", seq, str);
+  char seq[]="augcaugcaunnnngcaugcaugcaugc";
+  char str[]="............................";
+  int x=centroidfold(seq, str);
+  switch (x) {
+  case CENTROID_SUCCESS:
+    printf("%s\n%s\n", seq, str);
+    break;
+  default:
+    printf("err: %d\n", x);
+    break;
+  }
   return 0;
 }

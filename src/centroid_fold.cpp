@@ -179,10 +179,10 @@ main(int argc, char* argv[])
     perror(input.c_str());
     return 1;
   }
+  BPTable bp(RESERVED_LENGTH);
   while (1) {
     Fasta fa;
     Aln aln;
-    BPTable bp;
     if (fa.load(fi)) {		// for single sequences
       if (vm.count("aux")) {
 	bp.load(model[0].c_str());
