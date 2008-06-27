@@ -18,7 +18,7 @@ namespace SCFG
     template < class T >
     struct Estimator
     {
-      Estimator(const T& t, std::string& paren, double n, double gamma)
+      Estimator(const T& t, std::string& paren, double n, float gamma)
 	: t_(t), paren_(paren), th_(n/(gamma+1.0)), gamma_(gamma), n_(n), ea_(0.0) { }
 
       void operator()(uint i, uint j)
@@ -34,8 +34,8 @@ namespace SCFG
 
       const T& t_;
       std::string& paren_;
-      double th_;
-      double gamma_;
+      float th_;
+      float gamma_;
       double n_;
       double ea_;
     };
@@ -74,7 +74,7 @@ namespace SCFG
     {
       typedef typename BPTable::value_type value_type;
 
-      Updater(const BPTable& bp, DPTable& dp, double n, double gamma,
+      Updater(const BPTable& bp, DPTable& dp, double n, float gamma,
 	      uint min_loop=3)
 	: bp_(bp), dp_(dp), n_(n), gamma_(gamma), min_loop_(min_loop)
       {
@@ -114,7 +114,7 @@ namespace SCFG
       const BPTable& bp_;
       DPTable& dp_;
       double n_;
-      double gamma_;
+      float gamma_;
       uint min_loop_;
     };
 
@@ -163,7 +163,7 @@ namespace SCFG
 
     template < class T >
     double
-    execute(const T& table, std::string& paren, double n /*=1.0*/, double gamma /*=1.0*/)
+    execute(const T& table, std::string& paren, double n /*=1.0*/, float gamma /*=1.0*/)
     {
       if (gamma<=1.0) {
 	Estimator<T> est(table, paren, n, gamma);
@@ -193,10 +193,10 @@ namespace SCFG
 template
 double
 SCFG::Centroid::
-execute(const CYKTable<uint>& table, std::string& paren, double n, double gamma);
+execute(const CYKTable<uint>& table, std::string& paren, double n, float gamma);
 
 template
 double
 SCFG::Centroid::
-execute(const SCFG::BP::Table<double>& table, std::string& paren, double n, double gamma);
+execute(const SCFG::BP::Table<double>& table, std::string& paren, double n, float gamma);
 

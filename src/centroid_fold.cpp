@@ -42,6 +42,141 @@ bool svg_out;
 bool use_pf_fold;
 #endif
 
+class CentroidFold
+{
+public:
+  enum {
+    AUX,
+    PF_FOLD,
+    CONTRAFOLD,
+    ALIPF_FOLD
+  };
+  
+public:
+  CentroidFold(unsigned int engine, bool run_as_mea=false,
+	       unsigned int reserved_size=RESERVED_LENGTH)
+    : engine_(engine),
+      mea_(run_as_mea),
+      bp_(reserved_size)
+  {
+  }
+
+  ~CentroidFold()
+  {
+  }
+
+  void calculate_posterior(const std::string& seq, const std::string& model="")
+  {
+    switch (engine_) {
+    case AUX:
+      bp_.load(model.c_str());
+      break;
+    case PF_FOLD:
+      bp_.pf_fold(seq);
+      break;
+    case CONTRAFOLD:
+      bp_.contra_fold(seq);
+      break;
+    default:
+      assert(!"never come here");
+      break;
+    }
+  }
+
+  void calculate_posterior(const std::list<std::string>& seq,
+			   const std::vector<std::string>& model)
+  {
+    if (engine_==ALIPF_FOLD)  {
+      bp_.alipf_fold(seq);
+    } else if (engine_==AUX) {
+      std::list<BPTablePtr> bps;
+      std::list<std::string> seqs;
+      std::list<std::vector<uint> > idxmaps;
+      BPTable::convert_to_raw_sequences(seq, seqs, idxmaps);
+      uint i=0;
+      std::list<std::string>::const_iterator x;
+      for (x=seqs.begin(), i=0; x!=seqs.end(); ++x) {
+	BPTablePtr bpi(new BPTable);
+	bpi->load(model[i++].c_str());
+	bps.push_back(bpi);
+      }
+      bp_.average(bps, idxmaps);
+    } else {
+      std::list<BPTablePtr> bps;
+      std::list<std::string> seqs;
+      std::list<std::vector<uint> > idxmaps;
+      BPTable::convert_to_raw_sequences(seq, seqs, idxmaps);
+      uint i=0;
+      std::list<std::string>::const_iterator x;
+      for (x=seqs.begin(), i=0; x!=seqs.end(); ++x) {
+	BPTablePtr bpi(new BPTable);
+	switch (engine_) {
+	case PF_FOLD:
+	  bpi->pf_fold(*x);
+	  break;
+	case CONTRAFOLD:
+	  bpi->contra_fold(*x);
+	  break;
+	default:
+	  assert(!"never come here");
+	  break;
+	}
+	bps.push_back(bpi);
+      }
+      bp_.average(bps, idxmaps);
+    }
+  }
+
+  void calculate_posterior(const std::list<std::string>& seq)
+  {
+    const std::vector<std::string> model;
+    calculate_posterior(seq, model);
+  }
+
+  std::pair<float,std::string> decode(float gamma) const
+  {
+    float p=0.0;
+    std::string paren(bp_.size(), '.');
+    if (!mea_) {
+      p = SCFG::Centroid::execute(bp_, paren, 1.0, gamma);
+    } else {
+      p = SCFG::MEA::execute(bp_, gamma, paren);
+    }
+    return std::make_pair(p, paren);
+  }
+
+  void print(std::ostream& out, const std::string& name, const std::string& seq,
+	     const std::vector<double>& gamma)
+  {
+    out << ">" << name << std::endl << seq << std::endl;
+    std::vector<double>::const_iterator g;
+    for (g=gamma.begin(); g!=gamma.end(); ++g) {
+      std::pair<float,std::string> res = decode(*g);
+      out << res.second;
+      if (!mea_)
+	out << " (g=" << *g << ",th=" << (1.0/(1.0+*g)) << ")";
+      else
+	out << res.second << " (g=" << *g << ",EA=" << res.first << ")";
+      out << std::endl;
+    }
+  }
+
+  void postscript(const std::string& seq, float g, const std::string& f)
+  {
+    std::pair<float, std::string> r;
+    r = decode(g);
+    Vienna::PS_rna_plot(const_cast<char*>(seq.c_str()),
+			const_cast<char*>(r.second.c_str()),
+			f.c_str());
+  }
+
+private:
+  unsigned int engine_;
+  bool mea_;
+  BPTable bp_;
+};
+
+
 template < class BPTable >
 void
 output(const std::string& name, const std::string& seq, const BPTable& bp,
@@ -179,6 +314,29 @@ main(int argc, char* argv[])
     perror(input.c_str());
     return 1;
   }
+
+#if 1
+  unsigned int engine = CentroidFold::CONTRAFOLD;
+  if (vm.count("use_pf_fold"))
+    engine = CentroidFold::PF_FOLD;
+  else if (vm.count("aux"))
+    engine = CentroidFold::AUX;
+  CentroidFold cf(engine, vm.count("mea"));
+  while (1) {
+    Fasta fa;
+    Aln aln;
+    if (fa.load(fi)) {
+      cf.calculate_posterior(fa.seq(), model[0]);
+      cf.print(std::cout, fa.name(), fa.seq(), gamma);
+    } else if (aln.load(fi)) {
+      cf.calculate_posterior(aln.seq(), model);
+      cf.print(std::cout, aln.name().front(), aln.consensus(), gamma);
+    } else {
+      break;
+    }
+  }
+#else
+
   BPTable bp(RESERVED_LENGTH);
   while (1) {
     Fasta fa;
@@ -255,6 +413,7 @@ main(int argc, char* argv[])
       break;
     }
   }
+#endif
 
   return 0;
 }

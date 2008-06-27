@@ -33,5 +33,5 @@ centroidfold(const char *seq, char *str)
   } catch (std::exception& e) {
     return CENTROID_UNKNOWN_ERR;
   }
-  return 0;
+  return CENTROID_SUCCESS;
 }

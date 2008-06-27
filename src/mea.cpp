@@ -136,7 +136,7 @@ namespace SCFG
 
     template < class V >
     V
-    execute(const SCFG::BP::Table<V>& bp, V gamma, std::string& paren)
+    execute(const SCFG::BP::Table<V>& bp, float gamma, std::string& paren)
     {
       typedef V value_type;
       typedef SCFG::BP::Table<V> BPTable;
@@ -163,5 +163,5 @@ namespace SCFG
 // instantiate
 template
 double
-SCFG::MEA::execute(const SCFG::BP::Table<double>& bp, double gamma,
+SCFG::MEA::execute(const SCFG::BP::Table<double>& bp, float gamma,
 		   std::string& paren);
