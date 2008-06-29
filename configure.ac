@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(centroid_fold, 0.0.3, no-define)
+AC_INIT(centroid_fold, 0.0.4, no-define)
 AM_INIT_AUTOMAKE([-Wall foreign])
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR([src/centroid_fold.cpp])
@@ -12,6 +12,7 @@ AC_PROG_CXX
 AC_PROG_CC
 AC_LANG(C++)
 AC_CXX_HAVE_STL
+AC_PROG_RANLIB
 
 # CONTRAfold
 AC_ARG_WITH([contrafold], AS_HELP_STRING([--with-contrafold],[link the CONTRAfold library]),
