@@ -14,6 +14,3 @@ aln = [
 cf.calculate_posterior(aln)
 s,ea=cf.decode_structure(4)
 print s,ea
-
-print cf.execute("GGGCCCAUAGCUCAGUGGUAGAGUGCCUCCUUUGCAAGGAGGAUGCCCUGGGUUCGAAUCCCAGUGGGUCCA", [1.0, 2.0, 4.0])
-

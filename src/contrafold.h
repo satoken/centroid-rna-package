@@ -3,6 +3,7 @@
 #define __INC_CONTRAFOLD_H__
 
 #include <string>
+#include <vector>
 
 namespace CONTRAfold {
 
@@ -18,10 +19,10 @@ namespace CONTRAfold {
   };
   
   template < class T >
-  T* ComputePosterior(const std::string& seq);
+  const T* ComputePosterior(const std::string& seq, bool canonical_only = true);
 
   template < class T >
-  T* ComputePosterior(const std::string& seq, WS<T>& ws);
+  const T* ComputePosterior(const std::string& seq, WS<T>& ws, bool canonical_only = true);
 };
 
 #endif	// __INC_CONTRAFOLD_H__

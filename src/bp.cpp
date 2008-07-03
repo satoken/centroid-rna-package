@@ -260,10 +260,10 @@ namespace SCFG
     {
       resize(seq.size());
       if (ws_==NULL)
-	ws_ = new CONTRAfold::WS<double>(reserved_size()+1);
+	ws_ = new CONTRAfold::WS<float>(reserved_size()+1);
       std::string s("@");
       s += seq;
-      double* posterior = CONTRAfold::ComputePosterior<double>(s, *ws_);
+      const float* posterior = CONTRAfold::ComputePosterior<float>(s, *ws_);
       uint k=0;
       for (uint i=0; i!=s.size(); ++i) {
 	for (uint j=i; j!=s.size(); ++j) {
@@ -355,7 +355,7 @@ namespace SCFG
       for (uint i=0; i!=seq.size(); ++i) {
 	out << (i+1) << ' ' << seq[i] << ' ';
 	for (uint j=i; j!=seq.size(); ++j) {
-	  if ((*this)(i,j)>=th)
+	  if ((*this)(i,j)>=th && (*this)(i,j)>0.0)
 	    out << (j+1) << ':' << (*this)(i,j) << ' ';
 	}
 	out << std::endl;

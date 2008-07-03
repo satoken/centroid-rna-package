@@ -1,6 +1,6 @@
 diff -urN contrafold_v2.00.orig/src/InferenceEngine.hpp contrafold/src/InferenceEngine.hpp
 --- contrafold_v2.00.orig/src/InferenceEngine.hpp	2008-01-09 06:13:58.000000000 +0900
-+++ contrafold/src/InferenceEngine.hpp	2008-06-21 12:11:06.950452892 +0900
++++ contrafold/src/InferenceEngine.hpp	2008-07-03 23:34:44.625555107 +0900
 @@ -281,9 +281,101 @@
      void ConvertCacheCounts();
      void WriteCounts(std::vector<RealT> &counts);
@@ -105,7 +105,7 @@ diff -urN contrafold_v2.00.orig/src/InferenceEngine.hpp contrafold/src/Inference
      void LoadParameters(const std::vector<RealT> &values);
 diff -urN contrafold_v2.00.orig/src/InferenceEngine.ipp contrafold/src/InferenceEngine.ipp
 --- contrafold_v2.00.orig/src/InferenceEngine.ipp	2008-01-09 06:13:58.000000000 +0900
-+++ contrafold/src/InferenceEngine.ipp	2008-06-21 12:11:06.958578242 +0900
++++ contrafold/src/InferenceEngine.ipp	2008-07-03 23:34:44.629554962 +0900
 @@ -148,12 +148,62 @@
  // Constructor
  /////////////////////////////////////////////////////////////////
@@ -297,9 +297,20 @@ diff -urN contrafold_v2.00.orig/src/InferenceEngine.ipp contrafold/src/Inference
      std::fill(posterior, posterior + SIZE, RealT(0));
      
      //double starting_time = GetSystemTime();
+diff -urN contrafold_v2.00.orig/src/InnerOptimizationWrapper.cpp contrafold/src/InnerOptimizationWrapper.cpp
+--- contrafold_v2.00.orig/src/InnerOptimizationWrapper.cpp	2008-01-10 10:09:03.000000000 +0900
++++ contrafold/src/InnerOptimizationWrapper.cpp	2008-07-03 23:52:27.715751693 +0900
+@@ -4,6 +4,7 @@
+ // Implementation of functors needed for optimization.
+ /////////////////////////////////////////////////////////////////
+ 
++#include <limits>
+ #include "InnerOptimizationWrapper.hpp"
+ 
+ /////////////////////////////////////////////////////////////////
 diff -urN contrafold_v2.00.orig/src/Makefile contrafold/src/Makefile
 --- contrafold_v2.00.orig/src/Makefile	2008-01-10 10:51:36.000000000 +0900
-+++ contrafold/src/Makefile	2008-06-21 12:11:06.958578242 +0900
++++ contrafold/src/Makefile	2008-07-03 23:34:44.629554962 +0900
 @@ -1,4 +1,5 @@
  CXX = g++
 +AR = ar
@@ -346,21 +357,9 @@ diff -urN contrafold_v2.00.orig/src/Makefile contrafold/src/Makefile
  clean:
 -	rm -f contrafold make_coords plot_rna *.o Defaults.hpp
 +	rm -f contrafold make_coords plot_rna *.o Defaults.hpp libcontrafold.a
-diff -urN contrafold_v2.00.orig/src/OptimizationWrapper.cpp contrafold/src/OptimizationWrapper.cpp
---- contrafold_v2.00.orig/src/OptimizationWrapper.cpp	2008-01-10 10:09:03.000000000 +0900
-+++ contrafold/src/OptimizationWrapper.cpp	2008-06-21 12:11:06.958578242 +0900
-@@ -102,7 +102,7 @@
-         else
-         {
-             InnerOptimizationWrapper optimizer(this, units, C);
--            optimizer.Minimize(cached_learned_values);
-+            ooptimizer.Minimize(cached_learned_values);
-         }
-         
-     }
 diff -urN contrafold_v2.00.orig/src/Utilities.cpp contrafold/src/Utilities.cpp
 --- contrafold_v2.00.orig/src/Utilities.cpp	2008-01-10 11:10:12.000000000 +0900
-+++ contrafold/src/Utilities.cpp	2008-06-21 12:15:28.306997201 +0900
++++ contrafold/src/Utilities.cpp	2008-07-03 23:34:44.633554747 +0900
 @@ -3,6 +3,7 @@
  /////////////////////////////////////////////////////////////////
  
@@ -371,13 +370,14 @@ diff -urN contrafold_v2.00.orig/src/Utilities.cpp contrafold/src/Utilities.cpp
  
 diff -urN contrafold_v2.00.orig/src/contrafold.h contrafold/src/contrafold.h
 --- contrafold_v2.00.orig/src/contrafold.h	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/contrafold.h	2008-06-21 12:15:10.258725726 +0900
-@@ -0,0 +1,27 @@
++++ contrafold/src/contrafold.h	2008-07-03 23:54:34.245554895 +0900
+@@ -0,0 +1,28 @@
 +// wrapper routines for CONTRAfold
 +#ifndef __INC_CONTRAFOLD_H__
 +#define __INC_CONTRAFOLD_H__
 +
 +#include <string>
++#include <vector>
 +
 +namespace CONTRAfold {
 +
@@ -393,17 +393,17 @@ diff -urN contrafold_v2.00.orig/src/contrafold.h contrafold/src/contrafold.h
 +  };
 +  
 +  template < class T >
-+  T* ComputePosterior(const std::string& seq);
++  const T* ComputePosterior(const std::string& seq, bool canonical_only = true);
 +
 +  template < class T >
-+  T* ComputePosterior(const std::string& seq, WS<T>& ws);
++  const T* ComputePosterior(const std::string& seq, WS<T>& ws, bool canonical_only = true);
 +};
 +
 +#endif	// __INC_CONTRAFOLD_H__
 diff -urN contrafold_v2.00.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 --- contrafold_v2.00.orig/src/wrapper.cpp	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/wrapper.cpp	2008-06-21 12:11:06.958578242 +0900
-@@ -0,0 +1,77 @@
++++ contrafold/src/wrapper.cpp	2008-07-03 23:54:47.541555215 +0900
+@@ -0,0 +1,78 @@
 +// wrapper routines for CONTRAfold
 +
 +#include "contrafold.h"
@@ -436,22 +436,23 @@ diff -urN contrafold_v2.00.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +}
 +
 +template < class T >
-+T*
++const T*
 +CONTRAfold::
-+ComputePosterior(const std::string& seq)
++ComputePosterior(const std::string& seq, bool canonical_only /*=true*/)
 +{
 +  WS<T> ws(seq.size());
-+  return ComputePosterior(seq, ws);
++  return ComputePosterior(seq, ws, canonical_only);
 +}
 +
 +template < class T >
-+T*
++const T*
 +CONTRAfold::
-+ComputePosterior(const std::string& seq, WS<T>& ws)
++ComputePosterior(const std::string& seq, WS<T>& ws, bool canonical_only /*=true*/)
 +{
 +  Parameters params;
-+  std::vector<double> values = params.GetDefaultValues();
-+  InferenceEngine<T> engine(seq, false, &(ws.impl->ws));
++  std::vector<double> values =
++    canonical_only ? params.GetDefaultComplementaryValues() : params.GetDefaultValues();
++  InferenceEngine<T> engine(seq, canonical_only, &(ws.impl->ws));
 +  engine.LoadParameters(ConvertVector<T>(values));
 +  engine.ComputeInside();
 +  engine.ComputeOutside();
@@ -479,5 +480,5 @@ diff -urN contrafold_v2.00.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +
 +// instantiation
 +template
-+double*
-+CONTRAfold::ComputePosterior<double>(const std::string& seq);
++const float*
++CONTRAfold::ComputePosterior<float>(const std::string& seq, bool canonical_only);
