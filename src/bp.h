@@ -57,7 +57,7 @@ namespace SCFG
 #ifdef HAVE_LIBCONTRAFOLD
 	  if (ws_) {
 	    delete ws_;
-	    ws_ = new CONTRAfold::WS<double>(reserved_size()+1);
+	    ws_ = new CONTRAfold::WS<float>(reserved_size()+1);
 	  }
 #endif
 	}
@@ -121,7 +121,7 @@ namespace SCFG
       std::vector<T> q_;
       uint size_;
 #ifdef HAVE_LIBCONTRAFOLD
-      CONTRAfold::WS<double>* ws_;
+      CONTRAfold::WS<float>* ws_;
 #endif      
     };
   }
