@@ -8,4 +8,4 @@ centroid_fold_LDADD = libcentroid.a ${LIBCONTRAFOLD} ${BOOST_LIBS}
 
 libcentroid_a_SOURCES = \
 	centroid_fold.cpp centroid.cpp mea.cpp bp.cpp iupac.cpp \
-	centroid.h mea.h bp.h iupac.h cyktable.h rule.h contrafold.h
+	centroid_fold.h centroid.h mea.h bp.h iupac.h cyktable.h rule.h contrafold.h
