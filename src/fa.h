@@ -37,10 +37,10 @@ public:
   const std::string& name() const { return name_; }
   const std::string& seq() const { return seq_; }
   const std::string& str() const { return str_; }
-  uint size() const { return seq_.size(); }
+  unsigned int size() const { return seq_.size(); }
 
   static
-  uint
+  unsigned int
   load(std::list<Fasta>& data, const char* file);
   
   bool
