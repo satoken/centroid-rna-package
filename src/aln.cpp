@@ -36,7 +36,7 @@ struct aln_parser : public grammar< aln_parser >
   {
     WA() : cur_index(0), cur_name(), cur_seq(), names(), seqs() { }
 
-    uint cur_index;
+    unsigned int cur_index;
     std::string cur_name;
     std::string cur_seq;
     std::deque<std::string> names;
@@ -75,8 +75,8 @@ struct aln_parser : public grammar< aln_parser >
     template < class Ite >
     void operator()(Ite i1, Ite i2) const
     {
-      uint l=wa.seqs[0].size();
-      for (uint i=1; i!=wa.seqs.size(); ++i) {
+      unsigned int l=wa.seqs[0].size();
+      for (unsigned int i=1; i!=wa.seqs.size(); ++i) {
 	if (l!=wa.seqs[i].size())
 	  throw format_error("format error: broken sequence length consistency");
       }
@@ -153,11 +153,11 @@ load(boost::spirit::file_iterator<>& fi)
 }
 
 // static
-uint
+unsigned int
 Aln::
 load(std::list<Aln>& data, const char* filename)
 {
-  uint n=0;
+  unsigned int n=0;
   file_iterator<> fi(filename);
   if (!fi) {
     std::ostringstream os;
@@ -203,11 +203,11 @@ consensus() const
 {
 #ifdef HAVE_LIBRNA
   // prepare an alignment
-  uint length = seq_.front().size();
+  unsigned int length = seq_.front().size();
   char **seqs = new char*[seq_.size()+1];
   seqs[seq_.size()] = NULL;
   std::list<std::string>::const_iterator x;
-  uint i=0;
+  unsigned int i=0;
   for (x=seq_.begin(); x!=seq_.end(); ++x) {
     assert(x->size()==length);
     seqs[i] = new char[length+1];
@@ -220,7 +220,7 @@ consensus() const
   std::string ret(cons);
 
   // destroy the alignment
-  for (uint i=0; seqs[i]!=NULL; ++i) delete[] seqs[i];
+  for (unsigned int i=0; seqs[i]!=NULL; ++i) delete[] seqs[i];
   delete[] seqs;
   free(cons);
 

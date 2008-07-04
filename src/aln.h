@@ -34,12 +34,12 @@ public:
     
   const std::list<std::string>& name() const { return name_; }
   const std::list<std::string>& seq() const { return seq_; }
-  uint size() const { return seq_.begin()->size(); }
-  uint num_aln() const { return name_.size(); }
+  unsigned int size() const { return seq_.begin()->size(); }
+  unsigned int num_aln() const { return name_.size(); }
   std::string consensus() const;
   
   static
-  uint
+  unsigned int
   load(std::list<Aln>& data, const char* file );
 
   bool 

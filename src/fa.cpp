@@ -86,11 +86,11 @@ load(file_iterator<>& fi)
 }
 
 // static
-uint
+unsigned int
 Fasta::
 load(std::list<Fasta>& data, const char* filename)
 {
-  uint n=0;
+  unsigned int n=0;
   file_iterator<> fi(filename);
   if (!fi) {
     std::ostringstream os;
