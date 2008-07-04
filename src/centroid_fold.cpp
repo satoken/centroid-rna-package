@@ -101,18 +101,21 @@ void
 CentroidFold::
 calculate_posterior(const std::string& seq, const std::string& model)
 {
+  std::string seq2(seq);
+  std::replace(seq2.begin(), seq2.end(), 't', 'u');
+  std::replace(seq2.begin(), seq2.end(), 'T', 'U');
   switch (engine_) {
   case AUX:
     bp_.load(model.c_str());
     break;
 #ifdef HAVE_LIBRNA
   case PFFOLD:
-    bp_.pf_fold(seq);
+    bp_.pf_fold(seq2);
     break;
 #endif
 #ifdef HAVE_LIBCONTRAFOLD
   case CONTRAFOLD:
-    bp_.contra_fold(seq);
+    bp_.contra_fold(seq2);
     break;
 #endif
   default:
@@ -126,16 +129,23 @@ CentroidFold::
 calculate_posterior(const std::list<std::string>& seq,
 		    const std::vector<std::string>& model)
 {
+  std::list<std::string> seq2;
+  std::list<std::string>::const_iterator x;
+  for (x=seq.begin(); x!=seq.end(); ++x) {
+    seq2.push_back(*x);
+    std::replace(seq2.back().begin(), seq2.back().end(), 't', 'u');
+    std::replace(seq2.back().begin(), seq2.back().end(), 'T', 'U');
+  }
 #ifdef HAVE_LIBRNA
   if (engine_==ALIPFFOLD)  {
-    bp_.alipf_fold(seq);
+    bp_.alipf_fold(seq2);
   } else {
 #endif
     typedef boost::shared_ptr<BPTable> BPTablePtr;
     std::list<BPTablePtr> bps;
     std::list<std::string> seqs;
     std::list<std::vector<uint> > idxmaps;
-    BPTable::convert_to_raw_sequences(seq, seqs, idxmaps);
+    BPTable::convert_to_raw_sequences(seq2, seqs, idxmaps);
     uint i;
     std::list<std::string>::const_iterator x;
     for (x=seqs.begin(), i=0; x!=seqs.end(); ++x, ++i) {
