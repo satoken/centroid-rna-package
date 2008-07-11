@@ -1,6 +1,6 @@
 diff -urN contrafold_v2.00.orig/src/InferenceEngine.hpp contrafold/src/InferenceEngine.hpp
 --- contrafold_v2.00.orig/src/InferenceEngine.hpp	2008-01-09 06:13:58.000000000 +0900
-+++ contrafold/src/InferenceEngine.hpp	2008-07-03 23:34:44.625555107 +0900
++++ contrafold/src/InferenceEngine.hpp	2008-07-04 10:41:33.735151672 +0900
 @@ -281,9 +281,101 @@
      void ConvertCacheCounts();
      void WriteCounts(std::vector<RealT> &counts);
@@ -105,7 +105,7 @@ diff -urN contrafold_v2.00.orig/src/InferenceEngine.hpp contrafold/src/Inference
      void LoadParameters(const std::vector<RealT> &values);
 diff -urN contrafold_v2.00.orig/src/InferenceEngine.ipp contrafold/src/InferenceEngine.ipp
 --- contrafold_v2.00.orig/src/InferenceEngine.ipp	2008-01-09 06:13:58.000000000 +0900
-+++ contrafold/src/InferenceEngine.ipp	2008-07-03 23:34:44.629554962 +0900
++++ contrafold/src/InferenceEngine.ipp	2008-07-04 10:41:33.735151672 +0900
 @@ -148,12 +148,62 @@
  // Constructor
  /////////////////////////////////////////////////////////////////
@@ -299,7 +299,7 @@ diff -urN contrafold_v2.00.orig/src/InferenceEngine.ipp contrafold/src/Inference
      //double starting_time = GetSystemTime();
 diff -urN contrafold_v2.00.orig/src/InnerOptimizationWrapper.cpp contrafold/src/InnerOptimizationWrapper.cpp
 --- contrafold_v2.00.orig/src/InnerOptimizationWrapper.cpp	2008-01-10 10:09:03.000000000 +0900
-+++ contrafold/src/InnerOptimizationWrapper.cpp	2008-07-03 23:52:27.715751693 +0900
++++ contrafold/src/InnerOptimizationWrapper.cpp	2008-07-04 10:41:33.735151672 +0900
 @@ -4,6 +4,7 @@
  // Implementation of functors needed for optimization.
  /////////////////////////////////////////////////////////////////
@@ -310,7 +310,7 @@ diff -urN contrafold_v2.00.orig/src/InnerOptimizationWrapper.cpp contrafold/src/
  /////////////////////////////////////////////////////////////////
 diff -urN contrafold_v2.00.orig/src/Makefile contrafold/src/Makefile
 --- contrafold_v2.00.orig/src/Makefile	2008-01-10 10:51:36.000000000 +0900
-+++ contrafold/src/Makefile	2008-07-04 01:33:58.686041003 +0900
++++ contrafold/src/Makefile	2008-07-04 10:41:33.735151672 +0900
 @@ -1,4 +1,6 @@
  CXX = g++
 +AR = ar
@@ -361,7 +361,7 @@ diff -urN contrafold_v2.00.orig/src/Makefile contrafold/src/Makefile
 +	rm -f contrafold make_coords plot_rna *.o Defaults.hpp libcontrafold.a
 diff -urN contrafold_v2.00.orig/src/Utilities.cpp contrafold/src/Utilities.cpp
 --- contrafold_v2.00.orig/src/Utilities.cpp	2008-01-10 11:10:12.000000000 +0900
-+++ contrafold/src/Utilities.cpp	2008-07-03 23:34:44.633554747 +0900
++++ contrafold/src/Utilities.cpp	2008-07-04 10:41:33.735151672 +0900
 @@ -3,6 +3,7 @@
  /////////////////////////////////////////////////////////////////
  
@@ -372,9 +372,28 @@ diff -urN contrafold_v2.00.orig/src/Utilities.cpp contrafold/src/Utilities.cpp
  
 diff -urN contrafold_v2.00.orig/src/contrafold.h contrafold/src/contrafold.h
 --- contrafold_v2.00.orig/src/contrafold.h	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/contrafold.h	2008-07-03 23:54:34.245554895 +0900
-@@ -0,0 +1,28 @@
-+// wrapper routines for CONTRAfold
++++ contrafold/src/contrafold.h	2008-07-11 10:51:30.789568491 +0900
+@@ -0,0 +1,51 @@
++/*
++ * wrapper routines for CONTRAfold
++ *
++ * Copyright (C) 2008 Kengo Sato
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ */
++
 +#ifndef __INC_CONTRAFOLD_H__
 +#define __INC_CONTRAFOLD_H__
 +
@@ -402,11 +421,33 @@ diff -urN contrafold_v2.00.orig/src/contrafold.h contrafold/src/contrafold.h
 +};
 +
 +#endif	// __INC_CONTRAFOLD_H__
++
++// Local Variables:
++// mode: C++
++// End:
 diff -urN contrafold_v2.00.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 --- contrafold_v2.00.orig/src/wrapper.cpp	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/wrapper.cpp	2008-07-04 01:34:14.445555186 +0900
-@@ -0,0 +1,81 @@
-+// wrapper routines for CONTRAfold
++++ contrafold/src/wrapper.cpp	2008-07-11 10:49:25.305786875 +0900
+@@ -0,0 +1,99 @@
++/*
++ * wrapper routines for CONTRAfold
++ *
++ * Copyright (C) 2008 Kengo Sato
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ */
 +
 +#include "contrafold.h"
 +#include <vector>
