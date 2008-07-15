@@ -12,7 +12,7 @@ extern "C" {
 #define CENTROID_LENGTH_ERR 2
 #define CENTROID_UNKNOWN_ERR 3
 
-int centroidfold(const char *seq, char *str);
+int centroidfold(const char *seq, char *str, float g);
 
 #ifdef __cplusplus
 }

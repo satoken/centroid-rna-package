@@ -32,7 +32,7 @@ namespace SCFG
   {
     template < class T >
     double
-    execute(const T& table, std::string& paren, double n=1.0, float th=1.0);
+    execute(const T& table, std::string& paren, float th=1.0);
   };
 };
 
