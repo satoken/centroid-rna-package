@@ -35,14 +35,14 @@ namespace SCFG
   namespace MEA
   {
     template < class V >
-    V execute(const SCFG::BP::Table<V>& bp, float gamma, std::string& paren);
+    V execute(const SCFG::BP::Table<V>& bp, std::string& paren, float gamma);
 
     template < class V, class Seq, class RuleSet >
-    V execute(const Seq& seq, const RuleSet& rules, float gamma, std::string& paren)
+    V execute(const Seq& seq, const RuleSet& rules, std::string& paren, float gamma)
     {
       SCFG::BP::Table<double> bp;
       bp.parse(seq, rules);
-      return SCFG::MEA::execute(bp, gamma, paren);
+      return SCFG::MEA::execute(bp, paren, gamma);
     }
   }
 };

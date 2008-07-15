@@ -16,7 +16,7 @@ typedef SCFG::BP::Table<double> BPTable;
 static BPTable bp;
 
 int
-centroidfold(const char *seq, char *str)
+centroidfold(const char *seq, char *str, float g)
 {
   try {
     if (bp.reserved_size()<RESERVED_LENGTH)
@@ -24,7 +24,7 @@ centroidfold(const char *seq, char *str)
     bp.contra_fold(seq);
     unsigned int l=strlen(seq);
     std::string paren(l, '.');
-    SCFG::Centroid::execute(bp, paren, 1.0, 1.0);
+    SCFG::Centroid::execute(bp, paren, g);
     strcpy(str, paren.c_str());
   } catch (std::bad_alloc& e) {
     return CENTROID_BAD_ALLOC;

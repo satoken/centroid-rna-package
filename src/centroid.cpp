@@ -39,15 +39,15 @@ namespace SCFG
     template < class T >
     struct Estimator
     {
-      Estimator(const T& t, std::string& paren, double n, float gamma)
-	: t_(t), paren_(paren), th_(n/(gamma+1.0)), gamma_(gamma), n_(n), ea_(0.0) { }
+      Estimator(const T& t, std::string& paren, float gamma)
+	: t_(t), paren_(paren), th_(1.0/(gamma+1.0)), gamma_(gamma), ea_(0.0) { }
 
       void operator()(uint i, uint j)
       {
 	if (i!=j && t_(i,j-1)>th_) {
 	  paren_[i] = '(';
 	  paren_[j-1] = ')';
-	  ea_ += (gamma_+1.0)/n_*2 * t_(i,j-1) - 2;
+	  ea_ += (gamma_+1.0)*2 * t_(i,j-1) - 2;
 	}
       }
 
@@ -57,7 +57,6 @@ namespace SCFG
       std::string& paren_;
       float th_;
       float gamma_;
-      double n_;
       double ea_;
     };
 
@@ -95,9 +94,8 @@ namespace SCFG
     {
       typedef typename BPTable::value_type value_type;
 
-      Updater(const BPTable& bp, DPTable& dp, double n, float gamma,
-	      uint min_loop=3)
-	: bp_(bp), dp_(dp), n_(n), gamma_(gamma), min_loop_(min_loop)
+      Updater(const BPTable& bp, DPTable& dp, float gamma, uint min_loop=3)
+	: bp_(bp), dp_(dp), gamma_(gamma), min_loop_(min_loop)
       {
       }
 
@@ -120,7 +118,7 @@ namespace SCFG
 	  }
 	  // rule type P: X -> a Y b
 	  if (min_loop_+i+1<=j-1) {
-	    value_type v = dp_(i+1,j-1).val + (gamma_+1.0)/n_*2 * bp_(i,j-1) - 2;
+	    value_type v = dp_(i+1,j-1).val + (gamma_+1.0)*2 * bp_(i,j-1) - 2;
 	    dp_(i,j).update(v, Rule::P);
 	  }
 	  // rule type B: X -> Y Z
@@ -134,7 +132,6 @@ namespace SCFG
 
       const BPTable& bp_;
       DPTable& dp_;
-      double n_;
       float gamma_;
       uint min_loop_;
     };
@@ -184,10 +181,10 @@ namespace SCFG
 
     template < class T >
     double
-    execute(const T& table, std::string& paren, double n /*=1.0*/, float gamma /*=1.0*/)
+    execute(const T& table, std::string& paren, float gamma /*=1.0*/)
     {
       if (gamma<=1.0) {
-	Estimator<T> est(table, paren, n, gamma);
+	Estimator<T> est(table, paren, gamma);
 	SCFG::inside_traverse(0, table.size(), est);
 	return est.expected_accuracy();
       } else {
@@ -195,7 +192,7 @@ namespace SCFG
 	typedef CYKTable< Cell<value_type> > DPTable;
 
 	DPTable dp(table.size()+1);
-	Updater<T,DPTable> update(table, dp, n, gamma);
+	Updater<T,DPTable> update(table, dp, gamma);
 	SCFG::inside_traverse(0, table.size(), update);
 
 	TraceBack<DPTable> traceback(paren, dp);
@@ -214,10 +211,10 @@ namespace SCFG
 template
 double
 SCFG::Centroid::
-execute(const CYKTable<uint>& table, std::string& paren, double n, float gamma);
+execute(const CYKTable<uint>& table, std::string& paren, float gamma);
 
 template
 double
 SCFG::Centroid::
-execute(const SCFG::BP::Table<double>& table, std::string& paren, double n, float gamma);
+execute(const SCFG::BP::Table<double>& table, std::string& paren, float gamma);
 

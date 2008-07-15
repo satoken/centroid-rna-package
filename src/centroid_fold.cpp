@@ -231,9 +231,9 @@ decode_structure(float gamma, std::string& paren) const
   paren.resize(bp_.size());
   std::fill(paren.begin(), paren.end(), '.');
   if (!mea_) {
-    p = SCFG::Centroid::execute(bp_, paren, 1.0, gamma);
+    p = SCFG::Centroid::execute(bp_, paren, gamma);
   } else {
-    p = SCFG::MEA::execute(bp_, gamma, paren);
+    p = SCFG::MEA::execute(bp_, paren, gamma);
   }
   return p;
 }
