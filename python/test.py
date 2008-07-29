@@ -4,7 +4,7 @@ import CentroidFold
 
 cf = CentroidFold.CentroidFold(CentroidFold.CentroidFold.CONTRAFOLD)
 cf.calculate_posterior("GGGCCCAUAGCUCAGUGGUAGAGUGCCUCCUUUGCAAGGAGGAUGCCCUGGGUUCGAAUCCCAGUGGGUCCA")
-s,ea=cf.decode_structure(4)
+ea,s=cf.decode_structure(4)
 print s,ea
 
 aln = [
@@ -12,5 +12,5 @@ aln = [
     "UCCGGUGACUUUACGCGUGAGGAAACACUCGUUCCCAUUCCGAACACGAC-AGUUAAGCUCCCG-CGGCCGAUGA--UAGUGCC--CA-CCA----GCGUGAA-AGUA"
     ]
 cf.calculate_posterior(aln)
-s,ea=cf.decode_structure(4)
+ea,s=cf.decode_structure(4)
 print s,ea
