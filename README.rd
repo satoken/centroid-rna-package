@@ -6,7 +6,11 @@ secondary structures. It is based on the gamma-centroid estimator
 a gamma-centroid estimator is ((*slightly*)) more accurate than an MEA
 estimator (Do et.al., 2005) under the same probability distribution. 
 
-CentroidFold can take various probability distributions. Currently,
+Furthermore, CentroidFold can predict common secondary structures for
+multiple alignments of RNA sequences by using an averaged
+gamma-centroid estimator (Hamada et al., 2008).
+
+CentroidFold can employ various probability distributions. Currently,
 * McCaskill models implemented in Vienna RNA package,
 * CONTRAfold models, and
 * CG optimized models implemented in MultiRNAFold package
@@ -33,11 +37,11 @@ available prediction tools at this time.
 
 == Install
 
-=== simple build
+=== Build without linking CONTRAfold
 
  ./configure && make && make install
 
-=== build with CONTRAfold
+=== Build with linking CONTRAfold
 
 Currently, a patch for CONTRAfold v2.0.0 is provided, which makes it
 possible to link the routine for calculating base-pairing
@@ -58,21 +62,24 @@ Finally, build CentroidFold.
  cd /somewhere/centroid_fold-x.x.x/
  ./configure --with-contrafold && make && make install
 
-If you build CentroidFold with (({--with-contrafold})),
-CONTRAfold models are used as the default posterior probability
-distribution rather than McCaskill models.
+If you configure CentroidFold with (({--with-contrafold})),
+the CONTRAfold model are used as the default posterior probability
+distribution rather than the McCaskill model.
 
 == Usage
 
-Our tools accept the FASTA format as an input sequence.
+(({centroid_fold})) can take the FASTA format and the CLUSTAL format
+as an input sequence or a multiple alignment.
 
-=== CentroidFold with McCaskill models
+=== Secondary structure prediction for single sequences
 
 (({centroid_fold})) is the main program of this package. It calculates
-a base-pairing probability matrix for a given sequence with McCaskill
-algorithm using (({pf_fold})) routine in Vienna RNA package, and then
-estimates a gamma-centroid estimator for the base-pairing probability
-matrix. 
+a base-pairing probability matrix for a given sequence with the
+McCaskill algorithm using (({pf_fold})) routine in Vienna RNA package
+(If you configure CentroidFold (({--with-contrafold})), the CONTRAfold
+model are used instead of the McCaskill model).
+Then, (({centroid_fold})) estimates a gamma-centroid estimator for the
+base-pairing probability matrix. 
 
  centroid_fold [options] seq
 
@@ -86,7 +93,7 @@ If a negative value is given for the option '--gamma',
 of gamma at the same time ({2^k | -5 <= k <= 10} and 6). 
 
 Using the option '--aux', (({centroid_fold})) can take an auxiliary
-base-pairing probability matrix instead of McCaskill models.
+base-pairing probability matrix instead of the McCaskill model.
 
 Example:
  % centroid_fold -g -1 RF00008_B.fa
@@ -109,6 +116,42 @@ Example:
  (((((((((((((...)))))..).(..(((((......)))))..)))))))) (g=256,th=0.00389105)
  (((((((((((((...)))))..).(..(((((......)))))..)))))))) (g=512,th=0.00194932)
  (((((((((((((...)))))..).(..(((((......)))))..)))))))) (g=1024,th=0.00097561)
+
+
+=== Common secondary structure predicion for multiple alignments
+
+(({centroid_fold})) can automatically recognize the format of input
+sequences. For the FASTA format file, (({centroid_fold})) predicts
+secondary structures for every contained sequence. 
+For the CLUSTAL format, (({centroid_fold})) predicts common
+secondary structures for the given multiple alignments.
+
+Example:
+ % centroid_fold -g -1 RF00436.aln
+ >AB029447-1/1210-1265
+ --BCAHuUGYAVgUCGCUUUGGAYAaaAG--CGUCUGCUAAAUGM-VURwrukKAAAUDu-
+ ............................................................. (g=0.03125,th=0.969697)
+ ............................................................. (g=0.0625,th=0.941176)
+ ............................................................. (g=0.125,th=0.888889)
+ ............................................................. (g=0.25,th=0.8)
+ ...............(((.........))..)............................. (g=0.5,th=0.666667)
+ ..............(((((.......)))..))............................ (g=1,th=0.5)
+ ............(.((((((.....))))..)).).......................... (g=2,th=0.333333)
+ ........((..(.((((((.....))))..)).).))....................... (g=4,th=0.2)
+ ...((((.((.((.((((((.....))))..)).))))..))))................. (g=6,th=0.142857)
+ ...(((((((.((.((((((.....))))..)).)))).)))))................. (g=8,th=0.111111)
+ ..((((((((.((.((((((.....))))..)).)))).))))))................ (g=16,th=0.0588235)
+ ..((((((((.((.((((((.....))))..)).)))).))))))((.....))....... (g=32,th=0.030303)
+ ..((((((((.((.((((((.....))))..)).)))).))))))((.....))....... (g=64,th=0.0153846)
+ ..((((((((.((.((((((.....))))..)).)))).))))))((.....))....... (g=128,th=0.00775194)
+ ..((((((((.((.((((((.....))))..)).)))).))))))(((...)))....... (g=256,th=0.00389105)
+ .(((((((((.((.((((((.....))))..)).)))).)))))).).((((....)))). (g=512,th=0.00194932)
+ .(((((((((.((.((((((.....))))..)).)))).)))))).)(((((....))))) (g=1024,th=0.00097561)
+
+The first line of the result is the description of the first sequence
+in the given alignment. The second is the "most informative sequence"
+(Freyhult et al., 2005), which is similar to IUPAC ambiguity
+characters, produced by a library routine of the Vienna Package.
 
 
 === CentroidFold with CONTRAfold models
@@ -197,8 +240,8 @@ Example:
     discrete high-dimensional spaces with applications in
     biology. Proc Natl Sci USA, 105, 3209-3214, 2008.
   * Hamada, M., Kiryu, H., Sato, K., Mituyama, T. and Asai, K.:
-    Estimation of secondary structure of an RNA sequence using
-    generalized centroid estimator, submitted, 2008.
+    Secondary structure estimations by maximizing expected weighted
+    true predictions of base-pairs, submitted, 2008.
 * CONTRAfold models and MEA estimators
   * Do, C. B., Woods, D. A. and Batzoglou, S.: CONTRAfold: RNA
     secondary structure prediction without physics-based
@@ -213,3 +256,7 @@ Example:
   * Andronescu, M., Condon, A., Hoos, H. H., Mathews, D. H. and
     Murphy, K. P.: Efficient parameter estimation for RNA secondary 
     structure prediction. Bioinformatics, 23, i19-i28, 2007
+* Others
+  * Freyhult, E., Moulton, V., and Gardner, PP.: Predicting RNA
+    structure using mutual information. Applied Bioinformatics. 4,
+    53-59, 2004.
