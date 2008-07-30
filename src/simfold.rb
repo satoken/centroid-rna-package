@@ -65,7 +65,7 @@ def predict_ss(f)
         fa.puts seq
         fa.close
 
-        system("#{$centroid_fold} #{opts} --aux #{fa.path} #{p.path}")
+        system("#{$centroid_fold} #{$opts} --aux #{fa.path} #{p.path}")
       end
     end
   end

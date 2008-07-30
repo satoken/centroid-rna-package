@@ -43,7 +43,7 @@ int
 main(int argc, char* argv[])
 {
 
-  std::vector<double> gamma;
+  std::vector<double> gamma, gamma_ali;
   std::string input;
   std::vector<std::string> model;
   float p_th=0.0;
@@ -103,13 +103,6 @@ main(int argc, char* argv[])
     return 1;
   }
 
-  if (gamma.size()==1 && gamma[0]==-1.0) {
-    double g[] = { 0.03125, 0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 6.0,
-		   8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0 };
-    gamma.resize(boost::size(g));
-    std::copy(boost::begin(g), boost::end(g), gamma.begin());
-  }
-
 #ifdef HAVE_LIBCONTRAFOLD
   unsigned int engine = CentroidFold::CONTRAFOLD;
 #else
@@ -119,15 +112,32 @@ main(int argc, char* argv[])
   if (vm.count("pf_fold")) engine = CentroidFold::PFFOLD;
   if (vm.count("alipf_fold")) engine = CentroidFold::ALIPFFOLD;
 
+  if (gamma.size()==1 && gamma[0]<0.0) {
+    double g[] = { 0.03125, 0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 6.0,
+		   8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0 };
+    gamma.resize(boost::size(g));
+    std::copy(boost::begin(g), boost::end(g), gamma.begin());
+    gamma_ali.resize(boost::size(g));
+    std::copy(boost::begin(g), boost::end(g), gamma_ali.begin());
+  }
   if (gamma.empty()) {
+    switch (engine) {
 #ifdef HAVE_LIBCONTRAFOLD
-    if (engine == CentroidFold::PFFOLD)
-      gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
-    else
+    case CentroidFold::CONTRAFOLD:
       gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
-#else
-    gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+      gamma_ali.push_back(vm.count("mea") ? 6.0 : 4.0);
+      break;
 #endif
+    case CentroidFold::PFFOLD:
+    case CentroidFold::ALIPFFOLD:
+      gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+      gamma_ali.push_back(vm.count("mea") ? 6.0 : 2.0);
+      break;
+    default:
+      gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+      gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+      break;
+    }
   }
 
   boost::spirit::file_iterator<> fi(input.c_str());
@@ -157,11 +167,11 @@ main(int argc, char* argv[])
       }
       cf.calculate_posterior(aln.seq(), model);
       if (!vm.count("posteriors"))
-	cf.print(std::cout, aln.name().front(), aln.consensus(), gamma);
+	cf.print(std::cout, aln.name().front(), aln.consensus(), gamma_ali);
       else
 	cf.print_posterior(std::cout, aln.consensus(), p_th);
-      if (vm.count("ps")) cf.ps_plot(aln.name().front(), aln.consensus(), gamma[0]);
-      if (vm.count("svg")) cf.svg_plot(aln.name().front(), aln.consensus(), gamma[0]);
+      if (vm.count("ps")) cf.ps_plot(aln.name().front(), aln.consensus(), gamma_ali[0]);
+      if (vm.count("svg")) cf.svg_plot(aln.name().front(), aln.consensus(), gamma_ali[0]);
     } else {
       break;
     }
