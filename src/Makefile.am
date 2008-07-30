@@ -1,6 +1,6 @@
 bin_PROGRAMS = centroid_fold
 noinst_LIBRARIES = libcentroid.a
-dist_bin_SCRIPTS = contrafold.rb contrafold_m.rb simfold.rb simfold_m.rb
+dist_bin_SCRIPTS = contrafold.rb simfold.rb 
 
 centroid_fold_SOURCES = \
 	main.cpp fa.cpp aln.cpp iupac.cpp fa.h aln.h 

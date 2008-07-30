@@ -109,7 +109,26 @@ main(int argc, char* argv[])
     gamma.resize(boost::size(g));
     std::copy(boost::begin(g), boost::end(g), gamma.begin());
   }
-  if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+
+#ifdef HAVE_LIBCONTRAFOLD
+  unsigned int engine = CentroidFold::CONTRAFOLD;
+#else
+  unsigned int engine = CentroidFold::PFFOLD;
+#endif
+  if (vm.count("aux")) engine = CentroidFold::AUX;
+  if (vm.count("pf_fold")) engine = CentroidFold::PFFOLD;
+  if (vm.count("alipf_fold")) engine = CentroidFold::ALIPFFOLD;
+
+  if (gamma.empty()) {
+#ifdef HAVE_LIBCONTRAFOLD
+    if (engine == CentroidFold::PFFOLD)
+      gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+    else
+      gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
+#else
+    gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+#endif
+  }
 
   boost::spirit::file_iterator<> fi(input.c_str());
   if (!fi) {
@@ -117,10 +136,6 @@ main(int argc, char* argv[])
     return 1;
   }
 
-  unsigned int engine = CentroidFold::CONTRAFOLD;
-  if (vm.count("aux")) engine = CentroidFold::AUX;
-  if (vm.count("use_pf_fold")) engine = CentroidFold::PFFOLD;
-  if (vm.count("use_alipf_fold")) engine = CentroidFold::ALIPFFOLD;
   CentroidFold cf(engine, vm.count("mea"));
   while (1) {
     Fasta fa;
