@@ -11,14 +11,14 @@ multiple alignments of RNA sequences by using an averaged
 gamma-centroid estimator (Hamada et al., 2008).
 
 CentroidFold can employ various probability distributions. Currently,
-* McCaskill models implemented in Vienna RNA package,
-* CONTRAfold models, and
-* CG optimized models implemented in MultiRNAFold package
+* the McCaskill model implemented in the Vienna RNA package,
+* the CONTRAfold model, and
+* the CG optimized model implemented in the MultiRNAFold package
 are supported. 
 
-According to our benchmark, CentroidFold with CONTRAfold models will
-predict the most accurate RNA secondary structures among currently
-available prediction tools at this time.
+According to our benchmark, CentroidFold with the CONTRAfold model
+will predict the most accurate RNA secondary structures among
+currently available prediction tools at this time.
 
 
 == Requirements
@@ -154,10 +154,10 @@ in the given alignment. The second is the "most informative sequence"
 characters, produced by a library routine of the Vienna Package.
 
 
-=== CentroidFold with CONTRAfold models
+=== CentroidFold with the CONTRAfold model
 
 Even (({centroid_fold})) without (({libcontrafold.a})) can employ
-CONTRAfold models using a wrapper script, (({contrafold.rb})),
+the CONTRAfold model using a wrapper script, (({contrafold.rb})),
 which executes (({contrafold})) to calculate a base-pairing
 probability matrix for a given sequence, and then executes
 (({centroid_fold})) with '--aux' to estimate the most accurate
@@ -195,7 +195,7 @@ Example:
  (((((((((((((...)))))..).(..((((((...).)))))..)))))))) (g=1024,th=0.00097561)
 
 
-=== CentroidFold with CG optimized models
+=== CentroidFold with the CG optimized model
 
 (({simfold.rb})) is also a wrapper script which executes
 (({simfold_pf})) instead of (({contrafold})).
@@ -243,19 +243,19 @@ Example:
     structure prediction by centroids in a Boltzmann weighted
     ensemble, RNA, 11:1157-1166, 2005
   * Hamada, M., Kiryu, H., Sato, K., Mituyama, T. and Asai, K.:
-    Secondary structure estimations by maximizing expected weighted
-    true predictions of base-pairs, submitted, 2008.
-* CONTRAfold models and MEA estimators
+    RNA Secondary structure estimations by maximizing expected
+    weighted true predictions of base-pairs, submitted, 2008.
+* The CONTRAfold model and MEA estimators
   * Do, C. B., Woods, D. A. and Batzoglou, S.: CONTRAfold: RNA
     secondary structure prediction without physics-based
     models. Bioinformatics, 22:e90-e98, 2006.
-* McCaskill models
+* The McCaskill model
   * McCaskill, J. S.: The equilibrium partition function and base pair
     binding probabilities for RNA secondary structure. Biopolymers,
     29, 1105-1119, 1990.
   * Hofacker, I. L.: Vienna RNA secondary structure server. Nucleic
     Acids Res, 31:3429-3431, 2003
-* CG optimized models
+* The CG optimized model
   * Andronescu, M., Condon, A., Hoos, H. H., Mathews, D. H. and
     Murphy, K. P.: Efficient parameter estimation for RNA secondary 
     structure prediction. Bioinformatics, 23:i19-i28, 2007
