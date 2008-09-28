@@ -136,7 +136,10 @@ calculate_posterior(const std::string& seq, const std::string& model)
 #endif
 #ifdef HAVE_LIBCONTRAFOLD
   case CONTRAFOLD:
-    bp_.contra_fold(seq2);
+    if (model.empty())
+      bp_.contra_fold(seq2);
+    else
+      bp_.contra_fold(seq2, model);
     break;
 #endif
   default:
@@ -170,7 +173,7 @@ calculate_posterior(const std::list<std::string>& seq,
     uint i;
     std::list<std::string>::const_iterator x;
     for (x=seqs.begin(), i=0; x!=seqs.end(); ++x, ++i) {
-      BPTablePtr bpi(new BPTable);
+      BPTablePtr bpi(new BPTable(bp_));
       switch (engine_) {
       case AUX:
 	bpi->load(model[i].c_str());
@@ -182,7 +185,10 @@ calculate_posterior(const std::list<std::string>& seq,
 #endif
 #ifdef HAVE_LIBCONTRAFOLD
       case CONTRAFOLD:
-	bpi->contra_fold(*x);
+        if (model.empty())
+          bpi->contra_fold(*x);
+        else
+          bpi->contra_fold(*x, model[0]);          
 	break;
 #endif
       default:

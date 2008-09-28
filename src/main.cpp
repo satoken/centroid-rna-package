@@ -151,7 +151,10 @@ main(int argc, char* argv[])
     Fasta fa;
     Aln aln;
     if (fa.load(fi)) {
-      cf.calculate_posterior(fa.seq(), model[0]);
+      if (model.empty())
+        cf.calculate_posterior(fa.seq());
+      else
+        cf.calculate_posterior(fa.seq(), model[0]);
       if (!vm.count("posteriors"))
 	cf.print(std::cout, fa.name(), fa.seq(), gamma);
       else
