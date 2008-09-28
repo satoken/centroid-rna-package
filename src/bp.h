@@ -40,13 +40,13 @@ namespace SCFG
       
     public:
 #ifdef HAVE_LIBCONTRAFOLD
-      Table() : bp_(), q_(), size_(0), ws_(NULL) { }
+      Table() : bp_(), q_(), size_(0), contrafold_(NULL) { }
 #else
       Table() : bp_(), q_(), size_(0) { }
 #endif
       
 #ifdef HAVE_LIBCONTRAFOLD
-      Table(uint sz) : bp_(sz), q_(sz), size_(0), ws_(NULL)
+      Table(uint sz) : bp_(sz), q_(sz), size_(0), contrafold_(NULL)
 #else
       Table(uint sz) : bp_(sz), q_(sz), size_(0)
 #endif
@@ -55,7 +55,7 @@ namespace SCFG
       }
 
 #ifdef HAVE_LIBCONTRAFOLD
-      ~Table() { if (ws_) delete ws_; }
+      ~Table() { if (contrafold_) delete contrafold_; }
 #endif      
 
       void reserve(uint sz)
@@ -72,12 +72,6 @@ namespace SCFG
       {
 	if (size>reserved_size()) {
 	  reserve(size);
-#ifdef HAVE_LIBCONTRAFOLD
-	  if (ws_) {
-	    delete ws_;
-	    ws_ = new CONTRAfold::WS<float>(reserved_size()+1);
-	  }
-#endif
 	}
 	size_ = size;
 	bp_.fill(0);
@@ -139,7 +133,7 @@ namespace SCFG
       std::vector<T> q_;
       uint size_;
 #ifdef HAVE_LIBCONTRAFOLD
-      CONTRAfold::WS<float>* ws_;
+      CONTRAfold<float>* contrafold_;
 #endif      
     };
   }
