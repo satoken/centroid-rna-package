@@ -1,0 +1,273 @@
+diff -urN contrafold_v2_02/src/Makefile contrafold/src/Makefile
+--- contrafold_v2_02/src/Makefile	2008-08-14 09:08:30.000000000 +0900
++++ contrafold/src/Makefile	2008-09-28 11:36:28.475540556 +0900
+@@ -1,4 +1,6 @@
+ CXX = g++
++AR = ar
++RANLIB = ranlib
+ 
+ CXXFLAGS = -O3 -DNDEBUG -W -pipe -Wundef -Winline --param large-function-growth=100000 -Wall
+ LINKFLAGS = -lm
+@@ -27,15 +29,22 @@
+ 	SStruct.cpp \
+ 	Utilities.cpp
+ 
++LIB_SRCS = \
++	wrapper.cpp \
++	SStruct.cpp \
++	Utilities.cpp
++
+ CONTRAFOLD_OBJS = $(CONTRAFOLD_SRCS:%.cpp=%.o)
+ MAKECOORDS_OBJS = $(MAKECOORDS_SRCS:%.cpp=%.o)
+ PLOTRNA_OBJS = $(PLOTRNA_SRCS:%.cpp=%.o)
+ SCOREPREDICTION_OBJS = $(SCOREPREDICTION_SRCS:%.cpp=%.o)
++LIB_OBJS = $(LIB_SRCS:%.cpp=%.o)
+ 
+ .PHONY: all viz clean
+ 
+-all: contrafold score_prediction
++all: contrafold score_prediction lib
+ viz: make_coords plot_rna
++lib: libcontrafold.a 
+ 
+ contrafold: $(CONTRAFOLD_OBJS)
+ 	$(CXX) $(CXXFLAGS) $(OTHERFLAGS) $(CONTRAFOLD_OBJS) $(LINKFLAGS) -o contrafold
+@@ -55,6 +64,12 @@
+ score_prediction: $(SCOREPREDICTION_OBJS)
+ 	$(CXX) $(CXXFLAGS) $(OTHERFLAGS) $(SCOREPREDICTION_OBJS) $(LINKFLAGS) -o score_prediction
+ 
++libcontrafold.a: $(LIB_OBJS)
++	$(AR) r libcontrafold.a $(LIB_OBJS)
++	$(RANLIB) libcontrafold.a
++
++wrapper.o: wrapper.cpp Defaults.ipp
++
+ ##########################################
+ 
+ gccathlon64:
+@@ -103,4 +118,4 @@
+ 	$(CXX) $(CXXFLAGS) $(OTHERFLAGS) -c $<
+ 
+ clean:
+-	rm -f contrafold make_coords plot_rna score_prediction *.o Defaults.ipp
++	rm -f contrafold make_coords plot_rna score_prediction *.o Defaults.ipp libcontrafold.a
+diff -urN contrafold_v2_02/src/SStruct.cpp contrafold/src/SStruct.cpp
+--- contrafold_v2_02/src/SStruct.cpp	2008-08-14 09:08:30.000000000 +0900
++++ contrafold/src/SStruct.cpp	2008-09-28 10:42:48.753580116 +0900
+@@ -639,3 +639,39 @@
+     this->mapping = mapping;
+     ValidateMapping(mapping);
+ }
++
++
++// additional constructors
++SStruct::SStruct(const std::string& name, const std::string& seq)
++{
++  Assign(name, seq);
++}
++
++SStruct::SStruct(const std::string& name, const std::string& seq, const std::string& str)
++{
++  Assign(name, seq, str);
++}
++
++void SStruct::Assign(const std::string& name, const std::string& seq)
++{
++  // clear any previous data
++  std::vector<std::string>().swap(names);
++  std::vector<std::string>().swap(sequences);
++  std::vector<int>().swap(mapping);
++
++  names.push_back(name);
++  sequences.push_back("@");
++  for (size_t i = 0; i < seq.length(); i++) {
++    if (isspace(seq[i])) continue;
++    sequences.back() += seq[i];
++  }
++  mapping = std::vector<int>(sequences[0].length(), UNKNOWN);
++}
++
++void SStruct::Assign(const std::string& name, const std::string& seq, const std::string& str)
++{
++  Assign(name, seq);
++  std::string x = "@";
++  x += str;
++  mapping = ConvertParensToMapping(FilterParens(x));
++}
+diff -urN contrafold_v2_02/src/SStruct.hpp contrafold/src/SStruct.hpp
+--- contrafold_v2_02/src/SStruct.hpp	2008-08-14 09:08:31.000000000 +0900
++++ contrafold/src/SStruct.hpp	2008-09-28 10:42:48.769708199 +0900
+@@ -57,12 +57,18 @@
+     // constructor and destructor
+     SStruct();
+     SStruct(const std::string &filename);
++    SStruct(const std::string& name, const std::string& seq);
++    SStruct(const std::string& name, const std::string& seq, const std::string& str);
+     SStruct(const SStruct &rhs);
+     ~SStruct();
+ 
+     // load sequence and struture from file
+     void Load(const std::string &filename);
+ 
++    // load sequence and structure from std::string
++    void Assign(const std::string& name, const std::string& seq);
++    void Assign(const std::string& name, const std::string& seq, const std::string& str);
++
+     // assignment operator
+     const SStruct& operator=(const SStruct &rhs);
+ 
+diff -urN contrafold_v2_02/src/Utilities.cpp contrafold/src/Utilities.cpp
+--- contrafold_v2_02/src/Utilities.cpp	2008-08-14 09:08:31.000000000 +0900
++++ contrafold/src/Utilities.cpp	2008-09-27 02:19:52.541582201 +0900
+@@ -3,6 +3,7 @@
+ //////////////////////////////////////////////////////////////////////
+ 
+ #include "Utilities.hpp"
++#include <climits>
+ 
+ bool toggle_error = false;
+ 
+diff -urN contrafold_v2_02/src/contrafold.h contrafold/src/contrafold.h
+--- contrafold_v2_02/src/contrafold.h	1970-01-01 09:00:00.000000000 +0900
++++ contrafold/src/contrafold.h	2008-09-28 10:41:01.814519641 +0900
+@@ -0,0 +1,47 @@
++/*
++ * wrapper routines for CONTRAfold
++ *
++ * Copyright (C) 2008 Kengo Sato
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ */
++
++#ifndef __INC_CONTRAFOLD_H__
++#define __INC_CONTRAFOLD_H__
++
++#include <string>
++
++template < class T >
++class CONTRAfold
++{
++private:
++  struct Impl;
++
++public:
++  CONTRAfold(bool canonical_only = true);
++  CONTRAfold(const std::string& params, bool canonical_only = true);
++  ~CONTRAfold();
++  
++  const T* ComputePosterior(const std::string& seq);
++
++private:
++  Impl* impl_;
++};
++
++#endif	// __INC_CONTRAFOLD_H__
++
++// Local Variables:
++// mode: C++
++// End:
+diff -urN contrafold_v2_02/src/wrapper.cpp contrafold/src/wrapper.cpp
+--- contrafold_v2_02/src/wrapper.cpp	1970-01-01 09:00:00.000000000 +0900
++++ contrafold/src/wrapper.cpp	2008-09-28 11:47:50.013555177 +0900
+@@ -0,0 +1,89 @@
++// 
++#include <vector>
++#include <string>
++#include "InferenceEngine.hpp"
++#include "ParameterManager.hpp"
++#include "SStruct.hpp"
++#include "Defaults.ipp"
++#include "contrafold.h"
++
++template < class T > 
++struct CONTRAfold<T>::Impl
++{
++  Impl(bool canonical_only);
++  Impl(const std::string& params, bool canonical_only);
++  ~Impl() {};
++
++  const T* ComputePosterior(const std::string& seq);
++
++  ParameterManager<T> pm_;
++  InferenceEngine<T> engine_;
++  std::vector<T> w_;
++};
++
++template < class T >
++CONTRAfold<T>::
++CONTRAfold(bool canonical_only)
++  : impl_(new Impl(canonical_only))
++{
++}
++
++template < class T >
++CONTRAfold<T>::
++CONTRAfold(const std::string& params, bool canonical_only)
++  : impl_(new Impl(params, canonical_only))
++{
++}
++
++template < class T >
++CONTRAfold<T>::
++~CONTRAfold()
++{
++  delete impl_;
++}
++
++template < class T >
++const T* 
++CONTRAfold<T>::
++ComputePosterior(const std::string& seq)
++{
++  return impl_->ComputePosterior(seq);
++}
++
++template < class T > 
++CONTRAfold<T>::Impl::
++Impl(bool canonical_only)
++  : pm_(), engine_(!canonical_only)
++{
++  engine_.RegisterParameters(pm_);
++  if (canonical_only)
++    w_ = GetDefaultComplementaryValues<float>();
++  else
++    w_ = GetDefaultNoncomplementaryValues<float>();
++}
++
++template < class T > 
++CONTRAfold<T>::Impl::
++Impl(const std::string& params, bool canonical_only)
++  : pm_(), engine_(!canonical_only)
++{
++  engine_.RegisterParameters(pm_);
++  pm_.ReadFromFile(params, w_);
++}
++
++template < class T > 
++const T*
++CONTRAfold<T>::Impl::
++ComputePosterior(const std::string& seq)
++{
++  SStruct s("unknown", seq);
++  engine_.LoadSequence(s);
++  engine_.LoadValues(w_);
++  engine_.ComputeInside();
++  engine_.ComputeOutside();
++  engine_.ComputePosterior();
++  return engine_.GetPosterior(0.0);
++}
++
++template
++class CONTRAfold<float>;

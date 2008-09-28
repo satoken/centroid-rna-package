@@ -22,26 +22,22 @@
 #define __INC_CONTRAFOLD_H__
 
 #include <string>
-#include <vector>
 
-namespace CONTRAfold {
+template < class T >
+class CONTRAfold
+{
+private:
+  struct Impl;
 
-  template < class T >
-  struct WSImpl;
-
-  template < class T >
-  struct WS {
-    WSImpl<T>* impl;
-
-    WS(unsigned int size);
-    ~WS();
-  };
+public:
+  CONTRAfold(bool canonical_only = true);
+  CONTRAfold(const std::string& params, bool canonical_only = true);
+  ~CONTRAfold();
   
-  template < class T >
-  const T* ComputePosterior(const std::string& seq, bool canonical_only = true);
+  const T* ComputePosterior(const std::string& seq);
 
-  template < class T >
-  const T* ComputePosterior(const std::string& seq, WS<T>& ws, bool canonical_only = true);
+private:
+  Impl* impl_;
 };
 
 #endif	// __INC_CONTRAFOLD_H__
