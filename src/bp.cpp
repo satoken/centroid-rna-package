@@ -278,12 +278,34 @@ namespace SCFG
     {
       resize(seq.size());
       if (contrafold_==NULL)
-	contrafold_ = new CONTRAfold<float>(true);
+	contrafold_ = boost::shared_ptr<CONTRAfold<float> >(new CONTRAfold<float>(true));
       const float* posterior = contrafold_->ComputePosterior(seq);
       uint k=0;
       for (uint i=0; i!=seq.size()+1; ++i) {
 	for (uint j=i; j!=seq.size()+1; ++j) {
 	  if (i!=0) update(i-1, j-1, posterior[k]);
+	  ++k;
+	}
+      }
+      delete[] posterior;
+    }
+
+    template < class V >
+    void
+    Table<V>::
+    contra_fold(const std::string& seq, const std::string& model)
+    {
+      resize(seq.size());
+      if (contrafold_==NULL)
+	contrafold_ = boost::shared_ptr<CONTRAfold<float> >(new CONTRAfold<float>(model, true));
+      const float* posterior = contrafold_->ComputePosterior(seq);
+      uint k=0;
+      for (uint i=0; i!=seq.size()+1; ++i) {
+	for (uint j=i; j!=seq.size()+1; ++j) {
+	  if (i!=0) update(i-1, j-1, posterior[k]);
+          if (posterior[k]>0.0) {
+            std::cout << "(" << (i-1) << "," << (j-1) << "): " << posterior[k] << std::endl;
+          }
 	  ++k;
 	}
       }

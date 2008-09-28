@@ -74,6 +74,13 @@ namespace SCFG
       setup(0, size, 0, size);
       fill(val);
     }
+
+    CYKTable(const CYKTable& x)
+      : table_(), ptr_(), j_to_(0)
+    {
+      setup(x.i_from_, x.i_to_, x.j_from_, x.j_to_);
+      std::copy(x.table_.begin(), x.table_.end(), table_.begin());
+    }
     
     uint estimate_size(uint i_from, uint i_to, uint j_from, uint j_to)
     {

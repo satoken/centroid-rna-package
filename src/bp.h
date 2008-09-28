@@ -23,6 +23,7 @@
 
 #include <iosfwd>
 #include <list>
+#include <boost/shared_ptr.hpp>
 #include "cyktable.h"
 #ifdef HAVE_LIBCONTRAFOLD
 #include "contrafold.h"
@@ -40,13 +41,13 @@ namespace SCFG
       
     public:
 #ifdef HAVE_LIBCONTRAFOLD
-      Table() : bp_(), q_(), size_(0), contrafold_(NULL) { }
+      Table() : bp_(), q_(), size_(0), contrafold_() { }
 #else
       Table() : bp_(), q_(), size_(0) { }
 #endif
       
 #ifdef HAVE_LIBCONTRAFOLD
-      Table(uint sz) : bp_(sz), q_(sz), size_(0), contrafold_(NULL)
+      Table(uint sz) : bp_(sz), q_(sz), size_(0), contrafold_()
 #else
       Table(uint sz) : bp_(sz), q_(sz), size_(0)
 #endif
@@ -55,8 +56,11 @@ namespace SCFG
       }
 
 #ifdef HAVE_LIBCONTRAFOLD
-      ~Table() { if (contrafold_) delete contrafold_; }
-#endif      
+      Table(const Table& x) : bp_(x.bp_), q_(x.q_), size_(x.size_), contrafold_(x.contrafold_) { }
+#else
+      Table(const Table& x) : bp_(x.bp_), q_(x.q_), size_(x.size_) { } 
+#endif
+
 
       void reserve(uint sz)
       {
@@ -111,6 +115,7 @@ namespace SCFG
 
 #ifdef HAVE_LIBCONTRAFOLD
       void contra_fold(const std::string& seq);
+      void contra_fold(const std::string& seq, const std::string& model);
 #endif
 
       static
@@ -133,7 +138,7 @@ namespace SCFG
       std::vector<T> q_;
       uint size_;
 #ifdef HAVE_LIBCONTRAFOLD
-      CONTRAfold<float>* contrafold_;
+      boost::shared_ptr<CONTRAfold<float> > contrafold_;
 #endif      
     };
   }
