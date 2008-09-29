@@ -303,9 +303,11 @@ namespace SCFG
       for (uint i=0; i!=seq.size()+1; ++i) {
 	for (uint j=i; j!=seq.size()+1; ++j) {
 	  if (i!=0) update(i-1, j-1, posterior[k]);
+#if 0
           if (posterior[k]>0.0) {
             std::cout << "(" << (i-1) << "," << (j-1) << "): " << posterior[k] << std::endl;
           }
+#endif
 	  ++k;
 	}
       }
