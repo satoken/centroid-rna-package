@@ -1,6 +1,358 @@
-diff -urN contrafold_v2_02/src/Makefile contrafold/src/Makefile
---- contrafold_v2_02/src/Makefile	2008-08-14 09:08:30.000000000 +0900
-+++ contrafold/src/Makefile	2008-09-28 11:36:28.475540556 +0900
+diff -urN contrafold_v2_02.orig/src/InferenceEngine.hpp contrafold/src/InferenceEngine.hpp
+--- contrafold_v2_02.orig/src/InferenceEngine.hpp	2008-08-14 09:08:31.000000000 +0900
++++ contrafold/src/InferenceEngine.hpp	2008-10-20 15:18:49.597277344 +0900
+@@ -1,5 +1,5 @@
+ //////////////////////////////////////////////////////////////////////
+-// InferenceEngine.hpp
++// InferencaeEngine.hpp
+ //////////////////////////////////////////////////////////////////////
+ 
+ #ifndef INFERENCEENGINE_HPP
+@@ -26,6 +26,7 @@
+     int is_complementary[M+1][M+1];
+     bool cache_initialized;
+     ParameterManager<RealT> *parameter_manager;
++    int max_bp_width;
+     
+     // dimensions
+     int L, SIZE;
+@@ -223,11 +224,13 @@
+ 
+     // cache
+     std::pair<RealT,RealT> cache_score_single[C_MAX_SINGLE_LENGTH+1][C_MAX_SINGLE_LENGTH+1];
++#if ( PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR ) && FAST_HELIX_LENGTHS 
+     std::vector<std::pair<RealT,RealT> > cache_score_helix_sums;
++#endif
+ 
+     void FillScores(typename std::vector<std::pair<RealT, RealT> >::iterator begin, typename std::vector<std::pair<RealT, RealT> >::iterator end, RealT value);
+     void FillCounts(typename std::vector<std::pair<RealT, RealT> >::iterator begin, typename std::vector<std::pair<RealT, RealT> >::iterator end, RealT value);
+-    int ComputeRowOffset(int i, int N) const;
++    int ComputeRowOffset(int i, int N, int w) const;
+     bool IsComplementary(int i, int j) const;
+     
+     RealT ScoreJunctionA(int i, int j) const;
+@@ -262,7 +265,7 @@
+ public:
+ 
+     // constructor and destructor
+-    InferenceEngine(bool allow_noncomplementary);
++    InferenceEngine(bool allow_noncomplementary, int max_bp_width=0);
+     ~InferenceEngine();
+ 
+     // register params with the parameter manager
+@@ -294,6 +297,7 @@
+     void ComputePosterior();
+     std::vector<int> PredictPairingsPosterior(const RealT gamma) const;
+     RealT *GetPosterior(const RealT posterior_cutoff) const;
++    RealT *GetPosterior(const RealT posterior_cutoff, std::vector<RealT>& p) const;
+ };
+ 
+ #include "InferenceEngine.ipp"
+diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/InferenceEngine.ipp
+--- contrafold_v2_02.orig/src/InferenceEngine.ipp	2008-08-14 09:08:31.000000000 +0900
++++ contrafold/src/InferenceEngine.ipp	2008-10-20 18:21:23.658636853 +0900
+@@ -166,13 +166,21 @@
+ //////////////////////////////////////////////////////////////////////
+ 
+ template<class RealT>
+-int InferenceEngine<RealT>::ComputeRowOffset(int i, int N) const
++int InferenceEngine<RealT>::ComputeRowOffset(int i, int N, int w /*=0*/) const
+ {
+     Assert(i >= 0 && i <= N, "Index out-of-bounds.");
+-    
+-    // equivalent to:
+-    //   return N*(N+1)/2 - (N-i)*(N-i+1)/2 - i;
+-    return i*(N+N-i-1)/2;
++    if (w==0)
++    {
++	// equivalent to:
++	//   return N*(N+1)/2 - (N-i)*(N-i+1)/2 - i;
++	return i*(N+N-i-1)/2;
++    }
++    else
++    {
++	// equivalent to:
++	//   return i*w - i;
++	return (i-1)*w;
++    }
+ }
+ 
+ //////////////////////////////////////////////////////////////////////
+@@ -210,10 +218,11 @@
+ //////////////////////////////////////////////////////////////////////
+ 
+ template<class RealT>
+-InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary) :
++InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary, int max_bp_width) :
+     allow_noncomplementary(allow_noncomplementary),
+     cache_initialized(false),
+     parameter_manager(NULL),
++    max_bp_width(max_bp_width),
+     L(0),
+     SIZE(0)
+ #if PROFILE
+@@ -795,7 +804,10 @@
+     
+     // compute dimensions
+     L = sstruct.GetLength();
+-    SIZE = (L+1)*(L+2) / 2;
++    if (max_bp_width==0)
++        SIZE = (L+1)*(L+2) / 2;
++    else
++        SIZE = (L+1)*max_bp_width;
+ #if PROFILE
+     N = sstruct.GetNumSequences();
+     SIZE2 = (L+1)*(L+1);
+@@ -864,7 +876,7 @@
+ 
+ #endif
+ 
+-#if FAST_HELIX_LENGTHS
++#if ( PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR ) && FAST_HELIX_LENGTHS 
+     cache_score_helix_sums.clear();                  cache_score_helix_sums.resize((2*L+1)*L);
+ #endif
+ 
+@@ -895,7 +907,7 @@
+     // set the loss for each unpaired position to zero
+     for (int i = 0; i <= L; i++)
+     {
+-        offset[i] = ComputeRowOffset(i,L+1);
++        offset[i] = ComputeRowOffset(i,L+1,max_bp_width);
+         allow_unpaired_position[i] = 1;
+         loss_unpaired_position[i] = RealT(0);
+     }
+@@ -924,7 +936,8 @@
+         // for each pair of non-complementary letters in the sequence, disallow the pairing
+         for (int i = 1; i <= L; i++)
+         {
+-            for (int j = i+1; j <= L; j++)
++            int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++            for (int j = i+1; j <= l; j++)
+             {
+                 if (!IsComplementary(i,j))
+                     allow_paired[offset[i]+j] = 0;
+@@ -1150,12 +1163,13 @@
+ 
+ #endif
+ 
+-#if FAST_HELIX_LENGTHS
++#if ( PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR ) && FAST_HELIX_LENGTHS 
+     // precompute helix partial sums
+     FillScores(cache_score_helix_sums.begin(), cache_score_helix_sums.end(), RealT(0));
+     for (int i = L; i >= 1; i--)
+     {
+-        for (int j = i+3; j <= L; j++)
++        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++        for (int j = i+3; j <= l; j++)
+         {
+             cache_score_helix_sums[(i+j)*L+j-i].first = cache_score_helix_sums[(i+j)*L+j-i-2].first;
+             if (allow_paired[offset[i+1]+j-1])
+@@ -1291,7 +1305,7 @@
+         for (int l2 = 0; l2 <= C_MAX_SINGLE_LENGTH; l2++)
+             cache_score_single[l1][l2].second = RealT(0);
+     
+-#if FAST_HELIX_LENGTHS
++#if ( PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR ) && FAST_HELIX_LENGTHS 
+     FillCounts(cache_score_helix_sums.begin(), cache_score_helix_sums.end(), RealT(0));
+ #endif
+ 
+@@ -1356,14 +1370,15 @@
+ template<class RealT>
+ void InferenceEngine<RealT>::FinalizeCounts()
+ {
+-#if FAST_HELIX_LENGTHS
++#if ( PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR ) && FAST_HELIX_LENGTHS 
+ 
+     // reverse helix partial sums    
+     std::vector<std::pair<RealT,RealT> > reverse_sums(cache_score_helix_sums);
+     
+     for (int i = 1; i <= L; i++)
+     {
+-        for (int j = L; j >= i+3; j--)
++        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++        for (int j = l; j >= i+3; j--)
+         {
+             // the "if" conditions here can be omitted
+             
+@@ -1682,7 +1697,8 @@
+     {
+         loss_unpaired[offset[i]+i] = RealT(0);
+         loss_paired[offset[i]+i] = RealT(NEG_INF);
+-        for (int j = i+1; j <= L; j++)
++        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++        for (int j = i+1; j <= l; j++)
+         {
+             loss_unpaired[offset[i]+j] = 
+                 loss_unpaired[offset[i]+j-1] +
+@@ -1720,7 +1736,8 @@
+     {
+         allow_unpaired[offset[i]+i] = 1;
+         allow_paired[offset[i]+i] = 0;
+-        for (int j = i+1; j <= L; j++)
++        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++        for (int j = i+1; j <= l; j++)
+         {
+             allow_unpaired[offset[i]+j] = 
+                 allow_unpaired[offset[i]+j-1] && 
+@@ -2042,7 +2059,7 @@
+     Assert(0 <= i && i + 2 * m <= j && j <= L, "Helix boundaries invalid.");
+     Assert(2 <= m && m <= D_MAX_HELIX_LENGTH, "Helix length invalid.");
+     
+-#if FAST_HELIX_LENGTHS
++#if ( PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR ) && FAST_HELIX_LENGTHS 
+     
+     return
+         cache_score_helix_sums[(i+j+1)*L+j-i-1].first - cache_score_helix_sums[(i+j+1)*L+j-i-m-m+1].first
+@@ -2073,7 +2090,7 @@
+     Assert(0 <= i && i + 2 * m <= j && j <= L, "Helix boundaries invalid.");
+     Assert(2 <= m && m <= D_MAX_HELIX_LENGTH, "Helix length invalid.");
+     
+-#if FAST_HELIX_LENGTHS
++#if ( PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR ) && FAST_HELIX_LENGTHS 
+     
+     cache_score_helix_sums[(i+j+1)*L+j-i-1].second += value;
+     cache_score_helix_sums[(i+j+1)*L+j-i-m-m+1].second -= value;
+@@ -2390,7 +2407,8 @@
+         candidates.clear();
+ #endif
+         
+-        for (int j = i; j <= L; j++)
++        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++        for (int j = i; j <= l; j++)
+         {
+             // FM2[i,j] = MAX (i<k<j : FM1[i,k] + FM[k,j])
+ 
+@@ -2801,7 +2819,8 @@
+         
+         // compute MAX (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
+         
+-        for (int k = 0; k < j; k++)
++        int l = max_bp_width==0 ? 0 : std::max(0,j-max_bp_width);
++        for (int k = l; k < j; k++)
+         {
+             if (allow_paired[offset[k+1]+j])
+             {
+@@ -3199,7 +3218,8 @@
+ 
+     for (int i = L; i >= 0; i--)
+     {
+-        for (int j = i; j <= L; j++)
++        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++        for (int j = i; j <= l; j++)
+         {
+             
+             // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
+@@ -3525,7 +3545,8 @@
+         
+         // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
+         
+-        for (int k = 0; k < j; k++)
++        int l = max_bp_width==0 ? 0 : std::max(0,j-max_bp_width);
++        for (int k = l; k < j; k++)
+             if (allow_paired[offset[k+1]+j])
+                 Fast_LogPlusEquals(sum_i, F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionA(j,k));
+         
+@@ -3582,7 +3603,8 @@
+         // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
+         
+         {
+-            for (int k = 0; k < j; k++)
++            int l = max_bp_width==0 ? 0 : std::max(0,j-max_bp_width);
++            for (int k = l; k < j; k++)
+             {
+                 if (allow_paired[offset[k+1]+j])
+                 {
+@@ -3596,7 +3618,8 @@
+     
+     for (int i = 0; i <= L; i++)
+     {
+-        for (int j = L; j >= i; j--)
++        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++        for (int j = l; j >= i; j--)
+         {
+             RealT FM2o = RealT(NEG_INF);
+             
+@@ -3920,7 +3943,8 @@
+     
+     for (int i = L; i >= 0; i--)
+     {
+-        for (int j = i; j <= L; j++)
++        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++        for (int j = i; j <= l; j++)
+         {
+ 
+             // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
+@@ -4262,7 +4286,8 @@
+         
+         // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
+         
+-        for (int k = 0; k < j; k++)
++        int l = max_bp_width==0 ? 0 : std::max(0,j-max_bp_width);
++        for (int k = l; k < j; k++)
+         {
+             if (allow_paired[offset[k+1]+j])
+             {
+@@ -4302,7 +4327,8 @@
+     
+     for (int i = L; i >= 0; i--)
+     {
+-        for (int j = i; j <= L; j++)
++        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++        for (int j = i; j <= l; j++)
+         {
+             
+             // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
+@@ -4597,7 +4623,8 @@
+         
+         // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
+         
+-        for (int k = 0; k < j; k++)
++        int l = max_bp_width==0 ? 0 : std::max(0,j-max_bp_width);
++        for (int k = l; k < j; k++)
+         {
+             if (allow_paired[offset[k+1]+j])
+                 posterior[offset[k+1]+j] += Fast_Exp(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionA(j,k));
+@@ -4627,9 +4654,9 @@
+ #if SHOW_TIMINGS
+     double starting_time = GetSystemTime();
+ #endif
+-    RealT* unpaired_posterior  = new RealT[L+1];
+-    RealT* score               = new RealT[SIZE];
+-    int* traceback             = new int[SIZE];
++    std::vector<RealT> unpaired_posterior(L+1);
++    std::vector<RealT> score(SIZE);
++    std::vector<int> traceback(SIZE);
+     
+     // compute the scores for unpaired nucleotides
+     
+@@ -4644,8 +4671,8 @@
+     
+     // initialize matrices
+     
+-    std::fill(score, score+SIZE, RealT(-1.0));
+-    std::fill(traceback, traceback+SIZE, -1);
++    std::fill(score.begin(), score.end(), RealT(-1.0));
++    std::fill(traceback.begin(), traceback.end(), -1);
+     
+     // dynamic programming
+     
+@@ -4757,3 +4784,13 @@
+         ret[i] = (posterior[i] >= posterior_cutoff ? posterior[i] : RealT(0));
+     return ret;
+ }
++
++template<class RealT>
++RealT *InferenceEngine<RealT>::GetPosterior(const RealT posterior_cutoff,
++					    std::vector<RealT>& p) const
++{
++    p.resize(SIZE);
++    for (int i = 0; i < SIZE; i++)
++        p[i] = (posterior[i] >= posterior_cutoff ? posterior[i] : RealT(0));
++    return &p[0];
++}
+diff -urN contrafold_v2_02.orig/src/Makefile contrafold/src/Makefile
+--- contrafold_v2_02.orig/src/Makefile	2008-08-14 09:08:30.000000000 +0900
++++ contrafold/src/Makefile	2008-10-14 23:40:11.000000000 +0900
 @@ -1,4 +1,6 @@
  CXX = g++
 +AR = ar
@@ -51,9 +403,9 @@ diff -urN contrafold_v2_02/src/Makefile contrafold/src/Makefile
  clean:
 -	rm -f contrafold make_coords plot_rna score_prediction *.o Defaults.ipp
 +	rm -f contrafold make_coords plot_rna score_prediction *.o Defaults.ipp libcontrafold.a
-diff -urN contrafold_v2_02/src/SStruct.cpp contrafold/src/SStruct.cpp
---- contrafold_v2_02/src/SStruct.cpp	2008-08-14 09:08:30.000000000 +0900
-+++ contrafold/src/SStruct.cpp	2008-09-28 10:42:48.753580116 +0900
+diff -urN contrafold_v2_02.orig/src/SStruct.cpp contrafold/src/SStruct.cpp
+--- contrafold_v2_02.orig/src/SStruct.cpp	2008-08-14 09:08:30.000000000 +0900
++++ contrafold/src/SStruct.cpp	2008-10-14 23:40:11.000000000 +0900
 @@ -639,3 +639,39 @@
      this->mapping = mapping;
      ValidateMapping(mapping);
@@ -94,9 +446,9 @@ diff -urN contrafold_v2_02/src/SStruct.cpp contrafold/src/SStruct.cpp
 +  x += str;
 +  mapping = ConvertParensToMapping(FilterParens(x));
 +}
-diff -urN contrafold_v2_02/src/SStruct.hpp contrafold/src/SStruct.hpp
---- contrafold_v2_02/src/SStruct.hpp	2008-08-14 09:08:31.000000000 +0900
-+++ contrafold/src/SStruct.hpp	2008-09-28 10:42:48.769708199 +0900
+diff -urN contrafold_v2_02.orig/src/SStruct.hpp contrafold/src/SStruct.hpp
+--- contrafold_v2_02.orig/src/SStruct.hpp	2008-08-14 09:08:31.000000000 +0900
++++ contrafold/src/SStruct.hpp	2008-10-14 23:40:11.000000000 +0900
 @@ -57,12 +57,18 @@
      // constructor and destructor
      SStruct();
@@ -116,9 +468,9 @@ diff -urN contrafold_v2_02/src/SStruct.hpp contrafold/src/SStruct.hpp
      // assignment operator
      const SStruct& operator=(const SStruct &rhs);
  
-diff -urN contrafold_v2_02/src/Utilities.cpp contrafold/src/Utilities.cpp
---- contrafold_v2_02/src/Utilities.cpp	2008-08-14 09:08:31.000000000 +0900
-+++ contrafold/src/Utilities.cpp	2008-09-27 02:19:52.541582201 +0900
+diff -urN contrafold_v2_02.orig/src/Utilities.cpp contrafold/src/Utilities.cpp
+--- contrafold_v2_02.orig/src/Utilities.cpp	2008-08-14 09:08:31.000000000 +0900
++++ contrafold/src/Utilities.cpp	2008-10-14 23:40:11.000000000 +0900
 @@ -3,6 +3,7 @@
  //////////////////////////////////////////////////////////////////////
  
@@ -127,10 +479,10 @@ diff -urN contrafold_v2_02/src/Utilities.cpp contrafold/src/Utilities.cpp
  
  bool toggle_error = false;
  
-diff -urN contrafold_v2_02/src/contrafold.h contrafold/src/contrafold.h
---- contrafold_v2_02/src/contrafold.h	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/contrafold.h	2008-09-28 10:41:01.814519641 +0900
-@@ -0,0 +1,47 @@
+diff -urN contrafold_v2_02.orig/src/contrafold.h contrafold/src/contrafold.h
+--- contrafold_v2_02.orig/src/contrafold.h	1970-01-01 09:00:00.000000000 +0900
++++ contrafold/src/contrafold.h	2008-10-20 18:42:36.382764454 +0900
+@@ -0,0 +1,50 @@
 +/*
 + * wrapper routines for CONTRAfold
 + *
@@ -163,11 +515,14 @@ diff -urN contrafold_v2_02/src/contrafold.h contrafold/src/contrafold.h
 +  struct Impl;
 +
 +public:
-+  CONTRAfold(bool canonical_only = true);
-+  CONTRAfold(const std::string& params, bool canonical_only = true);
++  CONTRAfold(bool canonical_only = true, int max_bp_width = 0);
 +  ~CONTRAfold();
++
++  void SetParameters(const std::string& params);
++  void SetConstraint(const std::string& paren);
 +  
 +  const T* ComputePosterior(const std::string& seq);
++  const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
 +
 +private:
 +  Impl* impl_;
@@ -178,10 +533,10 @@ diff -urN contrafold_v2_02/src/contrafold.h contrafold/src/contrafold.h
 +// Local Variables:
 +// mode: C++
 +// End:
-diff -urN contrafold_v2_02/src/wrapper.cpp contrafold/src/wrapper.cpp
---- contrafold_v2_02/src/wrapper.cpp	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/wrapper.cpp	2008-09-28 11:47:50.013555177 +0900
-@@ -0,0 +1,89 @@
+diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
+--- contrafold_v2_02.orig/src/wrapper.cpp	1970-01-01 09:00:00.000000000 +0900
++++ contrafold/src/wrapper.cpp	2008-10-20 18:43:16.772193115 +0900
+@@ -0,0 +1,130 @@
 +// 
 +#include <vector>
 +#include <string>
@@ -194,11 +549,14 @@ diff -urN contrafold_v2_02/src/wrapper.cpp contrafold/src/wrapper.cpp
 +template < class T > 
 +struct CONTRAfold<T>::Impl
 +{
-+  Impl(bool canonical_only);
-+  Impl(const std::string& params, bool canonical_only);
++  Impl(bool canonical_only, int max_bp_width);
 +  ~Impl() {};
 +
++  void SetParameters(const std::string& params);
++  void SetConstraint(const std::string& paren);
++  
 +  const T* ComputePosterior(const std::string& seq);
++  const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
 +
 +  ParameterManager<T> pm_;
 +  InferenceEngine<T> engine_;
@@ -207,15 +565,8 @@ diff -urN contrafold_v2_02/src/wrapper.cpp contrafold/src/wrapper.cpp
 +
 +template < class T >
 +CONTRAfold<T>::
-+CONTRAfold(bool canonical_only)
-+  : impl_(new Impl(canonical_only))
-+{
-+}
-+
-+template < class T >
-+CONTRAfold<T>::
-+CONTRAfold(const std::string& params, bool canonical_only)
-+  : impl_(new Impl(params, canonical_only))
++CONTRAfold(bool canonical_only, int max_bp_width)
++  : impl_(new Impl(canonical_only, max_bp_width))
 +{
 +}
 +
@@ -227,6 +578,22 @@ diff -urN contrafold_v2_02/src/wrapper.cpp contrafold/src/wrapper.cpp
 +}
 +
 +template < class T >
++void
++CONTRAfold<T>::
++SetParameters(const std::string& params)
++{
++  impl_->SetParameters(params);
++}
++
++template < class T >
++void
++CONTRAfold<T>::
++SetConstraint(const std::string& paren)
++{
++  impl_->SetConstraint(paren);
++}
++
++template < class T >
 +const T* 
 +CONTRAfold<T>::
 +ComputePosterior(const std::string& seq)
@@ -234,10 +601,18 @@ diff -urN contrafold_v2_02/src/wrapper.cpp contrafold/src/wrapper.cpp
 +  return impl_->ComputePosterior(seq);
 +}
 +
++template < class T >
++const T* 
++CONTRAfold<T>::
++ComputePosterior(const std::string& seq, std::vector<T>& p)
++{
++  return impl_->ComputePosterior(seq, p);
++}
++
 +template < class T > 
 +CONTRAfold<T>::Impl::
-+Impl(bool canonical_only)
-+  : pm_(), engine_(!canonical_only)
++Impl(bool canonical_only, int max_bp_width)
++  : pm_(), engine_(!canonical_only, max_bp_width)
 +{
 +  engine_.RegisterParameters(pm_);
 +  if (canonical_only)
@@ -246,13 +621,20 @@ diff -urN contrafold_v2_02/src/wrapper.cpp contrafold/src/wrapper.cpp
 +    w_ = GetDefaultNoncomplementaryValues<float>();
 +}
 +
-+template < class T > 
++template < class T >
++void
 +CONTRAfold<T>::Impl::
-+Impl(const std::string& params, bool canonical_only)
-+  : pm_(), engine_(!canonical_only)
++SetParameters(const std::string& params)
 +{
-+  engine_.RegisterParameters(pm_);
 +  pm_.ReadFromFile(params, w_);
++}
++
++template < class T >
++void
++CONTRAfold<T>::Impl::
++SetConstraint(const std::string& paren)
++{
++  // not implemented yet
 +}
 +
 +template < class T > 
@@ -267,6 +649,20 @@ diff -urN contrafold_v2_02/src/wrapper.cpp contrafold/src/wrapper.cpp
 +  engine_.ComputeOutside();
 +  engine_.ComputePosterior();
 +  return engine_.GetPosterior(0.0);
++}
++
++template < class T > 
++const T*
++CONTRAfold<T>::Impl::
++ComputePosterior(const std::string& seq, std::vector<T>& p)
++{
++  SStruct s("unknown", seq);
++  engine_.LoadSequence(s);
++  engine_.LoadValues(w_);
++  engine_.ComputeInside();
++  engine_.ComputeOutside();
++  engine_.ComputePosterior();
++  return engine_.GetPosterior(0.0, p);
 +}
 +
 +template
