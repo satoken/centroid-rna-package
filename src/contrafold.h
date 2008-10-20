@@ -35,6 +35,7 @@ public:
   ~CONTRAfold();
   
   const T* ComputePosterior(const std::string& seq);
+  const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
 
 private:
   Impl* impl_;

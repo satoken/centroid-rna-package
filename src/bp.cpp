@@ -118,70 +118,6 @@ namespace SCFG
 {
   namespace BP
   {
-    template < class Seq, class RuleSet, class DPTable, class BPTable >
-    struct Updater
-    {
-      typedef typename RuleSet::value_type value_type;
-
-      Updater(const Seq& seq, const RuleSet& rules,
-	      const DPTable& inside, const DPTable& outside, 
-	      BPTable& bp, uint min_loop=3, value_type eps=1e-300)
-	: seq_(seq), rules_(rules), inside_(inside), outside_(outside),
-	  bp_(bp), min_loop_(min_loop), eps_(eps),
-	  total_(inside_(Rule::START, 0, seq_.size()))
-      {
-      }
-
-      void operator()(uint s, uint i, uint j)
-      {
-	if (i!=j) {
-	  value_type out = outside_(s, i, j);
-	  if (zerop(out)) return;
-	  // rule type P: X -> a Y b
-	  value_type v = rules_.type(s,Rule::P);
-	  if (v>=eps_ && min_loop_+i+1<=j-1) {
-	    for (uint t=0; t!=rules_.size(); ++t) {
-	      value_type e = rules_.emit_p(s, t, seq_[i], seq_[j-1]);
-	      value_type in = inside_(t, i+1, j-1);
-	      value_type w = rules_.unary(s, Rule::P, t);
-	      if (!zerop(in) && !zerop(e) && w>=eps_) {
-		value_type x = out*v*w*e*in / total_;
-		bp_.add(i, j-1, x);
-	      }
-	    }
-	  }
-	}
-      }
-
-      const Seq& seq_;
-      const RuleSet& rules_;
-      const DPTable& inside_;
-      const DPTable& outside_;
-      BPTable& bp_;
-      uint min_loop_;
-      value_type eps_;
-      value_type total_;
-    };
-
-#if 0
-    template < class V >
-    template < class Seq, class RuleSet >
-    void
-    Table<V>::
-    parse(const Seq& seq, const RuleSet& rules)
-    {
-      typedef typename RuleSet::value_type value_type;
-      typedef SCFG::DPTable<value_type> DPTable;
-      DPTable inside, outside;
-      SCFG::Inside::execute(seq, rules, inside);
-      SCFG::Outside::execute(seq, rules, inside, outside);
-      resize(seq.size());
-      Updater<Seq,RuleSet,DPTable,Table<V> >
-	update(seq, rules, inside, outside, *this);
-      inside.inside_traverse(update);
-    }
-#endif
-
     template < class V >
     bool
     Table<V>::
@@ -279,7 +215,8 @@ namespace SCFG
       resize(seq.size());
       if (contrafold_==NULL)
 	contrafold_ = boost::shared_ptr<CONTRAfold<float> >(new CONTRAfold<float>(true));
-      const float* posterior = contrafold_->ComputePosterior(seq);
+      std::vector<float> posterior;
+      contrafold_->ComputePosterior(seq, posterior);
       uint k=0;
       for (uint i=0; i!=seq.size()+1; ++i) {
 	for (uint j=i; j!=seq.size()+1; ++j) {
@@ -287,7 +224,6 @@ namespace SCFG
 	  ++k;
 	}
       }
-      delete[] posterior;
     }
 
     template < class V >
@@ -298,20 +234,15 @@ namespace SCFG
       resize(seq.size());
       if (contrafold_==NULL)
 	contrafold_ = boost::shared_ptr<CONTRAfold<float> >(new CONTRAfold<float>(model, true));
-      const float* posterior = contrafold_->ComputePosterior(seq);
+      std::vector<float> posterior;
+      contrafold_->ComputePosterior(seq, posterior);
       uint k=0;
       for (uint i=0; i!=seq.size()+1; ++i) {
 	for (uint j=i; j!=seq.size()+1; ++j) {
 	  if (i!=0) update(i-1, j-1, posterior[k]);
-#if 0
-          if (posterior[k]>0.0) {
-            std::cout << "(" << (i-1) << "," << (j-1) << "): " << posterior[k] << std::endl;
-          }
-#endif
 	  ++k;
 	}
       }
-      delete[] posterior;
     }
 #endif
 
