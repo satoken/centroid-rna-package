@@ -50,7 +50,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.hpp contrafold/src/Inference
  #include "InferenceEngine.ipp"
 diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/InferenceEngine.ipp
 --- contrafold_v2_02.orig/src/InferenceEngine.ipp	2008-08-14 09:08:31.000000000 +0900
-+++ contrafold/src/InferenceEngine.ipp	2008-10-20 18:21:23.658636853 +0900
++++ contrafold/src/InferenceEngine.ipp	2008-10-20 18:57:10.666725700 +0900
 @@ -166,13 +166,21 @@
  //////////////////////////////////////////////////////////////////////
  
@@ -292,7 +292,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
              if (allow_paired[offset[k+1]+j])
              {
-@@ -4302,7 +4327,8 @@
+@@ -4302,9 +4327,11 @@
      
      for (int i = L; i >= 0; i--)
      {
@@ -300,9 +300,75 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
 +        for (int j = i; j <= l; j++)
          {
-             
+-            
++#if 0                   // FM2 is not required
++
              // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
-@@ -4597,7 +4623,8 @@
+             
+             RealT FM2i = RealT(NEG_INF);
+@@ -4329,6 +4356,7 @@
+             }
+       
+ #endif
++#endif
+ 
+ #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
+             
+@@ -4478,14 +4506,15 @@
+             
+             if (0 < i && j < L && allow_paired[offset[i]+j+1])
+             {
+-                
++#if 1
++                posterior[offset[i]+j] += Fast_Exp(FCi[offset[i]+j] + FCo[offset[i]+j] - Z);
++#else
+                 RealT outside = FCo[offset[i]+j] - Z;
+                 
+                 // compute ScoreHairpin(i,j)
+-                
+                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
+                     CountHairpin(i,j,Fast_Exp(outside + ScoreHairpin(i,j)));
+-                
++
+                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
+                 
+ #if !FAST_SINGLE_BRANCH_LOOPS
+@@ -4535,6 +4564,7 @@
+                 }
+                 
+ #endif
++#endif
+                 
+                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c) -- do nothing
+                 
+@@ -4551,7 +4581,7 @@
+             //                 FM1[i+1,j] + b                                          if i+2<=j]
+             //
+             //            (assuming 0 < i < i+2 <= j < L)
+-            
++#if 0            
+             if (0 < i && i+2 <= j && j < L)
+             {
+                 
+@@ -4563,6 +4593,7 @@
+                 // Compute FM1[i+1,j] + b -- do nothing
+                 
+             }
++#endif
+             
+             // FM[i,j] = optimal energy for substructure belonging to a
+             //           multibranch loop which contains at least one 
+@@ -4581,7 +4612,8 @@
+             // Compute FM1[i,j] -- do nothing
+         }
+     }
+-    
++
++#if 0    
+     for (int j = 1; j <= L; j++)
+     {
+         
+@@ -4597,12 +4629,14 @@
          
          // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
          
@@ -312,7 +378,13 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
              if (allow_paired[offset[k+1]+j])
                  posterior[offset[k+1]+j] += Fast_Exp(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionA(j,k));
-@@ -4627,9 +4654,9 @@
+         }
+     }
++#endif
+ 
+     for (int i = 1; i <= L; i++)
+     {
+@@ -4627,9 +4661,9 @@
  #if SHOW_TIMINGS
      double starting_time = GetSystemTime();
  #endif
@@ -325,7 +397,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      
      // compute the scores for unpaired nucleotides
      
-@@ -4644,8 +4671,8 @@
+@@ -4644,8 +4678,8 @@
      
      // initialize matrices
      
@@ -336,7 +408,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      
      // dynamic programming
      
-@@ -4757,3 +4784,13 @@
+@@ -4757,3 +4791,13 @@
          ret[i] = (posterior[i] >= posterior_cutoff ? posterior[i] : RealT(0));
      return ret;
  }
