@@ -85,7 +85,8 @@ main(int argc, char* argv[])
   po::notify(vm);
 
   if (vm.count("help") || !vm.count("seq-file") ||
-      (vm.count("aux") && model.empty())) {
+      (vm.count("aux") && model.empty()))
+  {
     std::string features("aux files");
 #ifdef HAVE_LIBRNA
     features += ", McCaskill model";
@@ -112,7 +113,8 @@ main(int argc, char* argv[])
   if (vm.count("pf_fold")) engine = CentroidFold::PFFOLD;
   if (vm.count("alipf_fold")) engine = CentroidFold::ALIPFFOLD;
 
-  if (gamma.size()==1 && gamma[0]<0.0) {
+  if (gamma.size()==1 && gamma[0]<0.0)
+  {
     double g[] = { 0.03125, 0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 6.0,
 		   8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0 };
     gamma.resize(boost::size(g));
@@ -120,8 +122,10 @@ main(int argc, char* argv[])
     gamma_ali.resize(boost::size(g));
     std::copy(boost::begin(g), boost::end(g), gamma_ali.begin());
   }
-  if (gamma.empty()) {
-    switch (engine) {
+  if (gamma.empty())
+  {
+    switch (engine)
+    {
 #ifdef HAVE_LIBCONTRAFOLD
     case CentroidFold::CONTRAFOLD:
       gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
@@ -141,16 +145,19 @@ main(int argc, char* argv[])
   }
 
   boost::spirit::file_iterator<> fi(input.c_str());
-  if (!fi) {
+  if (!fi)
+  {
     perror(input.c_str());
     return 1;
   }
 
   CentroidFold cf(engine, vm.count("mea"));
-  while (1) {
+  while (1)
+  {
     Fasta fa;
     Aln aln;
-    if (fa.load(fi)) {
+    if (fa.load(fi))
+    {
       if (model.empty())
         cf.calculate_posterior(fa.seq());
       else
@@ -161,9 +168,13 @@ main(int argc, char* argv[])
 	cf.print_posterior(std::cout, fa.seq(), p_th);
       if (vm.count("ps")) cf.ps_plot(fa.name(), fa.seq(), gamma[0]);
       if (vm.count("svg")) cf.svg_plot(fa.name(), fa.seq(), gamma[0]);
-    } else if (aln.load(fi)) {
-      if (vm.count("aux")) {
-	if (aln.seq().size()!=model.size()) {
+    }
+    else if (aln.load(fi))
+    {
+      if (vm.count("aux"))
+      {
+	if (aln.seq().size()!=model.size())
+	{
 	  std::cerr << "Given BP matrices and alignments were inconsistent.\n";
 	  break;
 	}
@@ -175,7 +186,9 @@ main(int argc, char* argv[])
 	cf.print_posterior(std::cout, aln.consensus(), p_th);
       if (vm.count("ps")) cf.ps_plot(aln.name().front(), aln.consensus(), gamma_ali[0]);
       if (vm.count("svg")) cf.svg_plot(aln.name().front(), aln.consensus(), gamma_ali[0]);
-    } else {
+    }
+    else
+    {
       break;
     }
   }
