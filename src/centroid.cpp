@@ -214,14 +214,33 @@ namespace SCFG
 	typedef typename T::value_type value_type;
 	typedef CYKTable< Cell<value_type> > DPTable;
 
-	DPTable dp(table.size()+1);
+	DPTable dp(table.size()+1, max_dist);
+        std::vector<Cell<value_type> > outer(table.size()+1);
 	Updater<T,DPTable> update(table, dp, gamma);
 	SCFG::inside_traverse(0, table.size(), max_dist, update);
+        outer[0].val= -1e100;
+        outer[0].update(0.0, Rule::E);
+        for (uint j=1; j!=outer.size(); ++j) {
+          outer[j].val = -1e100;
+          outer[j].update(outer[j-1].val, Rule::R);
+          uint l = j>max_dist ? j-max_dist : 0;
+          for (uint k=l; k<j; ++k) {
+            outer[j].update(outer[k].val+dp(k,j).val, Rule::B, k);
+          }
+        }
 
-	TraceBack<DPTable> traceback(paren, dp);
-	traceback(0, dp.size()-1);
+        int j=outer.size()-1;
+        while (j>0) {
+          if (outer[j].type==Rule::B) {
+            TraceBack<DPTable> traceback(paren, dp);
+            traceback(outer[j].br_pos, j);
+            j = outer[j].br_pos;
+          } else {
+            j--;
+          }
+        }
 
-	return dp(0, dp.size()-1).val;
+	return outer.back().val;
       }
     }
   };
