@@ -209,7 +209,7 @@ namespace SCFG
       // for each substring
       for (uint i=j-1; ; --i) {
 	update(i, j);
-	if (i==from || j-i>=width) break;
+	if (i==from || j-i>=width-1) break;
       }
     }
   }
@@ -236,7 +236,7 @@ namespace SCFG
     // for each position
     for (uint j=to; ; --j) {
       // for each substring
-      uint l=std::max(from, j>width ? j-width : 0);
+      uint l=std::max(from, j>width ? j-width-1 : 0);
       for (uint i=l; i!=j; ++i) {
 	update(i, j);
       }

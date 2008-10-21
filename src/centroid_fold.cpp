@@ -121,7 +121,7 @@ static
 void
 contra_fold(T& bp, CONTRAfold<U>& cf, const std::string& seq)
 {
-  bp.resize(seq.size()/*, cf.max_bp_dist()*/);
+  bp.resize(seq.size(), cf.max_bp_dist());
   std::vector<float> posterior;
   cf.ComputePosterior(seq, posterior);
 
@@ -311,10 +311,10 @@ decode_structure(float gamma, std::string& paren) const
   paren.resize(bp_.size());
   std::fill(paren.begin(), paren.end(), '.');
   if (!mea_) {
-    //if (max_bp_dist_==0)
+    if (max_bp_dist_==0)
       p = SCFG::Centroid::execute(bp_, paren, gamma);
-      //else
-      //p = SCFG::Centroid::execute(bp_, paren, max_bp_dist_, gamma);
+    else
+      p = SCFG::Centroid::execute(bp_, paren, max_bp_dist_, gamma);
   } else {
     p = SCFG::MEA::execute(bp_, paren, gamma);
   }
