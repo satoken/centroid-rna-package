@@ -23,11 +23,7 @@
 
 #include <iosfwd>
 #include <list>
-#include <boost/shared_ptr.hpp>
 #include "cyktable.h"
-#ifdef HAVE_LIBCONTRAFOLD
-#include "contrafold.h"
-#endif
 
 namespace SCFG
 {
@@ -40,31 +36,18 @@ namespace SCFG
       typedef T value_type;
       
     public:
-#ifdef HAVE_LIBCONTRAFOLD
-      Table() : bp_(), q_(), size_(0), contrafold_() { }
-#else
       Table() : bp_(), q_(), size_(0) { }
-#endif
       
-#ifdef HAVE_LIBCONTRAFOLD
-      Table(uint sz) : bp_(sz), q_(sz), size_(0), contrafold_()
-#else
       Table(uint sz) : bp_(sz), q_(sz), size_(0)
-#endif
       {
 	reserve(sz);
       }
 
-#ifdef HAVE_LIBCONTRAFOLD
-      Table(const Table& x) : bp_(x.bp_), q_(x.q_), size_(x.size_), contrafold_(x.contrafold_) { }
-#else
       Table(const Table& x) : bp_(x.bp_), q_(x.q_), size_(x.size_) { } 
-#endif
 
-
-      void reserve(uint sz)
+      void reserve(uint sz, uint max_dist=0)
       {
-	bp_.resize(sz);
+	bp_.resize(sz, max_dist);
 	bp_.fill(0);
 	q_.resize(sz);
 	std::fill(q_.begin(), q_.end(), 1);
@@ -72,10 +55,10 @@ namespace SCFG
 
       uint reserved_size() const { return q_.size(); }
 
-      void resize(uint size)
+      void resize(uint size, uint max_dist=0)
       {
 	if (size>reserved_size()) {
-	  reserve(size);
+	  reserve(size, max_dist);
 	}
 	size_ = size;
 	bp_.fill(0);
@@ -107,17 +90,6 @@ namespace SCFG
 
       bool parse(const std::string& str, bool ignore_alone_pair=false, uint minloop=3);
 
-#ifdef HAVE_LIBRNA
-      void pf_fold(const std::string& seq);
-
-      void alipf_fold(const std::list<std::string>& ma);
-#endif
-
-#ifdef HAVE_LIBCONTRAFOLD
-      void contra_fold(const std::string& seq);
-      void contra_fold(const std::string& seq, const std::string& model);
-#endif
-
       static
       void
       convert_to_raw_sequences(const std::list<std::string>& ma,
@@ -137,9 +109,6 @@ namespace SCFG
       CYKTable<T> bp_;
       std::vector<T> q_;
       uint size_;
-#ifdef HAVE_LIBCONTRAFOLD
-      boost::shared_ptr<CONTRAfold<float> > contrafold_;
-#endif      
     };
   }
 };

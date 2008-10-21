@@ -183,6 +183,6 @@ namespace SCFG
 
 // instantiate
 template
-double
-SCFG::MEA::execute(const SCFG::BP::Table<double>& bp,
+float
+SCFG::MEA::execute(const SCFG::BP::Table<float>& bp,
 		   std::string& paren, float gamma);

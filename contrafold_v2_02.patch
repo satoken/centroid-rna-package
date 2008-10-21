@@ -1,6 +1,6 @@
 diff -urN contrafold_v2_02.orig/src/InferenceEngine.hpp contrafold/src/InferenceEngine.hpp
 --- contrafold_v2_02.orig/src/InferenceEngine.hpp	2008-08-14 09:08:31.000000000 +0900
-+++ contrafold/src/InferenceEngine.hpp	2008-10-20 15:18:49.597277344 +0900
++++ contrafold/src/InferenceEngine.hpp	2008-10-21 19:31:36.223142698 +0900
 @@ -1,5 +1,5 @@
  //////////////////////////////////////////////////////////////////////
 -// InferenceEngine.hpp
@@ -12,7 +12,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.hpp contrafold/src/Inference
      int is_complementary[M+1][M+1];
      bool cache_initialized;
      ParameterManager<RealT> *parameter_manager;
-+    int max_bp_width;
++    int max_bp_dist;
      
      // dimensions
      int L, SIZE;
@@ -36,22 +36,23 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.hpp contrafold/src/Inference
  
      // constructor and destructor
 -    InferenceEngine(bool allow_noncomplementary);
-+    InferenceEngine(bool allow_noncomplementary, int max_bp_width=0);
++    InferenceEngine(bool allow_noncomplementary, int max_bp_dist=0);
      ~InferenceEngine();
  
      // register params with the parameter manager
-@@ -294,6 +297,7 @@
+@@ -294,6 +297,8 @@
      void ComputePosterior();
      std::vector<int> PredictPairingsPosterior(const RealT gamma) const;
      RealT *GetPosterior(const RealT posterior_cutoff) const;
 +    RealT *GetPosterior(const RealT posterior_cutoff, std::vector<RealT>& p) const;
++
  };
  
  #include "InferenceEngine.ipp"
 diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/InferenceEngine.ipp
 --- contrafold_v2_02.orig/src/InferenceEngine.ipp	2008-08-14 09:08:31.000000000 +0900
-+++ contrafold/src/InferenceEngine.ipp	2008-10-20 18:57:10.666725700 +0900
-@@ -166,13 +166,21 @@
++++ contrafold/src/InferenceEngine.ipp	2008-10-21 17:29:10.779679654 +0900
+@@ -166,13 +166,26 @@
  //////////////////////////////////////////////////////////////////////
  
  template<class RealT>
@@ -60,9 +61,8 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
  {
      Assert(i >= 0 && i <= N, "Index out-of-bounds.");
 -    
--    // equivalent to:
--    //   return N*(N+1)/2 - (N-i)*(N-i+1)/2 - i;
--    return i*(N+N-i-1)/2;
++#define USE_EFFICIENT_WINDOW
++#ifdef USE_EFFICIENT_WINDOW
 +    if (w==0)
 +    {
 +	// equivalent to:
@@ -71,39 +71,45 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +    }
 +    else
 +    {
-+	// equivalent to:
-+	//   return i*w - i;
-+	return (i-1)*w;
++	return i*w - i;
 +    }
++#else
+     // equivalent to:
+     //   return N*(N+1)/2 - (N-i)*(N-i+1)/2 - i;
+     return i*(N+N-i-1)/2;
++#endif
  }
  
  //////////////////////////////////////////////////////////////////////
-@@ -210,10 +218,11 @@
+@@ -210,10 +223,11 @@
  //////////////////////////////////////////////////////////////////////
  
  template<class RealT>
 -InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary) :
-+InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary, int max_bp_width) :
++InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary, int max_bp_dist) :
      allow_noncomplementary(allow_noncomplementary),
      cache_initialized(false),
      parameter_manager(NULL),
-+    max_bp_width(max_bp_width),
++    max_bp_dist(max_bp_dist),
      L(0),
      SIZE(0)
  #if PROFILE
-@@ -795,7 +804,10 @@
+@@ -795,7 +809,14 @@
      
      // compute dimensions
      L = sstruct.GetLength();
--    SIZE = (L+1)*(L+2) / 2;
-+    if (max_bp_width==0)
++#ifdef USE_EFFICIENT_WINDOW
++    if (max_bp_dist==0)
 +        SIZE = (L+1)*(L+2) / 2;
 +    else
-+        SIZE = (L+1)*max_bp_width;
++        SIZE = (L+1)*max_bp_dist;
++#else
+     SIZE = (L+1)*(L+2) / 2;
++#endif
  #if PROFILE
      N = sstruct.GetNumSequences();
      SIZE2 = (L+1)*(L+1);
-@@ -864,7 +876,7 @@
+@@ -864,7 +885,7 @@
  
  #endif
  
@@ -112,26 +118,26 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      cache_score_helix_sums.clear();                  cache_score_helix_sums.resize((2*L+1)*L);
  #endif
  
-@@ -895,7 +907,7 @@
+@@ -895,7 +916,7 @@
      // set the loss for each unpaired position to zero
      for (int i = 0; i <= L; i++)
      {
 -        offset[i] = ComputeRowOffset(i,L+1);
-+        offset[i] = ComputeRowOffset(i,L+1,max_bp_width);
++        offset[i] = ComputeRowOffset(i,L+1,max_bp_dist);
          allow_unpaired_position[i] = 1;
          loss_unpaired_position[i] = RealT(0);
      }
-@@ -924,7 +936,8 @@
+@@ -924,7 +945,8 @@
          // for each pair of non-complementary letters in the sequence, disallow the pairing
          for (int i = 1; i <= L; i++)
          {
 -            for (int j = i+1; j <= L; j++)
-+            int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++            int l = max_bp_dist==0 ? L : std::min(L,i+max_bp_dist);
 +            for (int j = i+1; j <= l; j++)
              {
                  if (!IsComplementary(i,j))
                      allow_paired[offset[i]+j] = 0;
-@@ -1150,12 +1163,13 @@
+@@ -1150,12 +1172,13 @@
  
  #endif
  
@@ -142,12 +148,12 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      for (int i = L; i >= 1; i--)
      {
 -        for (int j = i+3; j <= L; j++)
-+        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++        int l = max_bp_dist==0 ? L : std::min(L,i+max_bp_dist);
 +        for (int j = i+3; j <= l; j++)
          {
              cache_score_helix_sums[(i+j)*L+j-i].first = cache_score_helix_sums[(i+j)*L+j-i-2].first;
              if (allow_paired[offset[i+1]+j-1])
-@@ -1291,7 +1305,7 @@
+@@ -1291,7 +1314,7 @@
          for (int l2 = 0; l2 <= C_MAX_SINGLE_LENGTH; l2++)
              cache_score_single[l1][l2].second = RealT(0);
      
@@ -156,7 +162,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      FillCounts(cache_score_helix_sums.begin(), cache_score_helix_sums.end(), RealT(0));
  #endif
  
-@@ -1356,14 +1370,15 @@
+@@ -1356,14 +1379,15 @@
  template<class RealT>
  void InferenceEngine<RealT>::FinalizeCounts()
  {
@@ -169,32 +175,32 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      for (int i = 1; i <= L; i++)
      {
 -        for (int j = L; j >= i+3; j--)
-+        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++        int l = max_bp_dist==0 ? L : std::min(L,i+max_bp_dist);
 +        for (int j = l; j >= i+3; j--)
          {
              // the "if" conditions here can be omitted
              
-@@ -1682,7 +1697,8 @@
+@@ -1682,7 +1706,8 @@
      {
          loss_unpaired[offset[i]+i] = RealT(0);
          loss_paired[offset[i]+i] = RealT(NEG_INF);
 -        for (int j = i+1; j <= L; j++)
-+        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++        int l = max_bp_dist==0 ? L : std::min(L,i+max_bp_dist);
 +        for (int j = i+1; j <= l; j++)
          {
              loss_unpaired[offset[i]+j] = 
                  loss_unpaired[offset[i]+j-1] +
-@@ -1720,7 +1736,8 @@
+@@ -1720,7 +1745,8 @@
      {
          allow_unpaired[offset[i]+i] = 1;
          allow_paired[offset[i]+i] = 0;
 -        for (int j = i+1; j <= L; j++)
-+        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
++        int l = max_bp_dist==0 ? L : std::min(L,i+max_bp_dist);
 +        for (int j = i+1; j <= l; j++)
          {
              allow_unpaired[offset[i]+j] = 
                  allow_unpaired[offset[i]+j-1] && 
-@@ -2042,7 +2059,7 @@
+@@ -2042,7 +2068,7 @@
      Assert(0 <= i && i + 2 * m <= j && j <= L, "Helix boundaries invalid.");
      Assert(2 <= m && m <= D_MAX_HELIX_LENGTH, "Helix length invalid.");
      
@@ -203,7 +209,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      
      return
          cache_score_helix_sums[(i+j+1)*L+j-i-1].first - cache_score_helix_sums[(i+j+1)*L+j-i-m-m+1].first
-@@ -2073,7 +2090,7 @@
+@@ -2073,7 +2099,7 @@
      Assert(0 <= i && i + 2 * m <= j && j <= L, "Helix boundaries invalid.");
      Assert(2 <= m && m <= D_MAX_HELIX_LENGTH, "Helix length invalid.");
      
@@ -212,93 +218,377 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      
      cache_score_helix_sums[(i+j+1)*L+j-i-1].second += value;
      cache_score_helix_sums[(i+j+1)*L+j-i-m-m+1].second -= value;
-@@ -2390,7 +2407,8 @@
+@@ -2390,7 +2416,8 @@
          candidates.clear();
  #endif
          
 -        for (int j = i; j <= L; j++)
-+        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
-+        for (int j = i; j <= l; j++)
++        int L2 = max_bp_dist==0 ? L : std::min(L,i+max_bp_dist);
++        for (int j = i; j <= L2; j++)
          {
              // FM2[i,j] = MAX (i<k<j : FM1[i,k] + FM[k,j])
  
-@@ -2801,7 +2819,8 @@
+@@ -2403,34 +2430,41 @@
+                 UPDATE_MAX(FM2v, FM2t, FM1v[offset[i]+k] + FMv[offset[k]+j], k);
+             
+ #else
++            if (max_bp_dist==0)
++            {
+             
+ #if !CANDIDATE_LIST
+             
+-            if (i+2 <= j)
+-            {
+-                RealT *p1 = &(FM1v[offset[i]+i+1]);
+-                RealT *p2 = &(FMv[offset[i+1]+j]);
+-                for (register int k = i+1; k < j; k++)
++                if (i+2 <= j)
+                 {
+-                    UPDATE_MAX(FM2v, FM2t, (*p1) + (*p2), k);
+-                    ++p1;
+-                    p2 += L-k;
++                    RealT *p1 = &(FM1v[offset[i]+i+1]);
++                    RealT *p2 = &(FMv[offset[i+1]+j]);
++                    for (register int k = i+1; k < j; k++)
++                    {
++                        UPDATE_MAX(FM2v, FM2t, (*p1) + (*p2), k);
++                        ++p1;
++                        p2 += L-k;
++                    }
+                 }
+-            }
+             
+ #else
+             
+-            for (register size_t kp = 0; kp < candidates.size(); kp++)
+-            {
+-                register const int k = candidates[kp];
+-                UPDATE_MAX(FM2v, FM2t, FM1v[offset[i]+k] + FMv[offset[k]+j], k);
+-            }
++                for (register size_t kp = 0; kp < candidates.size(); kp++)
++                {
++                    register const int k = candidates[kp];
++                    UPDATE_MAX(FM2v, FM2t, FM1v[offset[i]+k] + FMv[offset[k]+j], k);
++                }
+             
+-            candidates_seen += (long long int) candidates.size();
+-            candidates_possible += (long long int) std::max(j-i-1,0);
++                candidates_seen += (long long int) candidates.size();
++                candidates_possible += (long long int) std::max(j-i-1,0);
+             
+ #endif
+-            
++            }
++            else
++            {
++                for (int k = i+1; k < j; k++)
++                    UPDATE_MAX(FM2v, FM2t, FM1v[offset[i]+k] + FMv[offset[k]+j], k);
++            }
+ #endif
+ 
+ #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
+@@ -2607,7 +2641,7 @@
+             //
+             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
+             
+-            if (0 < i && j < L && allow_paired[offset[i]+j+1])
++            if (0 < i && j < L2 && allow_paired[offset[i]+j+1])
+             {
+                 
+                 RealT best_v = RealT(NEG_INF);
+@@ -2694,7 +2728,7 @@
+             //
+             //            (assuming 0 < i < i+2 <= j < L)
+             
+-            if (0 < i && i+2 <= j && j < L)
++            if (0 < i && i+2 <= j && j < L2)
+             {
+                 RealT best_v = RealT(NEG_INF);
+                 int best_t = -1;
+@@ -2749,7 +2783,7 @@
+             //
+             //            (assuming 0 < i < i+2 <= j < L)
+             
+-            if (0 < i && i+2 <= j && j < L)
++            if (0 < i && i+2 <= j && j < L2)
+             {
+                 RealT best_v = RealT(NEG_INF);
+                 int best_t = -1;
+@@ -2801,7 +2835,8 @@
          
          // compute MAX (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
          
 -        for (int k = 0; k < j; k++)
-+        int l = max_bp_width==0 ? 0 : std::max(0,j-max_bp_width);
++        int l = max_bp_dist==0 ? 0 : std::max(0,j-max_bp_dist);
 +        for (int k = l; k < j; k++)
          {
              if (allow_paired[offset[k+1]+j])
              {
-@@ -3199,7 +3218,8 @@
+@@ -3199,7 +3234,8 @@
  
      for (int i = L; i >= 0; i--)
      {
 -        for (int j = i; j <= L; j++)
-+        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
-+        for (int j = i; j <= l; j++)
++        int L2 = max_bp_dist==0 ? L : std::min(L,i+max_bp_dist);
++        for (int j = i; j <= L2; j++)
          {
              
              // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
-@@ -3525,7 +3545,8 @@
+@@ -3212,19 +3248,25 @@
+                 Fast_LogPlusEquals(FM2i, FM1i[offset[i]+k] + FMi[offset[k]+j]);
+             
+ #else
+-            
+-            if (i+2 <= j)
++            if (max_bp_dist==0)
+             {
+-                const RealT *p1 = &(FM1i[offset[i]+i+1]);
+-                const RealT *p2 = &(FMi[offset[i+1]+j]);
+-                for (register int k = i+1; k < j; k++)
++                if (i+2 <= j)
+                 {
+-                    Fast_LogPlusEquals(FM2i, (*p1) + (*p2));
+-                    ++p1;
+-                    p2 += L-k;
++                    const RealT *p1 = &(FM1i[offset[i]+i+1]);
++                    const RealT *p2 = &(FMi[offset[i+1]+j]);
++                    for (register int k = i+1; k < j; k++)
++                    {
++                        Fast_LogPlusEquals(FM2i, (*p1) + (*p2));
++                        ++p1;
++                        p2 += L-k;
++                    }
+                 }
+             }
+-            
++            else
++            {
++                for (int k = i+1; k < j; k++)
++                    Fast_LogPlusEquals(FM2i, FM1i[offset[i]+k] + FMi[offset[k]+j]);
++            }
+ #endif
+             
+ #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
+@@ -3381,7 +3423,7 @@
+             //
+             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
+             
+-            if (0 < i && j < L && allow_paired[offset[i]+j+1])
++            if (0 < i && j < L2 && allow_paired[offset[i]+j+1])
+             {
+                 RealT sum_i = RealT(NEG_INF);
+                 
+@@ -3455,7 +3497,7 @@
+             //
+             //            (assuming 0 < i < i+2 <= j < L)
+             
+-            if (0 < i && i+2 <= j && j < L)
++            if (0 < i && i+2 <= j && j < L2)
+             {
+                 
+                 RealT sum_i = RealT(NEG_INF);
+@@ -3483,7 +3525,7 @@
+             //
+             //            (assuming 0 < i < i+2 <= j < L)
+             
+-            if (0 < i && i+2 <= j && j < L)
++            if (0 < i && i+2 <= j && j < L2)
+             {
+                 
+                 RealT sum_i = RealT(NEG_INF);
+@@ -3525,7 +3567,8 @@
          
          // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
          
 -        for (int k = 0; k < j; k++)
-+        int l = max_bp_width==0 ? 0 : std::max(0,j-max_bp_width);
++        int l = max_bp_dist==0 ? 0 : std::max(0,j-max_bp_dist);
 +        for (int k = l; k < j; k++)
              if (allow_paired[offset[k+1]+j])
                  Fast_LogPlusEquals(sum_i, F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionA(j,k));
          
-@@ -3582,7 +3603,8 @@
+@@ -3582,7 +3625,8 @@
          // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
          
          {
 -            for (int k = 0; k < j; k++)
-+            int l = max_bp_width==0 ? 0 : std::max(0,j-max_bp_width);
++            int l = max_bp_dist==0 ? 0 : std::max(0,j-max_bp_dist);
 +            for (int k = l; k < j; k++)
              {
                  if (allow_paired[offset[k+1]+j])
                  {
-@@ -3596,7 +3618,8 @@
+@@ -3596,7 +3640,8 @@
      
      for (int i = 0; i <= L; i++)
      {
 -        for (int j = L; j >= i; j--)
-+        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
-+        for (int j = l; j >= i; j--)
++        int L2 = max_bp_dist==0 ? L : std::min(L,i+max_bp_dist);
++        for (int j = L2; j >= i; j--)
          {
              RealT FM2o = RealT(NEG_INF);
              
-@@ -3920,7 +3943,8 @@
+@@ -3610,7 +3655,7 @@
+             //
+             //            (assuming 0 < i < i+2 <= j < L)
+             
+-            if (0 < i && i+2 <= j && j < L)
++            if (0 < i && i+2 <= j && j < L2)
+             {
+                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j])
+                 
+@@ -3636,7 +3681,7 @@
+             //
+             //            (assuming 0 < i < i+2 <= j < L)
+             
+-            if (0 < i && i+2 <= j && j < L)
++            if (0 < i && i+2 <= j && j < L2)
+             {
+                 // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
+                 
+@@ -3790,7 +3835,7 @@
+             //
+             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
+             
+-            if (0 < i && j < L && allow_paired[offset[i]+j+1])
++            if (0 < i && j < L2 && allow_paired[offset[i]+j+1])
+             {
+                 // compute ScoreHairpin(i,j) -- do nothing
+                 
+@@ -3857,23 +3902,33 @@
+             }
+ 
+ #else
+-            if (i+2 <= j)
++            if (max_bp_dist==0)
+             {
+-                RealT *p1i = &(FM1i[offset[i]+i+1]);
+-                RealT *p2i = &(FMi[offset[i+1]+j]);
+-                RealT *p1o = &(FM1o[offset[i]+i+1]);
+-                RealT *p2o = &(FMo[offset[i+1]+j]);
+-                for (register int k = i+1; k < j; k++)
++                if (i+2 <= j)
+                 {
+-                    Fast_LogPlusEquals(*p1o, FM2o + *p2i);
+-                    Fast_LogPlusEquals(*p2o, FM2o + *p1i);
+-                    ++p1i;
+-                    ++p1o;
+-                    p2i += L-k;
+-                    p2o += L-k;
++                    RealT *p1i = &(FM1i[offset[i]+i+1]);
++                    RealT *p2i = &(FMi[offset[i+1]+j]);
++                    RealT *p1o = &(FM1o[offset[i]+i+1]);
++                    RealT *p2o = &(FMo[offset[i+1]+j]);
++                    for (register int k = i+1; k < j; k++)
++                    {
++                        Fast_LogPlusEquals(*p1o, FM2o + *p2i);
++                        Fast_LogPlusEquals(*p2o, FM2o + *p1i);
++                        ++p1i;
++                        ++p1o;
++                        p2i += L-k;
++                        p2o += L-k;
++                    }
++                }
++            }
++            else
++            {
++                for (int k = i+1; k < j; k++)
++                {
++                    Fast_LogPlusEquals(FM1o[offset[i]+k], FM2o + FMi[offset[k]+j]);
++                    Fast_LogPlusEquals(FMo[offset[k]+j], FM2o + FM1i[offset[i]+k]);
+                 }
+             }
+-            
+ #endif
+         }
+     }
+@@ -3920,7 +3975,8 @@
      
      for (int i = L; i >= 0; i--)
      {
 -        for (int j = i; j <= L; j++)
-+        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
-+        for (int j = i; j <= l; j++)
++        int L2 = max_bp_dist==0 ? L : std::min(L,i+max_bp_dist);
++        for (int j = i; j <= L2; j++)
          {
  
              // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
-@@ -4262,7 +4286,8 @@
+@@ -3933,19 +3989,25 @@
+                 Fast_LogPlusEquals(FM2i, FM1i[offset[i]+k] + FMi[offset[k]+j]);
+             
+ #else
+-            
+-            if (i+2 <= j)
++            if (max_bp_dist==0)
+             {
+-                const RealT *p1 = &(FM1i[offset[i]+i+1]);
+-                const RealT *p2 = &(FMi[offset[i+1]+j]);
+-                for (register int k = i+1; k < j; k++)
++                if (i+2 <= j)
+                 {
+-                    Fast_LogPlusEquals(FM2i, (*p1) + (*p2));
+-                    ++p1;
+-                    p2 += L-k;
++                    const RealT *p1 = &(FM1i[offset[i]+i+1]);
++                    const RealT *p2 = &(FMi[offset[i+1]+j]);
++                    for (register int k = i+1; k < j; k++)
++                    {
++                        Fast_LogPlusEquals(FM2i, (*p1) + (*p2));
++                        ++p1;
++                        p2 += L-k;
++                    }
+                 }
+             }
+-            
++            else
++            {
++                for (int k = i+1; k < j; k++)
++                    Fast_LogPlusEquals(FM2i, FM1i[offset[i]+k] + FMi[offset[k]+j]);
++            }
+ #endif
+             
+ #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
+@@ -4104,7 +4166,7 @@
+             //
+             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
+             
+-            if (0 < i && j < L && allow_paired[offset[i]+j+1])
++            if (0 < i && j < L2 && allow_paired[offset[i]+j+1])
+             {
+                 RealT outside = FCo[offset[i]+j] - Z;
+                 
+@@ -4198,7 +4260,7 @@
+             //
+             //            (assuming 0 < i < i+2 <= j < L)
+             
+-            if (0 < i && i+2 <= j && j < L)
++            if (0 < i && i+2 <= j && j < L2)
+             {
+                 
+                 // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
+@@ -4229,7 +4291,7 @@
+             //
+             //            (assuming 0 < i < i+2 <= j < L)
+             
+-            if (0 < i && i+2 <= j && j < L)
++            if (0 < i && i+2 <= j && j < L2)
+             {
+                 
+                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j]) -- do nothing
+@@ -4262,7 +4324,8 @@
          
          // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
          
 -        for (int k = 0; k < j; k++)
-+        int l = max_bp_width==0 ? 0 : std::max(0,j-max_bp_width);
++        int l = max_bp_dist==0 ? 0 : std::max(0,j-max_bp_dist);
 +        for (int k = l; k < j; k++)
          {
              if (allow_paired[offset[k+1]+j])
              {
-@@ -4302,9 +4327,11 @@
+@@ -4302,9 +4365,11 @@
      
      for (int i = L; i >= 0; i--)
      {
 -        for (int j = i; j <= L; j++)
-+        int l = max_bp_width==0 ? L : std::min(L,i+max_bp_width);
-+        for (int j = i; j <= l; j++)
++        int L2 = max_bp_dist==0 ? L : std::min(L,i+max_bp_dist);
++        for (int j = i; j <= L2; j++)
          {
 -            
 +#if 0                   // FM2 is not required
@@ -306,7 +596,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
              
              RealT FM2i = RealT(NEG_INF);
-@@ -4329,6 +4356,7 @@
+@@ -4329,6 +4394,7 @@
              }
        
  #endif
@@ -314,77 +604,65 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
  
  #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
              
-@@ -4478,14 +4506,15 @@
+@@ -4476,16 +4542,15 @@
+             //
+             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
              
-             if (0 < i && j < L && allow_paired[offset[i]+j+1])
+-            if (0 < i && j < L && allow_paired[offset[i]+j+1])
++            if (0 < i && j < L2 && allow_paired[offset[i]+j+1])
              {
 -                
-+#if 1
-+                posterior[offset[i]+j] += Fast_Exp(FCi[offset[i]+j] + FCo[offset[i]+j] - Z);
-+#else
                  RealT outside = FCo[offset[i]+j] - Z;
-                 
+-                
++#if 0                
                  // compute ScoreHairpin(i,j)
 -                
                  if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
                      CountHairpin(i,j,Fast_Exp(outside + ScoreHairpin(i,j)));
 -                
++#endif
 +
                  // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                  
  #if !FAST_SINGLE_BRANCH_LOOPS
-@@ -4535,6 +4564,7 @@
-                 }
-                 
- #endif
-+#endif
-                 
-                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c) -- do nothing
-                 
-@@ -4551,7 +4581,7 @@
+@@ -4551,7 +4616,6 @@
              //                 FM1[i+1,j] + b                                          if i+2<=j]
              //
              //            (assuming 0 < i < i+2 <= j < L)
 -            
-+#if 0            
              if (0 < i && i+2 <= j && j < L)
              {
                  
-@@ -4563,6 +4593,7 @@
-                 // Compute FM1[i+1,j] + b -- do nothing
-                 
-             }
-+#endif
-             
-             // FM[i,j] = optimal energy for substructure belonging to a
-             //           multibranch loop which contains at least one 
-@@ -4581,7 +4612,8 @@
+@@ -4581,7 +4645,7 @@
              // Compute FM1[i,j] -- do nothing
          }
      }
 -    
 +
-+#if 0    
      for (int j = 1; j <= L; j++)
      {
          
-@@ -4597,12 +4629,14 @@
+@@ -4597,7 +4661,8 @@
          
          // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
          
 -        for (int k = 0; k < j; k++)
-+        int l = max_bp_width==0 ? 0 : std::max(0,j-max_bp_width);
++        int l = max_bp_dist==0 ? 0 : std::max(0,j-max_bp_dist);
 +        for (int k = l; k < j; k++)
          {
              if (allow_paired[offset[k+1]+j])
                  posterior[offset[k+1]+j] += Fast_Exp(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionA(j,k));
-         }
-     }
-+#endif
+@@ -4606,7 +4671,8 @@
  
      for (int i = 1; i <= L; i++)
      {
-@@ -4627,9 +4661,9 @@
+-        for (int j = i+1; j <= L; j++)
++        int l = max_bp_dist==0 ? L : std::min(L,i+max_bp_dist);
++        for (int j = i+1; j <= l; j++)
+         {
+             posterior[offset[i]+j] = Clip(posterior[offset[i]+j], RealT(0), RealT(1));
+         }
+@@ -4627,9 +4693,9 @@
  #if SHOW_TIMINGS
      double starting_time = GetSystemTime();
  #endif
@@ -397,7 +675,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      
      // compute the scores for unpaired nucleotides
      
-@@ -4644,8 +4678,8 @@
+@@ -4644,8 +4710,8 @@
      
      // initialize matrices
      
@@ -408,7 +686,38 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      
      // dynamic programming
      
-@@ -4757,3 +4791,13 @@
+@@ -4677,16 +4743,22 @@
+                         UPDATE_MAX(this_score, this_traceback, score[offset[i]+k] + score[offset[k]+j], k+4);	
+                     
+ #else
+-                    
+-                    RealT *p1 = &(score[offset[i]+i+1]);
+-                    RealT *p2 = &(score[offset[i+1]+j]);
+-                    for (register int k = i+1; k < j; k++)
++                    if (max_bp_dist==0)
+                     {
+-                        UPDATE_MAX(this_score, this_traceback, (*p1) + (*p2), k+4);
+-                        ++p1;
+-                        p2 += L-k;
++                        RealT *p1 = &(score[offset[i]+i+1]);
++                        RealT *p2 = &(score[offset[i+1]+j]);
++                        for (register int k = i+1; k < j; k++)
++                        {
++                            UPDATE_MAX(this_score, this_traceback, (*p1) + (*p2), k+4);
++                            ++p1;
++                            p2 += L-k;
++                        }
++                    }
++                    else
++                    {
++                        for (int k = i+1; k < j; k++)
++                            UPDATE_MAX(this_score, this_traceback, score[offset[i]+k] + score[offset[k]+j], k+4);
+                     }
+-                    
+ #endif
+                 }
+             }
+@@ -4757,3 +4829,13 @@
          ret[i] = (posterior[i] >= posterior_cutoff ? posterior[i] : RealT(0));
      return ret;
  }
@@ -424,7 +733,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +}
 diff -urN contrafold_v2_02.orig/src/Makefile contrafold/src/Makefile
 --- contrafold_v2_02.orig/src/Makefile	2008-08-14 09:08:30.000000000 +0900
-+++ contrafold/src/Makefile	2008-10-14 23:40:11.000000000 +0900
++++ contrafold/src/Makefile	2008-10-21 11:07:02.043290704 +0900
 @@ -1,4 +1,6 @@
  CXX = g++
 +AR = ar
@@ -477,7 +786,7 @@ diff -urN contrafold_v2_02.orig/src/Makefile contrafold/src/Makefile
 +	rm -f contrafold make_coords plot_rna score_prediction *.o Defaults.ipp libcontrafold.a
 diff -urN contrafold_v2_02.orig/src/SStruct.cpp contrafold/src/SStruct.cpp
 --- contrafold_v2_02.orig/src/SStruct.cpp	2008-08-14 09:08:30.000000000 +0900
-+++ contrafold/src/SStruct.cpp	2008-10-14 23:40:11.000000000 +0900
++++ contrafold/src/SStruct.cpp	2008-10-21 11:07:02.043290704 +0900
 @@ -639,3 +639,39 @@
      this->mapping = mapping;
      ValidateMapping(mapping);
@@ -520,7 +829,7 @@ diff -urN contrafold_v2_02.orig/src/SStruct.cpp contrafold/src/SStruct.cpp
 +}
 diff -urN contrafold_v2_02.orig/src/SStruct.hpp contrafold/src/SStruct.hpp
 --- contrafold_v2_02.orig/src/SStruct.hpp	2008-08-14 09:08:31.000000000 +0900
-+++ contrafold/src/SStruct.hpp	2008-10-14 23:40:11.000000000 +0900
++++ contrafold/src/SStruct.hpp	2008-10-21 11:07:02.047290053 +0900
 @@ -57,12 +57,18 @@
      // constructor and destructor
      SStruct();
@@ -542,7 +851,7 @@ diff -urN contrafold_v2_02.orig/src/SStruct.hpp contrafold/src/SStruct.hpp
  
 diff -urN contrafold_v2_02.orig/src/Utilities.cpp contrafold/src/Utilities.cpp
 --- contrafold_v2_02.orig/src/Utilities.cpp	2008-08-14 09:08:31.000000000 +0900
-+++ contrafold/src/Utilities.cpp	2008-10-14 23:40:11.000000000 +0900
++++ contrafold/src/Utilities.cpp	2008-10-21 11:07:02.047290053 +0900
 @@ -3,6 +3,7 @@
  //////////////////////////////////////////////////////////////////////
  
@@ -553,8 +862,8 @@ diff -urN contrafold_v2_02.orig/src/Utilities.cpp contrafold/src/Utilities.cpp
  
 diff -urN contrafold_v2_02.orig/src/contrafold.h contrafold/src/contrafold.h
 --- contrafold_v2_02.orig/src/contrafold.h	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/contrafold.h	2008-10-20 18:42:36.382764454 +0900
-@@ -0,0 +1,50 @@
++++ contrafold/src/contrafold.h	2008-10-21 19:32:26.270999939 +0900
+@@ -0,0 +1,53 @@
 +/*
 + * wrapper routines for CONTRAfold
 + *
@@ -587,7 +896,7 @@ diff -urN contrafold_v2_02.orig/src/contrafold.h contrafold/src/contrafold.h
 +  struct Impl;
 +
 +public:
-+  CONTRAfold(bool canonical_only = true, int max_bp_width = 0);
++  CONTRAfold(bool canonical_only = true, int max_bp_dist = 0);
 +  ~CONTRAfold();
 +
 +  void SetParameters(const std::string& params);
@@ -596,8 +905,11 @@ diff -urN contrafold_v2_02.orig/src/contrafold.h contrafold/src/contrafold.h
 +  const T* ComputePosterior(const std::string& seq);
 +  const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
 +
++  int max_bp_dist() const { return max_bp_dist_; }
++  
 +private:
 +  Impl* impl_;
++  int max_bp_dist_;
 +};
 +
 +#endif	// __INC_CONTRAFOLD_H__
@@ -607,8 +919,8 @@ diff -urN contrafold_v2_02.orig/src/contrafold.h contrafold/src/contrafold.h
 +// End:
 diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 --- contrafold_v2_02.orig/src/wrapper.cpp	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/wrapper.cpp	2008-10-20 18:43:16.772193115 +0900
-@@ -0,0 +1,130 @@
++++ contrafold/src/wrapper.cpp	2008-10-21 19:42:40.319094649 +0900
+@@ -0,0 +1,145 @@
 +// 
 +#include <vector>
 +#include <string>
@@ -621,7 +933,7 @@ diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +template < class T > 
 +struct CONTRAfold<T>::Impl
 +{
-+  Impl(bool canonical_only, int max_bp_width);
++  Impl(bool canonical_only, int max_bp_dist);
 +  ~Impl() {};
 +
 +  void SetParameters(const std::string& params);
@@ -633,12 +945,13 @@ diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +  ParameterManager<T> pm_;
 +  InferenceEngine<T> engine_;
 +  std::vector<T> w_;
++  std::string paren_;
 +};
 +
 +template < class T >
 +CONTRAfold<T>::
-+CONTRAfold(bool canonical_only, int max_bp_width)
-+  : impl_(new Impl(canonical_only, max_bp_width))
++CONTRAfold(bool canonical_only, int max_bp_dist)
++  : impl_(new Impl(canonical_only, max_bp_dist)), max_bp_dist_(max_bp_dist)
 +{
 +}
 +
@@ -683,8 +996,8 @@ diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +
 +template < class T > 
 +CONTRAfold<T>::Impl::
-+Impl(bool canonical_only, int max_bp_width)
-+  : pm_(), engine_(!canonical_only, max_bp_width)
++Impl(bool canonical_only, int max_bp_dist)
++  : pm_(), engine_(!canonical_only, max_bp_dist), paren_()
 +{
 +  engine_.RegisterParameters(pm_);
 +  if (canonical_only)
@@ -706,7 +1019,7 @@ diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +CONTRAfold<T>::Impl::
 +SetConstraint(const std::string& paren)
 +{
-+  // not implemented yet
++  paren_ = paren;
 +}
 +
 +template < class T > 
@@ -714,12 +1027,19 @@ diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +CONTRAfold<T>::Impl::
 +ComputePosterior(const std::string& seq)
 +{
-+  SStruct s("unknown", seq);
-+  engine_.LoadSequence(s);
++  SStruct* s=NULL;
++  if (paren_.empty())
++    s = new SStruct("unknown", seq);
++  else
++    s = new SStruct("unknown", seq, paren_);
++  engine_.LoadSequence(*s);
++  if (!paren_.empty())
++    engine_.UseConstraints(s->GetMapping());
 +  engine_.LoadValues(w_);
 +  engine_.ComputeInside();
 +  engine_.ComputeOutside();
 +  engine_.ComputePosterior();
++  delete s;
 +  return engine_.GetPosterior(0.0);
 +}
 +
@@ -728,12 +1048,19 @@ diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +CONTRAfold<T>::Impl::
 +ComputePosterior(const std::string& seq, std::vector<T>& p)
 +{
-+  SStruct s("unknown", seq);
-+  engine_.LoadSequence(s);
++  SStruct* s=NULL;
++  if (paren_.empty())
++    s = new SStruct("unknown", seq);
++  else
++    s = new SStruct("unknown", seq, paren_);
++  engine_.LoadSequence(*s);
++  if (!paren_.empty())
++    engine_.UseConstraints(s->GetMapping());
 +  engine_.LoadValues(w_);
 +  engine_.ComputeInside();
 +  engine_.ComputeOutside();
 +  engine_.ComputePosterior();
++  delete s;
 +  return engine_.GetPosterior(0.0, p);
 +}
 +

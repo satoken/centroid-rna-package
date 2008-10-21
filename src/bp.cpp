@@ -34,29 +34,6 @@
 #include "rule.h"
 //#include "dptable.h"
 
-#ifdef HAVE_LIBRNA
-namespace Vienna {
-extern "C" {
-#include <ViennaRNA/fold_vars.h>
-#include <ViennaRNA/part_func.h>
-#include <ViennaRNA/alifold.h>
-#include <ViennaRNA/PS_dot.h>
-#if 0
-  extern int pfl_fold(char *sequence, int winSize, int pairdist,
-		      float cutoff, struct plist **pl);
-  extern void init_pf_foldLP(int length);
-  extern void free_pf_arraysLP(void);
-#endif
-  extern char* pbacktrack(char *sequence);
-  extern int   st_back;
-};
-};
-#endif
-
-#ifdef HAVE_LIBCONTRAFOLD
-#include <contrafold.h>
-#endif
-
 template < class BPTable >
 struct IgnoreAlonePair
 {
@@ -148,104 +125,6 @@ namespace SCFG
       
       return st.empty();
     }
-
-#ifdef HAVE_LIBRNA
-    template < class V >
-    void
-    Table<V>::
-    pf_fold(const std::string& seq)
-    {
-      resize(seq.size());
-      Vienna::pf_scale = -1;
-      Vienna::init_pf_fold(seq.size());
-      Vienna::pf_fold(const_cast<char*>(seq.c_str()), NULL);
-      for (uint j=2; j!=size()+1; ++j) {
-	for (uint i=j-1; ; --i) {
-	  update(i-1, j-1, Vienna::pr[Vienna::iindx[i]-j]);
-	  if (i==1) break;
-	}
-      }
-      Vienna::free_pf_arrays();
-    }
-
-    template < class V >
-    void
-    Table<V>::
-    alipf_fold(const std::list<std::string>& ma)
-    {
-      resize(ma.front().size());
-      // prepare an alignment
-      uint length = ma.front().size();
-      char** seqs = new char*[ma.size()+1];
-      seqs[ma.size()]=NULL;
-      std::list<std::string>::const_iterator x;
-      uint i=0;
-      for (x=ma.begin(); x!=ma.end(); ++x) {
-	assert(x->size()==length);
-	seqs[i] = new char[length+1];
-	strcpy(seqs[i++], x->c_str());
-      }
-      {
-	// scaling parameters to avoid overflow
-	char* str = new char[length+1];
-	double min_en = Vienna::alifold(seqs, str);
-	delete[] str;
-	Vienna::free_alifold_arrays();
-	double kT = (Vienna::temperature+273.15)*1.98717/1000.; /* in Kcal */
-	Vienna::pf_scale = exp(-(1.07*min_en)/kT/length);
-      }
-      // build a base pair probablity matrix
-      Vienna::pair_info* pi;
-      Vienna::alipf_fold(seqs, NULL, &pi);
-      for (uint k=0; pi[k].i!=0; ++k)
-	update(pi[k].i-1, pi[k].j-1, pi[k].p);
-      free(pi);
-      for (uint i=0; seqs[i]!=NULL; ++i) delete[] seqs[i];
-      delete[] seqs;
-      
-    }
-#endif
-
-#ifdef HAVE_LIBCONTRAFOLD
-    template < class V >
-    void
-    Table<V>::
-    contra_fold(const std::string& seq)
-    {
-      resize(seq.size());
-      if (contrafold_==NULL)
-	contrafold_ = boost::shared_ptr<CONTRAfold<float> >(new CONTRAfold<float>(true));
-      std::vector<float> posterior;
-      contrafold_->ComputePosterior(seq, posterior);
-      uint k=0;
-      for (uint i=0; i!=seq.size()+1; ++i) {
-	for (uint j=i; j!=seq.size()+1; ++j) {
-	  if (i!=0) update(i-1, j-1, posterior[k]);
-	  ++k;
-	}
-      }
-    }
-
-    template < class V >
-    void
-    Table<V>::
-    contra_fold(const std::string& seq, const std::string& model)
-    {
-      resize(seq.size());
-      if (contrafold_==NULL)
-	contrafold_ = boost::shared_ptr<CONTRAfold<float> >(new CONTRAfold<float>(true));
-      contrafold_->SetParameters(model);
-      std::vector<float> posterior;
-      contrafold_->ComputePosterior(seq, posterior);
-      uint k=0;
-      for (uint i=0; i!=seq.size()+1; ++i) {
-	for (uint j=i; j!=seq.size()+1; ++j) {
-	  if (i!=0) update(i-1, j-1, posterior[k]);
-	  ++k;
-	}
-      }
-    }
-#endif
 
     template < class V >
     void
@@ -345,22 +224,22 @@ namespace SCFG
 //#include "log_value.h"
 
 template
-class SCFG::BP::Table<double>;
+class SCFG::BP::Table<float>;
 
 #if 0
 template
 void
-SCFG::BP::Table<double>::
+SCFG::BP::Table<float>::
 parse(const RNASequence& seq,
-      const Rule::Set<LogValue<double> >& rules);
+      const Rule::Set<LogValue<float> >& rules);
 #endif
 
 #if 0
 template
 void
-SCFG::BP::Table<double>::
+SCFG::BP::Table<float>::
 parse(const IUPACsequence& seq,
-      const Rule::Set<LogValue<double> >& rules);
+      const Rule::Set<LogValue<float> >& rules);
 #endif
 
 template
@@ -370,6 +249,6 @@ parse(const std::string& str, bool ignore_alone_pair, uint min_loop);
 
 template
 void
-SCFG::BP::Table<double>::
-average(const std::list<boost::shared_ptr<SCFG::BP::Table<double> > >& bps,
+SCFG::BP::Table<float>::
+average(const std::list<boost::shared_ptr<SCFG::BP::Table<float> > >& bps,
 	const std::list<std::vector<uint> >& idxmaps);

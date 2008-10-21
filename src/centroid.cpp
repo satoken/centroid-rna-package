@@ -51,13 +51,13 @@ namespace SCFG
 	}
       }
 
-      double expected_accuracy() const { return ea_; }
+      float expected_accuracy() const { return ea_; }
 
       const T& t_;
       std::string& paren_;
       float th_;
       float gamma_;
-      double ea_;
+      float ea_;
     };
 
     template < class V >
@@ -170,7 +170,7 @@ namespace SCFG
 	  (*this)(dp_(i,j).br_pos, j);
 	  break;
 	default:
-	  assert(!"never come here.");
+	  assert(!"unreachable");
 	  break;
 	}
       }
@@ -180,10 +180,10 @@ namespace SCFG
     };
 
     template < class T >
-    double
-    execute(const T& table, std::string& paren, float gamma /*=1.0*/)
+    float
+    execute(const T& table, std::string& paren, float gamma)
     {
-      if (gamma<=1.0) {
+      if (gamma<1.0) {
 	Estimator<T> est(table, paren, gamma);
 	SCFG::inside_traverse(0, table.size(), est);
 	return est.expected_accuracy();
@@ -203,12 +203,12 @@ namespace SCFG
     }
 
     template < class T >
-    double
-    execute(const T& table, std::string& paren, uint w, float gamma /*=1.0*/)
+    float
+    execute(const T& table, std::string& paren, uint max_dist, float gamma)
     {
-      if (gamma<=1.0) {
+      if (gamma<1.0) {
 	Estimator<T> est(table, paren, gamma);
-	SCFG::inside_traverse(0, table.size(), w, est);
+	SCFG::inside_traverse(0, table.size(), max_dist, est);
 	return est.expected_accuracy();
       } else {
 	typedef typename T::value_type value_type;
@@ -216,7 +216,7 @@ namespace SCFG
 
 	DPTable dp(table.size()+1);
 	Updater<T,DPTable> update(table, dp, gamma);
-	SCFG::inside_traverse(0, table.size(), w, update);
+	SCFG::inside_traverse(0, table.size(), max_dist, update);
 
 	TraceBack<DPTable> traceback(paren, dp);
 	traceback(0, dp.size()-1);
@@ -232,12 +232,12 @@ namespace SCFG
 #include "bp.h"
 
 template
-double
+float
 SCFG::Centroid::
-execute(const CYKTable<uint>& table, std::string& paren, float gamma);
+execute(const SCFG::BP::Table<float>& table, std::string& paren, float gamma);
 
 template
-double
+float
 SCFG::Centroid::
-execute(const SCFG::BP::Table<double>& table, std::string& paren, float gamma);
+execute(const SCFG::BP::Table<float>& table, std::string& paren, uint max_dist, float gamma);
 
