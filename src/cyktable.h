@@ -45,107 +45,62 @@ namespace SCFG
   private:
     std::vector<T> table_;
     std::vector<T*> ptr_;
-    uint i_from_;
-    uint i_to_;
-    uint j_from_;
-    uint j_to_;
+    uint size_;
+    uint max_dist_;
   
   public:
     CYKTable()
-      : table_(), ptr_(), j_to_(0)
+      : table_(), ptr_(), size_(0), max_dist_(0)
     {
     }
 
-    CYKTable(uint i_from, uint i_to, uint j_from, uint j_to)
-      : table_(), ptr_(), j_to_(0)
+    CYKTable(uint size, uint max_dist=0)
+      : table_(), ptr_(), size_(size), max_dist_(std::min(max_dist,size))
     {
-      setup(i_from, i_to, j_from, j_to);
-    }
-
-    CYKTable(uint size)
-      : table_(), ptr_(), j_to_(0)
-    {
-      setup(0, size, 0, size);
-    }
-
-    CYKTable(uint size, const T& val)
-      : table_(), ptr_(), j_to_(0)
-    {
-      setup(0, size, 0, size);
-      fill(val);
+      setup();
     }
 
     CYKTable(const CYKTable& x)
-      : table_(), ptr_(), j_to_(0)
+      : table_(), ptr_(), size_(x.size_), max_dist_(x.max_dist_)
     {
-      setup(x.i_from_, x.i_to_, x.j_from_, x.j_to_);
+      setup();
       std::copy(x.table_.begin(), x.table_.end(), table_.begin());
     }
     
-    uint estimate_size(uint i_from, uint i_to, uint j_from, uint j_to)
+    uint estimate_size(uint size, uint max_dist)
     {
-      uint ret=0;
-      for (uint j=j_from; j!=j_to; ++j) {
-	if (j==i_from) {
-	  ret++;
-	  continue;
-	}
-#if 0
-	for (uint i=std::min(j,i_to-1); ; --i) {
-	  ret++;
-	  if (i==i_from) break;
-	}
-#else
-	ret += std::min(j,i_to-1)-i_from+1;
-#endif
-      }
-      return ret;
+      if (max_dist==0)
+        return size_*(size_+1)/2;
+      else
+        return size_*max_dist;
     }
 
-    void setup(uint i_from, uint i_to, uint j_from, uint j_to)
+    void setup()
     {
-      assert(i_from<=i_to);
-      assert(j_from<=j_to);
-      assert(i_from<=j_from);
-      assert(i_to<=j_to);
-
-      uint new_size = estimate_size(i_from, i_to, j_from, j_to);
+      uint new_size = estimate_size(size_, max_dist_);
       table_.resize(new_size);
-      ptr_.resize(j_to);
+      ptr_.resize(size_);
       std::fill(ptr_.begin(), ptr_.end(), static_cast<T*>(NULL));
 
-      uint x=0;
-      for (uint j=j_from; j!=j_to; ++j) {
-	ptr_[j] = &table_[x - i_from];
-	if (j==i_from) {
-	  x++;
-	  continue;
-	}
-	for (uint i=std::min(j,i_to-1); ; --i) {
-	  x++;
-	  if (i==i_from) break;
-	}
+      if (max_dist_==0) {
+        for (uint i=0; i!=size_; ++i)
+          ptr_[i] = &table_[size_*(size_+1)/2 - (size_-i)*(size_-i+1)/2 - i];
+      } else {
+        for (uint i=0; i!=size_; ++i)
+          ptr_[i] = &table_[i*max_dist_-i];
       }
-
-      i_from_ = i_from;
-      i_to_ = i_to;
-      j_from_ = j_from;
-      j_to_ = j_to;
     }
 
     uint size() const
     {
-      return std::max(i_to_-i_from_, j_to_-j_from_);
+      return size_;
     }
 
-    void resize(uint i_from, uint i_to, uint j_from, uint j_to)
+    void resize(uint size, uint max_dist=0)
     {
-      setup(i_from, i_to, j_from, j_to);
-    }
-
-    void resize(uint size)
-    {
-      resize(0, size, 0, size);
+      size_ = size;
+      max_dist_ = std::min(max_dist, size);
+      setup();
     }
 
     void fill(const T& val)
@@ -158,13 +113,10 @@ namespace SCFG
     inline
     void put(uint i, uint j, const T& val)
     {
-      assert(i>=i_from_);
-      assert(i<i_to_);
-      assert(j>=j_from_);
-      assert(j<j_to_);
       assert(i<=j);
+      assert(max_dist_==0 || j-i<=max_dist_);
       assert(ptr_[j]!=NULL);
-      ptr_[j][i]=val;
+      ptr_[i][j]=val;
     }
 
     inline
@@ -176,13 +128,10 @@ namespace SCFG
     inline
     const T& get(uint i, uint j) const
     {
-      assert(i>=i_from_);
-      assert(i<=i_to_);
-      assert(j>=j_from_);
-      assert(j<=j_to_);
       assert(i<=j);
-      assert(ptr_[j]!=NULL);
-      return ptr_[j][i];
+      assert(max_dist_==0 || j-i<=max_dist_);
+      assert(ptr_[i]!=NULL);
+      return ptr_[i][j];
     }
 
     inline
@@ -194,13 +143,9 @@ namespace SCFG
     inline
     T& get(uint i, uint j)
     {
-      assert(i>=i_from_);
-      assert(i<=i_to_);
-      assert(j>=j_from_);
-      assert(j<=j_to_);
       assert(i<=j);
-      assert(ptr_[j]!=NULL);
-      return ptr_[j][i];
+      assert(ptr_[i]!=NULL);
+      return ptr_[i][j];
     }
 
     inline

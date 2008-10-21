@@ -30,7 +30,7 @@ private:
   struct Impl;
 
 public:
-  CONTRAfold(bool canonical_only = true, int max_bp_width = 0);
+  CONTRAfold(bool canonical_only = true, int max_bp_dist = 0);
   ~CONTRAfold();
 
   void SetParameters(const std::string& params);
@@ -39,8 +39,11 @@ public:
   const T* ComputePosterior(const std::string& seq);
   const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
 
+  int max_bp_dist() const { return max_bp_dist_; }
+  
 private:
   Impl* impl_;
+  int max_bp_dist_;
 };
 
 #endif	// __INC_CONTRAFOLD_H__

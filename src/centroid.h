@@ -31,8 +31,12 @@ namespace SCFG
   namespace Centroid
   {
     template < class T >
-    double
-    execute(const T& table, std::string& paren, float th=1.0);
+    float
+    execute(const T& table, std::string& paren, float gamma);
+
+    template < class T >
+    float
+    execute(const T& table, std::string& paren, unsigned int max_dist, float gamma);
   };
 };
 

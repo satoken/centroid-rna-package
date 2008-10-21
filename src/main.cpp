@@ -47,6 +47,8 @@ main(int argc, char* argv[])
   std::string input;
   std::vector<std::string> model;
   float p_th=0.0;
+  uint max_bp_dist;
+  std::string param;
   
   // parse command line options
   po::options_description desc("Options");
@@ -60,9 +62,13 @@ main(int argc, char* argv[])
     ("alipf_fold", "use alipf_fold base-pairing probabilities")
 #ifdef HAVE_LIBCONTRAFOLD
     ("pf_fold", "use pf_fold base-pairing probabilities")
+    ("params", po::value<std::string>(&param),
+     "use the parameter file")
 #endif
 #endif
     ("aux", "use auxiliary base-pairing probabilities")
+    ("max-dist", po::value<uint>(&max_bp_dist)->default_value(0),
+      "the maximum distance of base-pairs")
     ("posteriors", po::value<float>(&p_th),
      "output base-pairing probability matrices which contain base-pairing probabilities more than the given value.")
 #ifdef HAVE_LIBRNA
@@ -99,7 +105,7 @@ main(int argc, char* argv[])
 	      << "  (enabled features: " << features << ")" << std::endl
 	      << "Usage:" << std::endl
 	      << " " << argv[0]
-	      << " [options] seq [model ...]\n\n"
+	      << " [options] seq [bp_matrix ...]\n\n"
 	      << desc << std::endl;
     return 1;
   }
@@ -152,13 +158,21 @@ main(int argc, char* argv[])
   }
 
   CentroidFold cf(engine, vm.count("mea"));
+#ifdef HAVE_LIBCONTRAFOLD
+  switch (engine) {
+  case CentroidFold::CONTRAFOLD:
+    cf.set_options(param, max_bp_dist);
+    break;
+  }
+#endif
+  
   while (1)
   {
     Fasta fa;
     Aln aln;
     if (fa.load(fi))
     {
-      if (model.empty())
+      if (!vm.count("aux"))
         cf.calculate_posterior(fa.seq());
       else
         cf.calculate_posterior(fa.seq(), model[0]);
@@ -178,8 +192,10 @@ main(int argc, char* argv[])
 	  std::cerr << "Given BP matrices and alignments were inconsistent.\n";
 	  break;
 	}
+        cf.calculate_posterior(aln.seq(), model);
+      } else {
+        cf.calculate_posterior(aln.seq());
       }
-      cf.calculate_posterior(aln.seq(), model);
       if (!vm.count("posteriors"))
 	cf.print(std::cout, aln.name().front(), aln.consensus(), gamma_ali);
       else
