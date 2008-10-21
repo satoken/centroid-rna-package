@@ -205,7 +205,8 @@ namespace SCFG
     {
       for (uint i=0; i!=seq.size(); ++i) {
 	out << (i+1) << ' ' << seq[i] << ' ';
-	for (uint j=i; j!=seq.size(); ++j) {
+        uint l = max_dist()==0 ? seq.size() : std::min(i+max_dist(), seq.size());
+	for (uint j=i; j!=l; ++j) {
 	  if ((*this)(i,j)>=th && (*this)(i,j)>0.0)
 	    out << (j+1) << ':' << (*this)(i,j) << ' ';
 	}

@@ -36,14 +36,14 @@ namespace SCFG
       typedef T value_type;
       
     public:
-      Table() : bp_(), q_(), size_(0) { }
+      Table() : bp_(), q_(), size_(0), max_dist_(0) { }
       
-      Table(uint sz) : bp_(sz), q_(sz), size_(0)
+      Table(uint sz, uint max_dist=0) : bp_(sz), q_(sz), size_(0), max_dist_(0)
       {
-	reserve(sz);
+	reserve(sz, max_dist);
       }
 
-      Table(const Table& x) : bp_(x.bp_), q_(x.q_), size_(x.size_) { } 
+      Table(const Table& x) : bp_(x.bp_), q_(x.q_), size_(x.size_), max_dist_(x.max_dist_){ } 
 
       void reserve(uint sz, uint max_dist=0)
       {
@@ -61,11 +61,14 @@ namespace SCFG
 	  reserve(size, max_dist);
 	}
 	size_ = size;
+        max_dist_ = max_dist;
 	bp_.fill(0);
 	std::fill(q_.begin(), q_.end(), 1);
       }
 
       uint size() const { return size_; }
+
+      uint max_dist() const { return max_dist_; };
 
       void update(uint i, uint j, T v)
       {
@@ -109,6 +112,7 @@ namespace SCFG
       CYKTable<T> bp_;
       std::vector<T> q_;
       uint size_;
+      uint max_dist_;
     };
   }
 };
