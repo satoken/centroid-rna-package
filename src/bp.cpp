@@ -233,7 +233,8 @@ namespace SCFG
     {
       resize(seq.size());
       if (contrafold_==NULL)
-	contrafold_ = boost::shared_ptr<CONTRAfold<float> >(new CONTRAfold<float>(model, true));
+	contrafold_ = boost::shared_ptr<CONTRAfold<float> >(new CONTRAfold<float>(true));
+      contrafold_->SetParameters(model);
       std::vector<float> posterior;
       contrafold_->ComputePosterior(seq, posterior);
       uint k=0;

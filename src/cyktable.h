@@ -254,12 +254,45 @@ namespace SCFG
 
   template <class Update>
   void
+  inside_traverse(uint from, uint to, uint width, Update& update)
+  {
+    // for each position
+    for (uint j=from; j!=to+1; ++j) {
+      update(j, j);
+      if (j==from) continue;
+    
+      // for each substring
+      for (uint i=j-1; ; --i) {
+	update(i, j);
+	if (i==from || j-i>=width) break;
+      }
+    }
+  }
+
+  template <class Update>
+  void
   outside_traverse(uint from, uint to, Update& update)
   {
     // for each position
     for (uint j=to; ; --j) {
       // for each substring
       for (uint i=from; i!=j; ++i) {
+	update(i, j);
+      }
+      update(j, j);
+      if (j==from) break;
+    }
+  }
+
+  template <class Update>
+  void
+  outside_traverse(uint from, uint to, uint width, Update& update)
+  {
+    // for each position
+    for (uint j=to; ; --j) {
+      // for each substring
+      uint l=std::max(from, j>width ? j-width : 0);
+      for (uint i=l; i!=j; ++i) {
 	update(i, j);
       }
       update(j, j);

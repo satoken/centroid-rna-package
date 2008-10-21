@@ -201,6 +201,29 @@ namespace SCFG
 	return dp(0, dp.size()-1).val;
       }
     }
+
+    template < class T >
+    double
+    execute(const T& table, std::string& paren, uint w, float gamma /*=1.0*/)
+    {
+      if (gamma<=1.0) {
+	Estimator<T> est(table, paren, gamma);
+	SCFG::inside_traverse(0, table.size(), w, est);
+	return est.expected_accuracy();
+      } else {
+	typedef typename T::value_type value_type;
+	typedef CYKTable< Cell<value_type> > DPTable;
+
+	DPTable dp(table.size()+1);
+	Updater<T,DPTable> update(table, dp, gamma);
+	SCFG::inside_traverse(0, table.size(), w, update);
+
+	TraceBack<DPTable> traceback(paren, dp);
+	traceback(0, dp.size()-1);
+
+	return dp(0, dp.size()-1).val;
+      }
+    }
   };
 };
 
