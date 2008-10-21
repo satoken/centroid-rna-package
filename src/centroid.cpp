@@ -225,7 +225,8 @@ namespace SCFG
           outer[j].update(outer[j-1].val, Rule::R);
           uint l = j>max_dist ? j-max_dist : 0;
           for (uint k=l; k<j; ++k) {
-            outer[j].update(outer[k].val+dp(k,j).val, Rule::B, k);
+            if (dp(k,j).type==Rule::P)
+              outer[j].update(outer[k].val+dp(k,j).val, Rule::B, k);
           }
         }
 

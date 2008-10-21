@@ -238,7 +238,7 @@ calculate_posterior(const std::list<std::string>& seq)
     uint i;
     std::list<std::string>::const_iterator x;
     for (x=seqs.begin(), i=0; x!=seqs.end(); ++x, ++i) {
-      BPTablePtr bpi(new BPTable(bp_));
+      BPTablePtr bpi(new BPTable);
       switch (engine_) {
       case AUX:
         assert(!"AUX should be given bp matrices.");
