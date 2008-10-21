@@ -30,9 +30,11 @@ private:
   struct Impl;
 
 public:
-  CONTRAfold(bool canonical_only = true);
-  CONTRAfold(const std::string& params, bool canonical_only = true);
+  CONTRAfold(bool canonical_only = true, int max_bp_width = 0);
   ~CONTRAfold();
+
+  void SetParameters(const std::string& params);
+  void SetConstraint(const std::string& paren);
   
   const T* ComputePosterior(const std::string& seq);
   const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
