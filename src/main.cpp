@@ -63,9 +63,9 @@ main(int argc, char* argv[])
     ("pf_fold", "use pf_fold base-pairing probabilities")
 #endif
 #endif
+    ("noncanonical", "allow non-canonical base-pairs")
 #ifdef HAVE_LIBCONTRAFOLD
     ("params", po::value<std::string>(&param), "use the parameter file")
-    ("noncanonical", "allow non-canonical base-pairs")
     ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
       "the maximum distance of base-pairs")
 #endif
@@ -162,8 +162,12 @@ main(int argc, char* argv[])
   CentroidFold cf(engine, vm.count("mea"));
 #ifdef HAVE_LIBCONTRAFOLD
   switch (engine) {
+  case CentroidFold::PFFOLD:
+  case CentroidFold::ALIPFFOLD:
+    cf.set_options_for_pf_fold(!vm.count("noncanonical"));
+    break;
   case CentroidFold::CONTRAFOLD:
-    cf.set_options(param, !vm.count("noncanonical"), max_bp_dist);
+    cf.set_options_for_contrafold(param, !vm.count("noncanonical"), max_bp_dist);
     break;
   }
 #endif

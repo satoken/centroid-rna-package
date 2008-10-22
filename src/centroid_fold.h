@@ -53,12 +53,16 @@ public:
   ~CentroidFold();
 
 #ifdef HAVE_LIBCONTRAFOLD
-  void set_options(const std::string& model, bool canonical_only, uint max_bp_dist)
+  void set_options_for_contrafold(const std::string& model, bool canonical_only, uint max_bp_dist)
   {
     model_ = model;
     canonical_only_ = canonical_only;
     max_bp_dist_ = max_bp_dist;
   }
+#endif
+
+#ifdef HAVE_LIBRNA
+  void set_options_for_pf_fold(bool canonical_only);
 #endif
 
   void calculate_posterior(const std::string& seq);
@@ -85,11 +89,10 @@ private:
   unsigned int engine_;
   bool mea_;
   BPTable bp_;
-
+  bool canonical_only_;
 #ifdef HAVE_LIBCONTRAFOLD
   boost::shared_ptr<CONTRAfold<float> > contrafold_;
   std::string model_;
-  bool canonical_only_;
   uint max_bp_dist_;
 #endif
 };
