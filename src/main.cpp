@@ -42,7 +42,6 @@ namespace po = boost::program_options;
 int
 main(int argc, char* argv[])
 {
-
   std::vector<double> gamma, gamma_ali;
   std::string input;
   std::vector<std::string> model;
@@ -56,19 +55,22 @@ main(int argc, char* argv[])
     ("help,h", "show this message")
     ("gamma,g",
      po::value<std::vector<double> >(&gamma),
-     "weight of base pairs (default: 1.0 for Centroid, 6.0 for MEA)")
+     "weight of base pairs")
     ("mea", "run as an MEA estimator")
 #ifdef HAVE_LIBRNA
     ("alipf_fold", "use alipf_fold base-pairing probabilities")
 #ifdef HAVE_LIBCONTRAFOLD
     ("pf_fold", "use pf_fold base-pairing probabilities")
-    ("params", po::value<std::string>(&param),
-     "use the parameter file")
 #endif
+#endif
+#ifdef HAVE_LIBCONTRAFOLD
+    ("params", po::value<std::string>(&param), "use the parameter file")
+    ("noncanonical", "allow non-canonical base-pairs")
+    ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
+      "the maximum distance of base-pairs")
 #endif
     ("aux", "use auxiliary base-pairing probabilities")
-    ("max-dist", po::value<uint>(&max_bp_dist)->default_value(0),
-      "the maximum distance of base-pairs")
+    ("constraints,C", "use structure constraints")
     ("posteriors", po::value<float>(&p_th),
      "output base-pairing probability matrices which contain base-pairing probabilities more than the given value.")
 #ifdef HAVE_LIBRNA
@@ -161,7 +163,7 @@ main(int argc, char* argv[])
 #ifdef HAVE_LIBCONTRAFOLD
   switch (engine) {
   case CentroidFold::CONTRAFOLD:
-    cf.set_options(param, max_bp_dist);
+    cf.set_options(param, !vm.count("noncanonical"), max_bp_dist);
     break;
   }
 #endif
@@ -173,9 +175,29 @@ main(int argc, char* argv[])
     if (fa.load(fi))
     {
       if (!vm.count("aux"))
-        cf.calculate_posterior(fa.seq());
+      {
+        if (!vm.count("constraints"))
+        {
+          cf.calculate_posterior(fa.seq());
+        }
+        else if (fa.str().empty())
+        {
+          std::cout << "Input constraints:" << std::endl;
+          std::string str;
+          std::getline(std::cin, str);
+          cf.calculate_posterior(fa.seq(), str);
+        }
+        else
+        {
+          cf.calculate_posterior(fa.seq(), fa.str());
+        }
+      }
       else
-        cf.calculate_posterior(fa.seq(), model[0]);
+      {
+        CentroidFold::BPTable bp;
+        bp.load(model[0].c_str());
+        cf.calculate_posterior(fa.seq(), bp);
+      }
       if (!vm.count("posteriors"))
 	cf.print(std::cout, fa.name(), fa.seq(), gamma);
       else
@@ -192,9 +214,29 @@ main(int argc, char* argv[])
 	  std::cerr << "Given BP matrices and alignments were inconsistent.\n";
 	  break;
 	}
-        cf.calculate_posterior(aln.seq(), model);
-      } else {
-        cf.calculate_posterior(aln.seq());
+        std::list<boost::shared_ptr<CentroidFold::BPTable> > bps;
+        std::vector<std::string>::const_iterator m;
+        for (m=model.begin(); m!=model.end(); ++m)
+        {
+          boost::shared_ptr<CentroidFold::BPTable> v(new CentroidFold::BPTable);
+          v->load(m->c_str());
+          bps.push_back(v);
+        }
+        cf.calculate_posterior(aln.seq(), bps);
+      }
+      else
+      {
+        if (!vm.count("constraints"))
+        {
+          cf.calculate_posterior(aln.seq());
+        }
+        else
+        {
+          std::cout << "Input constraints:" << std::endl;
+          std::string str;
+          std::getline(std::cin, str);
+          cf.calculate_posterior(aln.seq(), str);
+        }
       }
       if (!vm.count("posteriors"))
 	cf.print(std::cout, aln.name().front(), aln.consensus(), gamma_ali);

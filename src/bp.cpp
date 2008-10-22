@@ -28,11 +28,8 @@
 #include <iostream>
 #include <fstream>
 #include <boost/algorithm/string.hpp>
-//#include "inside.h"
-//#include "outside.h"
 #include "bp.h"
 #include "rule.h"
-//#include "dptable.h"
 
 template < class BPTable >
 struct IgnoreAlonePair
@@ -57,8 +54,9 @@ struct AverageBP
 {
   AverageBP(BPTable& bp,
 	    const std::list<BPTablePtr>& bps,
-	    const std::list<std::vector<uint> >& idxmap)
-    : bp_(bp), bps_(bps), idxmap_(idxmap)
+	    const std::list<std::vector<uint> >& idxmap,
+            uint max_dist)
+    : bp_(bp), bps_(bps), idxmap_(idxmap), max_dist_(max_dist)
   {
   }
 
@@ -82,13 +80,17 @@ struct AverageBP
 
   void make()
   {
-    SCFG::inside_traverse(0, bp_.size()-1, *this);
+    if (max_dist_==0)
+      SCFG::inside_traverse(0, bp_.size()-1, *this);
+    else
+      SCFG::inside_traverse(0, bp_.size()-1, max_dist_, *this);
   }
 
 private:
   BPTable& bp_;
   const std::list<BPTablePtr>& bps_;
   const std::list<std::vector<uint> >& idxmap_;
+  uint max_dist_;
 };
 
 namespace SCFG
@@ -153,10 +155,11 @@ namespace SCFG
     void
     Table<V>::
     average(const std::list<BPTablePtr>& bps,
-	    const std::list<std::vector<uint> >& idxmaps)
+	    const std::list<std::vector<uint> >& idxmaps,
+            uint max_dist)
     {
-      resize(idxmaps.front().size());
-      AverageBP<Table<V>, BPTablePtr> avg(*this, bps, idxmaps);
+      resize(idxmaps.front().size(), max_dist);
+      AverageBP<Table<V>, BPTablePtr> avg(*this, bps, idxmaps, max_dist);
       avg.make();
     }
 
@@ -252,4 +255,4 @@ template
 void
 SCFG::BP::Table<float>::
 average(const std::list<boost::shared_ptr<SCFG::BP::Table<float> > >& bps,
-	const std::list<std::vector<uint> >& idxmaps);
+	const std::list<std::vector<uint> >& idxmaps, uint max_dist);

@@ -167,12 +167,48 @@ namespace SCFG
       Updater<BPTable,DPTable> update(bp, dp, gamma);
       SCFG::inside_traverse(0, bp.size(), update);
 
-      paren.resize(dp.size()-1);
-      std::fill(paren.begin(), paren.end(), '.');
       TraceBack<DPTable> traceback(paren, dp);
       traceback(0, dp.size()-1);
 
       return dp(0, dp.size()-1).val;
+    }
+
+    template < class V >
+    V
+    execute(const SCFG::BP::Table<V>& bp, std::string& paren, uint max_dist, float gamma)
+    {
+      typedef V value_type;
+      typedef SCFG::BP::Table<V> BPTable;
+      typedef CYKTable< Cell<value_type> > DPTable;
+
+      DPTable dp(bp.size()+1, max_dist);
+      std::vector<Cell<value_type> > outer(bp.size()+1);
+      Updater<BPTable,DPTable> update(bp, dp, gamma);
+      SCFG::inside_traverse(0, bp.size(), max_dist, update);
+      outer[0].val = -1e100;
+      outer[0].update(0.0, Rule::E);
+      for (uint j=1; j!=outer.size(); ++j) {
+        outer[j].val = -1e100;
+        outer[j].update(outer[j-1].val, Rule::R);
+        uint l = j>max_dist ? j-max_dist : 0;
+        for (uint k=l; k<j; ++k) {
+          if (dp(k,j).type==Rule::P)
+            outer[j].update(outer[k].val+dp(k,j).val, Rule::B, k);
+        }
+      }
+
+      int j=outer.size()-1;
+      while (j>0) {
+        if (outer[j].type==Rule::B) {
+          TraceBack<DPTable> traceback(paren, dp);
+          traceback(outer[j].br_pos, j);
+          j = outer[j].br_pos;
+        } else {
+          j--;
+        }
+      }
+
+      return outer.back().val;
     }
   };
 };
@@ -186,3 +222,8 @@ template
 float
 SCFG::MEA::execute(const SCFG::BP::Table<float>& bp,
 		   std::string& paren, float gamma);
+
+template
+float
+SCFG::MEA::execute(const SCFG::BP::Table<float>& bp,
+		   std::string& paren, uint max_dist, float gamma);

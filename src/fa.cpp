@@ -72,7 +72,7 @@ struct fa_parser : public grammar< fa_parser >
       fa = head >> +(seq | str);
       head = ch_p('>') >> (*(blank_p | graph_p))[assign_a(self.name)] >> eol_p;
       seq_l = *(alpha_p | ch_p('-'));
-      str_l = *(chset_p("().") | blank_p);
+      str_l = *(chset_p("().?x") | blank_p);
       seq = +(seq_l[append_seq(self.seq)] >> eol_p);
       str = +(str_l[append_seq(self.str)] >> eol_p);
     }

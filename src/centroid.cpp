@@ -218,7 +218,7 @@ namespace SCFG
         std::vector<Cell<value_type> > outer(table.size()+1);
 	Updater<T,DPTable> update(table, dp, gamma);
 	SCFG::inside_traverse(0, table.size(), max_dist, update);
-        outer[0].val= -1e100;
+        outer[0].val = -1e100;
         outer[0].update(0.0, Rule::E);
         for (uint j=1; j!=outer.size(); ++j) {
           outer[j].val = -1e100;
