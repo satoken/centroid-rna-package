@@ -29,7 +29,7 @@ currently available prediction tools at this time.
   ((<URL:http://www.tbi.univie.ac.at/~ivo/RNA/>))
 * ruby (>= 1.8) (optional)
   ((<URL:http://www.ruby-lang.org>))
-* CONTRAfold (>= 2.0) (optional)
+* CONTRAfold (>= 2.02) (optional)
   ((<URL:http://contra.stanford.edu/contrafold/>))
 * MultiRNAFold package (>= 1.10) (optional)
   ((<URL:http://www.rnasoft.ca/>))
@@ -43,14 +43,14 @@ currently available prediction tools at this time.
 
 === Build with linking CONTRAfold
 
-Currently, a patch for CONTRAfold v2.0.0 is provided, which makes it
+Currently, a patch for CONTRAfold v2.02 is provided, which makes it
 possible to link the routine for calculating base-pairing
 probabilities in CONTRAfold with CentroidFold.
 
 After applying this patch, you can build (({libcontrafold.a})).
 
  cd /somewhere/contrafold/src
- patch -p2 < /somewhere/centroid_fold-x.x.x/contrafold.patch
+ patch -p2 < /somewhere/centroid_fold-x.x.x/contrafold_v2_02.patch
  make lib
 
 Then, put (({libcontrafold.a})) into the CentroidFold build tree.
@@ -84,13 +84,32 @@ base-pairing probability matrix.
  centroid_fold [options] seq
 
  Options:
-   -g [ --gamma ] arg    weight of base pairs (default: 1.0 for Centroid, 6.0 for MEA)
-   --mea                 run as an MEA estimator
-   --aux                 use auxiliary base-pairing probabilities
+   -g [ --gamma ] arg      weight of base pairs
+   --mea                   run as an MEA estimator
+   --noncanonical          allow non-canonical base-pairs   
+   -d [ --max-dist ] arg   the maximum distance of base-pairs
+   --aux                   use auxiliary base-pairing probabilities
+   -C [ --constraints ]    use structure constraints
 
 If a negative value is given for the option '--gamma',
 (({centroid_fold})) calculates secondary structures for several values
 of gamma at the same time ({2^k | -5 <= k <= 10} and 6). 
+
+For long sequences, you can use '-d' options to restrict the maximum
+distance of base-pairs. This can reduce the computation time and the
+memory requirement: O(L^3) to O(LW^2), and O(L^2) to O(LW),
+respectively, where L is length of a sequence and W is the specified
+maximum distance of base-pairs.
+
+If a part of secondary structure for a given sequence is known, you
+can specify it by a modified FASTA format, and run (({centroid_fold}))
+with '-C' options. 
+ > RF00008_B
+ CAAAAGUCUGGGCUAAGCCCACUGAUGAGCCGCUGAAAUGCGGCGAAACUUUUG
+ .(((((........???????????????????????...........))))).
+The positions at '(' and ')' are restricted to base-pairs,
+the position at '.' is restricted to unpaired bases, and
+the position at '?' is unrestricted.
 
 Using the option '--aux', (({centroid_fold})) can take an auxiliary
 base-pairing probability matrix instead of the McCaskill model.
@@ -243,8 +262,8 @@ Example:
     structure prediction by centroids in a Boltzmann weighted
     ensemble, RNA, 11:1157-1166, 2005
   * Hamada, M., Kiryu, H., Sato, K., Mituyama, T. and Asai, K.:
-    RNA Secondary structure estimations by maximizing expected
-    weighted true predictions of base-pairs, submitted, 2008.
+    Predictions of RNA secondary structure using generalized centroid
+    estimators, submitted, 2008.
 * The CONTRAfold model and MEA estimators
   * Do, C. B., Woods, D. A. and Batzoglou, S.: CONTRAfold: RNA
     secondary structure prediction without physics-based

@@ -25,6 +25,7 @@
 #include "../config.h"
 #endif
 
+#include <iostream>
 #include <cmath>
 #include <string>
 #include <stack>
@@ -170,12 +171,12 @@ CentroidFold(unsigned int engine, bool run_as_mea,
 	     unsigned int reserved_size)
   : engine_(engine),
     mea_(run_as_mea),
-    bp_(reserved_size)
+    bp_(reserved_size),
+    canonical_only_(true)
 #ifdef HAVE_LIBCONTRAFOLD
   ,
     contrafold_(),
     model_(),
-    canonical_only_(true),
     max_bp_dist_(0)
 #endif
 {
@@ -185,6 +186,17 @@ CentroidFold::
 ~CentroidFold()
 {
 }
+
+#ifdef HAVE_LIBRNA
+void
+CentroidFold::
+set_options_for_pf_fold(bool canonical_only)
+{
+  canonical_only_ = canonical_only;
+  if (!canonical_only_)
+    Vienna::nonstandards = const_cast<char*>("AAACAGCACCCUGAGGUCUU");
+}
+#endif
 
 void
 CentroidFold::
@@ -231,10 +243,13 @@ calculate_posterior(const std::string& seq, const std::string& str)
     assert(!"AUX should be given a bp matrix.");
     break;
 #ifdef HAVE_LIBRNA
-  case PFFOLD:
-    assert(max_bp_dist_==0);
+  case PFFOLD: {
+    std::string str2(str);
+    std::replace(str2.begin(), str2.end(), '.', 'x');
+    std::replace(str2.begin(), str2.end(), '?', '.');
     pf_fold(bp_, seq2, str);
     break;
+  }
 #endif
 #ifdef HAVE_LIBCONTRAFOLD
   case CONTRAFOLD:
@@ -342,7 +357,10 @@ calculate_posterior(const std::list<std::string>& seq, const std::string& str)
 #ifdef HAVE_LIBRNA
   if (engine_==ALIPFFOLD)  {
     assert(max_bp_dist_==0);
-    alipf_fold(bp_, seq2, str);
+    std::string str2(str);
+    std::replace(str2.begin(), str2.end(), '.', 'x');
+    std::replace(str2.begin(), str2.end(), '?', '.');
+    alipf_fold(bp_, seq2, str2);
   } else {
 #endif
     // make an alignment-to-sequence map
@@ -369,7 +387,6 @@ calculate_posterior(const std::list<std::string>& seq, const std::string& str)
     std::list<std::vector<uint> >::const_iterator y;
     for (x=seqs.begin(), y=idxmaps.begin(); x!=seqs.end(); ++x, ++y) {
       // map the consensus structure for constraints
-      char unknow_str = engine_==CONTRAFOLD ? '?' : '.';
       BPTablePtr bpi(new BPTable);
       std::string str2(x->size(), ' ');
       for (uint i=0, j=0; i!=y->size(); ++i) {
@@ -377,7 +394,7 @@ calculate_posterior(const std::list<std::string>& seq, const std::string& str)
           if ((*y)[bpmap[i]]!=static_cast<uint>(-1))
             str2[j++] = str[i];
           else
-            str2[j++] = unknow_str;
+            str2[j++] = '?';
         }
       }
       
@@ -386,10 +403,14 @@ calculate_posterior(const std::list<std::string>& seq, const std::string& str)
         assert(!"AUX should be given bp matrices.");
 	break;
 #ifdef HAVE_LIBRNA
-      case PFFOLD:
+      case PFFOLD: {
         assert(max_bp_dist_==0);
-	pf_fold(*bpi, *x, str2);
+        std::string str3(str);
+        std::replace(str3.begin(), str3.end(), '.', 'x');
+        std::replace(str3.begin(), str3.end(), '?', '.');
+	pf_fold(*bpi, *x, str3);
 	break;
+      }
 #endif
 #ifdef HAVE_LIBCONTRAFOLD
       case CONTRAFOLD:
