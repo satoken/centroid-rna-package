@@ -37,6 +37,9 @@ namespace SCFG
     template < class V >
     V execute(const SCFG::BP::Table<V>& bp, std::string& paren, float gamma);
 
+    template < class V >
+    V execute(const SCFG::BP::Table<V>& bp, std::string& paren, uint max_dist, float gamma);
+
     template < class V, class Seq, class RuleSet >
     V execute(const Seq& seq, const RuleSet& rules, std::string& paren, float gamma)
     {

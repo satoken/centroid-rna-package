@@ -53,18 +53,21 @@ public:
   ~CentroidFold();
 
 #ifdef HAVE_LIBCONTRAFOLD
-  void set_options(const std::string& model, uint max_bp_dist)
+  void set_options(const std::string& model, bool canonical_only, uint max_bp_dist)
   {
     model_ = model;
+    canonical_only_ = canonical_only;
     max_bp_dist_ = max_bp_dist;
   }
 #endif
 
   void calculate_posterior(const std::string& seq);
-  void calculate_posterior(const std::string& seq, const std::string& bp);
+  void calculate_posterior(const std::string& seq, const std::string& str);
+  void calculate_posterior(const std::string& seq, const BPTable& bp);
   void calculate_posterior(const std::list<std::string>& seq);
+  void calculate_posterior(const std::list<std::string>& seq, const std::string& str);
   void calculate_posterior(const std::list<std::string>& seq,
-			   const std::vector<std::string>& bps);
+                           const std::list<boost::shared_ptr<BPTable> >& bps);
 
   float decode_structure(float gamma, std::string& paren) const;
   std::pair<std::string,float> decode_structure(float gamma) const;
@@ -86,6 +89,7 @@ private:
 #ifdef HAVE_LIBCONTRAFOLD
   boost::shared_ptr<CONTRAfold<float> > contrafold_;
   std::string model_;
+  bool canonical_only_;
   uint max_bp_dist_;
 #endif
 };

@@ -91,10 +91,11 @@ namespace SCFG
       }
     }
 
-    uint size() const
-    {
-      return size_;
-    }
+    uint size() const { return size_; }
+
+    uint table_size() const { return table_.size(); }
+
+    uint max_dist() const { return max_dist_; }
 
     void resize(uint size, uint max_dist=0)
     {
@@ -108,7 +109,6 @@ namespace SCFG
       std::fill(table_.begin(), table_.end(), val);
     }
 
-    uint table_size() const { return table_.size(); }
 
     inline
     void put(uint i, uint j, const T& val)

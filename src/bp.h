@@ -36,14 +36,14 @@ namespace SCFG
       typedef T value_type;
       
     public:
-      Table() : bp_(), q_(), size_(0), max_dist_(0) { }
+      Table() : bp_(), q_(), size_(0) { }
       
-      Table(uint sz, uint max_dist=0) : bp_(sz), q_(sz), size_(0), max_dist_(0)
+      Table(uint sz, uint max_dist=0) : bp_(sz), q_(sz), size_(0)
       {
 	reserve(sz, max_dist);
       }
 
-      Table(const Table& x) : bp_(x.bp_), q_(x.q_), size_(x.size_), max_dist_(x.max_dist_){ } 
+      Table(const Table& x) : bp_(x.bp_), q_(x.q_), size_(x.size_) { } 
 
       void reserve(uint sz, uint max_dist=0)
       {
@@ -57,18 +57,17 @@ namespace SCFG
 
       void resize(uint size, uint max_dist=0)
       {
-	if (size>reserved_size()) {
+	if (size>reserved_size() || max_dist!=this->max_dist()) {
 	  reserve(size, max_dist);
 	}
 	size_ = size;
-        max_dist_ = max_dist;
 	bp_.fill(0);
 	std::fill(q_.begin(), q_.end(), 1);
       }
 
       uint size() const { return size_; }
 
-      uint max_dist() const { return max_dist_; };
+      uint max_dist() const { return bp_.max_dist(); };
 
       void update(uint i, uint j, T v)
       {
@@ -102,7 +101,8 @@ namespace SCFG
       template <class BPTablePtr>
       void
       average(const std::list<BPTablePtr>& bps,
-	      const std::list<std::vector<uint> >& idxmaps);
+	      const std::list<std::vector<uint> >& idxmaps,
+              uint max_dist=0);
 
       bool load(const char* filename);
       bool save(const char* filename, const std::string& seq, float th) const;
@@ -112,7 +112,6 @@ namespace SCFG
       CYKTable<T> bp_;
       std::vector<T> q_;
       uint size_;
-      uint max_dist_;
     };
   }
 };
