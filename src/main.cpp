@@ -164,7 +164,7 @@ main(int argc, char* argv[])
   switch (engine) {
   case CentroidFold::PFFOLD:
   case CentroidFold::ALIPFFOLD:
-    cf.set_options_for_pf_fold(!vm.count("noncanonical"));
+    cf.set_options_for_pf_fold(!vm.count("noncanonical"), max_bp_dist);
     break;
   case CentroidFold::CONTRAFOLD:
     cf.set_options_for_contrafold(param, !vm.count("noncanonical"), max_bp_dist);
