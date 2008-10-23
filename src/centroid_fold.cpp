@@ -42,16 +42,9 @@ extern "C" {
 #include <ViennaRNA/fold_vars.h>
 #include <ViennaRNA/part_func.h>
 #include <ViennaRNA/alifold.h>
+#include <ViennaRNA/LPfold.h>
 #include <ViennaRNA/PS_dot.h>
 #include <ViennaRNA/aln_util.h>
-#if 0
-  extern int pfl_fold(char *sequence, int winSize, int pairdist,
-		      float cutoff, struct plist **pl);
-  extern void init_pf_foldLP(int length);
-  extern void free_pf_arraysLP(void);
-#endif
-  extern char* pbacktrack(char *sequence);
-  extern int   st_back;
 };
 };
 #endif
@@ -88,6 +81,22 @@ pf_fold(T& bp, const std::string& seq, const std::string& str="")
     }
   }
   Vienna::free_pf_arrays();
+}
+
+template < class T >
+static
+void
+pfl_fold(T& bp, const std::string& seq, uint max_dist, float th=1e-5)
+{
+  assert(seq.size()>max_dist);
+  bp.resize(seq.size(), max_dist);
+  Vienna::pf_scale = -1;
+  Vienna::plist *pl;
+  pl = Vienna::pfl_fold(const_cast<char*>(seq.c_str()),
+                        max_dist, max_dist, th, NULL);
+  for (uint k=0; pl[k].i!=0; ++k)
+    bp.update(pl[k].i, pl[k].j, pl[k].p);
+  free(pl);
 }
 
 template < class T >
@@ -190,11 +199,12 @@ CentroidFold::
 #ifdef HAVE_LIBRNA
 void
 CentroidFold::
-set_options_for_pf_fold(bool canonical_only)
+set_options_for_pf_fold(bool canonical_only, uint max_dist)
 {
   canonical_only_ = canonical_only;
   if (!canonical_only_)
     Vienna::nonstandards = const_cast<char*>("AAACAGCACCCUGAGGUCUU");
+  max_bp_dist_ = max_dist;
 }
 #endif
 
@@ -211,8 +221,10 @@ calculate_posterior(const std::string& seq)
     break;
 #ifdef HAVE_LIBRNA
   case PFFOLD:
-    assert(max_bp_dist_==0);
-    pf_fold(bp_, seq2);
+    if (max_bp_dist_==0 || max_bp_dist_>=seq2.size())
+      pf_fold(bp_, seq2);
+    else
+      pfl_fold(bp_, seq2, max_bp_dist_);
     break;
 #endif
 #ifdef HAVE_LIBCONTRAFOLD
@@ -247,7 +259,10 @@ calculate_posterior(const std::string& seq, const std::string& str)
     std::string str2(str);
     std::replace(str2.begin(), str2.end(), '.', 'x');
     std::replace(str2.begin(), str2.end(), '?', '.');
-    pf_fold(bp_, seq2, str);
+    if (max_bp_dist_==0 || max_bp_dist_>seq2.size())
+      pf_fold(bp_, seq2, str);
+    else
+      pfl_fold(bp_, seq2, max_bp_dist_);
     break;
   }
 #endif

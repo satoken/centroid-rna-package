@@ -62,7 +62,7 @@ public:
 #endif
 
 #ifdef HAVE_LIBRNA
-  void set_options_for_pf_fold(bool canonical_only);
+  void set_options_for_pf_fold(bool canonical_only, uint max_dist);
 #endif
 
   void calculate_posterior(const std::string& seq);
