@@ -31,7 +31,12 @@
 #include <boost/shared_ptr.hpp>
 #include "bp.h"
 #ifdef HAVE_LIBCONTRAFOLD
+#if 0
 #include <contrafold.h>
+#else
+template < class RealT >
+class CONTRAfold;
+#endif
 #endif
 
 class CentroidFold
@@ -69,7 +74,9 @@ public:
   void calculate_posterior(const std::string& seq, const std::string& str);
   void calculate_posterior(const std::string& seq, const BPTable& bp);
   void calculate_posterior(const std::list<std::string>& seq);
+  void calculate_posterior(const std::vector<std::string>& seq);
   void calculate_posterior(const std::list<std::string>& seq, const std::string& str);
+  void calculate_posterior(const std::vector<std::string>& seq, const std::string& str);
   void calculate_posterior(const std::list<std::string>& seq,
                            const std::list<boost::shared_ptr<BPTable> >& bps);
 
@@ -91,10 +98,10 @@ private:
   BPTable bp_;
   bool canonical_only_;
 #ifdef HAVE_LIBCONTRAFOLD
-  boost::shared_ptr<CONTRAfold<float> > contrafold_;
+  CONTRAfold<float>* contrafold_;
   std::string model_;
-  uint max_bp_dist_;
 #endif
+  uint max_bp_dist_;
 };
 
 #endif	// #ifndef __INC_CENTROID_FOLD_H__

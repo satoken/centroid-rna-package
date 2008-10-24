@@ -53,6 +53,7 @@ extern "C" {
 #include <contrafold.h>
 #endif
 
+
 // folding routines
 #ifdef HAVE_LIBRNA
 template < class T >
@@ -174,17 +175,17 @@ contra_fold(T& bp, CONTRAfold<U>& cf, const std::string& seq, const std::string&
 }
 #endif
 
-
 CentroidFold::
-CentroidFold(unsigned int engine, bool run_as_mea,
-	     unsigned int reserved_size)
+CentroidFold(unsigned int engine,
+             bool run_as_mea,
+             unsigned int reserved_size)
   : engine_(engine),
     mea_(run_as_mea),
     bp_(reserved_size),
     canonical_only_(true)
 #ifdef HAVE_LIBCONTRAFOLD
   ,
-    contrafold_(),
+    contrafold_(NULL),
     model_(),
     max_bp_dist_(0)
 #endif
@@ -194,7 +195,11 @@ CentroidFold(unsigned int engine, bool run_as_mea,
 CentroidFold::
 ~CentroidFold()
 {
+#ifdef HAVE_LIBCONTRAFOLD
+  if (contrafold_) delete contrafold_;
+#endif
 }
+
 
 #ifdef HAVE_LIBRNA
 void
@@ -230,8 +235,7 @@ calculate_posterior(const std::string& seq)
 #ifdef HAVE_LIBCONTRAFOLD
   case CONTRAFOLD:
     if (contrafold_==NULL) {
-      contrafold_ =
-        boost::shared_ptr<CONTRAfold<float> >(new CONTRAfold<float>(canonical_only_, max_bp_dist_));
+      contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
       if (!model_.empty()) contrafold_->SetParameters(model_);
     }
     contra_fold(bp_, *contrafold_, seq2);
@@ -269,8 +273,7 @@ calculate_posterior(const std::string& seq, const std::string& str)
 #ifdef HAVE_LIBCONTRAFOLD
   case CONTRAFOLD:
     if (contrafold_==NULL) {
-      contrafold_ =
-        boost::shared_ptr<CONTRAfold<float> >(new CONTRAfold<float>(canonical_only_, max_bp_dist_));
+      contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
       if (!model_.empty()) contrafold_->SetParameters(model_);
     }
     contra_fold(bp_, *contrafold_, seq2, str);
@@ -339,8 +342,7 @@ calculate_posterior(const std::list<std::string>& seq)
 #ifdef HAVE_LIBCONTRAFOLD
       case CONTRAFOLD:
         if (contrafold_==NULL) {
-          contrafold_ =
-            boost::shared_ptr<CONTRAfold<float> >(new CONTRAfold<float>(canonical_only_, max_bp_dist_));
+          contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
           if (!model_.empty()) contrafold_->SetParameters(model_);
         }
         contra_fold(*bpi, *contrafold_, *x);
@@ -356,6 +358,15 @@ calculate_posterior(const std::list<std::string>& seq)
 #ifdef HAVE_LIBRNA
   }
 #endif
+}
+
+void
+CentroidFold::
+calculate_posterior(const std::vector<std::string>& seq)
+{
+  std::list<std::string> seq2(seq.size());
+  std::copy(seq.begin(), seq.end(), seq2.begin());
+  calculate_posterior(seq2);
 }
 
 void
@@ -430,8 +441,7 @@ calculate_posterior(const std::list<std::string>& seq, const std::string& str)
 #ifdef HAVE_LIBCONTRAFOLD
       case CONTRAFOLD:
         if (contrafold_==NULL) {
-          contrafold_ =
-            boost::shared_ptr<CONTRAfold<float> >(new CONTRAfold<float>(canonical_only_, max_bp_dist_));
+          contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
           if (!model_.empty()) contrafold_->SetParameters(model_);
         }
         contra_fold(*bpi, *contrafold_, *x, str2);
@@ -447,6 +457,15 @@ calculate_posterior(const std::list<std::string>& seq, const std::string& str)
 #ifdef HAVE_LIBRNA
   }
 #endif
+}
+
+void
+CentroidFold::
+calculate_posterior(const std::vector<std::string>& seq, const std::string& str)
+{
+  std::list<std::string> seq2(seq.size());
+  std::copy(seq.begin(), seq.end(), seq2.begin());
+  calculate_posterior(seq2, str);
 }
 
 void

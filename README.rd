@@ -25,7 +25,7 @@ currently available prediction tools at this time.
 
 * Boost C++ Library (>= 1.34.1)
   ((<URL:http://www.boost.org/>))
-* Vienna RNA package (>= 1.6)
+* Vienna RNA package (>= 1.7.2)
   ((<URL:http://www.tbi.univie.ac.at/~ivo/RNA/>))
 * ruby (>= 1.8) (optional)
   ((<URL:http://www.ruby-lang.org>))
