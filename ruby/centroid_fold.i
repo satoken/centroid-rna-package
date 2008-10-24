@@ -1,5 +1,12 @@
 %module CentroidFold
 %{
+#undef PACKAGE_VERSION
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_NAME
+#undef PACKAGE_BUGREPORT
+#undef VERSION
+#include "../config.h"
 #include "../src/centroid_fold.h"
 %}
 %include stl.i
