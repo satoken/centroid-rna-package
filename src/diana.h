@@ -7,6 +7,8 @@
 #include <list>
 #include <boost/range.hpp>
 
+typedef unsigned int uint;
+
 namespace HCLUST
 {
   // Divisive Analysis: a hierarchical clustering by the top-down order
