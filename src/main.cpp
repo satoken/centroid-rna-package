@@ -64,17 +64,17 @@ main(int argc, char* argv[])
 #ifdef HAVE_LIBCONTRAFOLD
     ("pf_fold", "use pf_fold base-pairing probabilities")
 #endif
-    ("stochastic", "use the stochastic sampling algorithm")
+    ("sampling", 
+     po::value<uint>(&num_samples),
+     "use the stochastic sampling algorithm. "
+     "Specify the number of samples to be generated for each sequence")
     ("max-clusters,c",
      po::value<uint>(&max_clusters)->default_value(10),
-     "the maximum number of clusters")
-    ("num-samples,n",
-     po::value<uint>(&num_samples)->default_value(10),
-     "the number of generating samples for each model")
+     "the maximum number of clusters for the stochastic sampling algorithm")
 #endif
     ("noncanonical", "allow non-canonical base-pairs")
 #ifdef HAVE_LIBCONTRAFOLD
-    ("params", po::value<std::string>(&param), "use the parameter file")
+    ("params", po::value<std::string>(&param), "use the parameter file (for CONTRAfold model)")
     ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
       "the maximum distance of base-pairs")
 #endif
@@ -187,7 +187,7 @@ main(int argc, char* argv[])
     Aln aln;
     if (fa.load(fi))
     {
-      if (vm.count("stochastic"))
+      if (vm.count("sampling"))
       {
         cf.stochastic_fold(fa.name(), fa.seq(), num_samples, max_clusters,
                            gamma, std::cout);
@@ -226,6 +226,13 @@ main(int argc, char* argv[])
     }
     else if (aln.load(fi))
     {
+      if (vm.count("sampling"))
+      {
+        cf.stochastic_fold(aln.name().front(), aln.consensus(),
+                           aln.seq(), num_samples, max_clusters,
+                           gamma, std::cout);
+        continue;
+      }
       if (vm.count("aux"))
       {
 	if (aln.seq().size()!=model.size())

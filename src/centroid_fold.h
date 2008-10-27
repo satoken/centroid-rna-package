@@ -85,6 +85,14 @@ public:
   void stochastic_fold(const std::string& name, const std::string& seq,
                        uint num_samples, uint max_clusters,
                        const std::vector<float>& gamma, std::ostream& out);
+  void stochastic_fold(const std::string& name, const std::string& consensus,
+                       const std::vector<std::string>& seq,
+                       uint num_samples, uint max_clusters,
+                       const std::vector<float>& gamma, std::ostream& out);
+  void stochastic_fold(const std::string& name, const std::string& consensus,
+                       const std::list<std::string>& seq,
+                       uint num_samples, uint max_clusters,
+                       const std::vector<float>& gamma, std::ostream& out);
 
 
 #ifdef HAVE_LIBRNA

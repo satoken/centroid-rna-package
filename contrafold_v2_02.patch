@@ -1,6 +1,6 @@
 diff -urN contrafold_v2_02.orig/src/InferenceEngine.hpp contrafold/src/InferenceEngine.hpp
 --- contrafold_v2_02.orig/src/InferenceEngine.hpp	2008-08-14 09:08:31.000000000 +0900
-+++ contrafold/src/InferenceEngine.hpp	2008-10-27 10:55:12.910312245 +0900
++++ contrafold/src/InferenceEngine.hpp	2008-10-27 15:53:42.682134440 +0900
 @@ -1,5 +1,5 @@
  //////////////////////////////////////////////////////////////////////
 -// InferenceEngine.hpp
@@ -40,9 +40,11 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.hpp contrafold/src/Inference
      ~InferenceEngine();
  
      // register params with the parameter manager
-@@ -294,6 +297,8 @@
+@@ -293,7 +296,10 @@
+     std::vector<RealT> ComputeFeatureCountExpectations();
      void ComputePosterior();
      std::vector<int> PredictPairingsPosterior(const RealT gamma) const;
++    std::vector<int> PredictPairingsStochasticTraceback() const;
      RealT *GetPosterior(const RealT posterior_cutoff) const;
 +    RealT *GetPosterior(const RealT posterior_cutoff, std::vector<RealT>& p) const;
 +
@@ -51,8 +53,20 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.hpp contrafold/src/Inference
  #include "InferenceEngine.ipp"
 diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/InferenceEngine.ipp
 --- contrafold_v2_02.orig/src/InferenceEngine.ipp	2008-08-14 09:08:31.000000000 +0900
-+++ contrafold/src/InferenceEngine.ipp	2008-10-27 12:27:56.337892399 +0900
-@@ -166,13 +166,26 @@
++++ contrafold/src/InferenceEngine.ipp	2008-10-27 16:38:31.799830735 +0900
+@@ -6,6 +6,11 @@
+ // Wrapper macros for certain model features.
+ //////////////////////////////////////////////////////////////////////
+ 
++#include <list>
++#include <utility>
++#include <cassert>
++#include <cstdlib>
++
+ // score for leaving s[i] unpaired
+ 
+ #if defined(HAMMING_LOSS)
+@@ -166,13 +171,26 @@
  //////////////////////////////////////////////////////////////////////
  
  template<class RealT>
@@ -81,7 +95,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
  }
  
  //////////////////////////////////////////////////////////////////////
-@@ -210,10 +223,11 @@
+@@ -210,10 +228,11 @@
  //////////////////////////////////////////////////////////////////////
  
  template<class RealT>
@@ -94,7 +108,17 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      L(0),
      SIZE(0)
  #if PROFILE
-@@ -795,7 +809,14 @@
+@@ -222,6 +241,9 @@
+ #endif
+ 
+ {
++    // initalize a pseudo random number generator
++    srand(static_cast<unsigned int>(time(NULL)));
++
+     // precompute mapping from characters to index representation
+     std::memset(char_mapping, BYTE(alphabet.size()), 256);
+     for (size_t i = 0; i < alphabet.size(); i++)
+@@ -795,7 +817,14 @@
      
      // compute dimensions
      L = sstruct.GetLength();
@@ -109,7 +133,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
  #if PROFILE
      N = sstruct.GetNumSequences();
      SIZE2 = (L+1)*(L+1);
-@@ -864,7 +885,7 @@
+@@ -864,7 +893,7 @@
  
  #endif
  
@@ -118,7 +142,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      cache_score_helix_sums.clear();                  cache_score_helix_sums.resize((2*L+1)*L);
  #endif
  
-@@ -895,7 +916,7 @@
+@@ -895,7 +924,7 @@
      // set the loss for each unpaired position to zero
      for (int i = 0; i <= L; i++)
      {
@@ -127,7 +151,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          allow_unpaired_position[i] = 1;
          loss_unpaired_position[i] = RealT(0);
      }
-@@ -924,7 +945,8 @@
+@@ -924,7 +953,8 @@
          // for each pair of non-complementary letters in the sequence, disallow the pairing
          for (int i = 1; i <= L; i++)
          {
@@ -137,7 +161,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  if (!IsComplementary(i,j))
                      allow_paired[offset[i]+j] = 0;
-@@ -1150,12 +1172,13 @@
+@@ -1150,12 +1180,13 @@
  
  #endif
  
@@ -153,7 +177,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
              cache_score_helix_sums[(i+j)*L+j-i].first = cache_score_helix_sums[(i+j)*L+j-i-2].first;
              if (allow_paired[offset[i+1]+j-1])
-@@ -1291,7 +1314,7 @@
+@@ -1291,7 +1322,7 @@
          for (int l2 = 0; l2 <= C_MAX_SINGLE_LENGTH; l2++)
              cache_score_single[l1][l2].second = RealT(0);
      
@@ -162,7 +186,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      FillCounts(cache_score_helix_sums.begin(), cache_score_helix_sums.end(), RealT(0));
  #endif
  
-@@ -1356,14 +1379,15 @@
+@@ -1356,14 +1387,15 @@
  template<class RealT>
  void InferenceEngine<RealT>::FinalizeCounts()
  {
@@ -180,7 +204,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
              // the "if" conditions here can be omitted
              
-@@ -1682,7 +1706,8 @@
+@@ -1682,7 +1714,8 @@
      {
          loss_unpaired[offset[i]+i] = RealT(0);
          loss_paired[offset[i]+i] = RealT(NEG_INF);
@@ -190,7 +214,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
              loss_unpaired[offset[i]+j] = 
                  loss_unpaired[offset[i]+j-1] +
-@@ -1720,7 +1745,8 @@
+@@ -1720,7 +1753,8 @@
      {
          allow_unpaired[offset[i]+i] = 1;
          allow_paired[offset[i]+i] = 0;
@@ -200,7 +224,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
              allow_unpaired[offset[i]+j] = 
                  allow_unpaired[offset[i]+j-1] && 
-@@ -2042,7 +2068,7 @@
+@@ -2042,7 +2076,7 @@
      Assert(0 <= i && i + 2 * m <= j && j <= L, "Helix boundaries invalid.");
      Assert(2 <= m && m <= D_MAX_HELIX_LENGTH, "Helix length invalid.");
      
@@ -209,7 +233,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      
      return
          cache_score_helix_sums[(i+j+1)*L+j-i-1].first - cache_score_helix_sums[(i+j+1)*L+j-i-m-m+1].first
-@@ -2073,7 +2099,7 @@
+@@ -2073,7 +2107,7 @@
      Assert(0 <= i && i + 2 * m <= j && j <= L, "Helix boundaries invalid.");
      Assert(2 <= m && m <= D_MAX_HELIX_LENGTH, "Helix length invalid.");
      
@@ -218,7 +242,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      
      cache_score_helix_sums[(i+j+1)*L+j-i-1].second += value;
      cache_score_helix_sums[(i+j+1)*L+j-i-m-m+1].second -= value;
-@@ -2390,7 +2416,8 @@
+@@ -2390,7 +2424,8 @@
          candidates.clear();
  #endif
          
@@ -228,7 +252,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
              // FM2[i,j] = MAX (i<k<j : FM1[i,k] + FM[k,j])
  
-@@ -2403,34 +2430,41 @@
+@@ -2403,34 +2438,41 @@
                  UPDATE_MAX(FM2v, FM2t, FM1v[offset[i]+k] + FMv[offset[k]+j], k);
              
  #else
@@ -287,7 +311,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
  #endif
  
  #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
-@@ -2607,7 +2641,7 @@
+@@ -2607,7 +2649,7 @@
              //
              // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
              
@@ -296,7 +320,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  
                  RealT best_v = RealT(NEG_INF);
-@@ -2694,7 +2728,7 @@
+@@ -2694,7 +2736,7 @@
              //
              //            (assuming 0 < i < i+2 <= j < L)
              
@@ -305,7 +329,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  RealT best_v = RealT(NEG_INF);
                  int best_t = -1;
-@@ -2749,7 +2783,7 @@
+@@ -2749,7 +2791,7 @@
              //
              //            (assuming 0 < i < i+2 <= j < L)
              
@@ -314,7 +338,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  RealT best_v = RealT(NEG_INF);
                  int best_t = -1;
-@@ -2801,7 +2835,8 @@
+@@ -2801,7 +2843,8 @@
          
          // compute MAX (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
          
@@ -324,7 +348,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
              if (allow_paired[offset[k+1]+j])
              {
-@@ -2952,7 +2987,7 @@
+@@ -2952,7 +2995,7 @@
                  solution[j] = i+1;
                  traceback_queue.push(make_triple(&FCt[0], i+1, j-1));
              }
@@ -333,7 +357,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              case TB_FM1_UNPAIRED:
              {
                  traceback_queue.push(make_triple(&FM1t[0], i+1, j));
-@@ -3199,7 +3234,8 @@
+@@ -3199,7 +3242,8 @@
  
      for (int i = L; i >= 0; i--)
      {
@@ -343,7 +367,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
              
              // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
-@@ -3212,19 +3248,25 @@
+@@ -3212,19 +3256,25 @@
                  Fast_LogPlusEquals(FM2i, FM1i[offset[i]+k] + FMi[offset[k]+j]);
              
  #else
@@ -378,7 +402,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
  #endif
              
  #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
-@@ -3381,7 +3423,7 @@
+@@ -3381,7 +3431,7 @@
              //
              // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
              
@@ -387,7 +411,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  RealT sum_i = RealT(NEG_INF);
                  
-@@ -3455,7 +3497,7 @@
+@@ -3455,7 +3505,7 @@
              //
              //            (assuming 0 < i < i+2 <= j < L)
              
@@ -396,7 +420,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  
                  RealT sum_i = RealT(NEG_INF);
-@@ -3483,7 +3525,7 @@
+@@ -3483,7 +3533,7 @@
              //
              //            (assuming 0 < i < i+2 <= j < L)
              
@@ -405,7 +429,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  
                  RealT sum_i = RealT(NEG_INF);
-@@ -3525,7 +3567,8 @@
+@@ -3525,7 +3575,8 @@
          
          // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
          
@@ -415,7 +439,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              if (allow_paired[offset[k+1]+j])
                  Fast_LogPlusEquals(sum_i, F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionA(j,k));
          
-@@ -3582,7 +3625,8 @@
+@@ -3582,7 +3633,8 @@
          // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
          
          {
@@ -425,7 +449,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  if (allow_paired[offset[k+1]+j])
                  {
-@@ -3596,7 +3640,8 @@
+@@ -3596,7 +3648,8 @@
      
      for (int i = 0; i <= L; i++)
      {
@@ -435,7 +459,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
              RealT FM2o = RealT(NEG_INF);
              
-@@ -3610,7 +3655,7 @@
+@@ -3610,7 +3663,7 @@
              //
              //            (assuming 0 < i < i+2 <= j < L)
              
@@ -444,7 +468,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  // compute SUM (i<k<j : FM1[i,k] + FM[k,j])
                  
-@@ -3636,7 +3681,7 @@
+@@ -3636,7 +3689,7 @@
              //
              //            (assuming 0 < i < i+2 <= j < L)
              
@@ -453,7 +477,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
                  
-@@ -3790,7 +3835,7 @@
+@@ -3790,7 +3843,7 @@
              //
              // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
              
@@ -462,7 +486,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  // compute ScoreHairpin(i,j) -- do nothing
                  
-@@ -3857,23 +3902,33 @@
+@@ -3857,23 +3910,33 @@
              }
  
  #else
@@ -509,7 +533,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
  #endif
          }
      }
-@@ -3920,7 +3975,8 @@
+@@ -3920,7 +3983,8 @@
      
      for (int i = L; i >= 0; i--)
      {
@@ -519,7 +543,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
  
              // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
-@@ -3933,19 +3989,25 @@
+@@ -3933,19 +3997,25 @@
                  Fast_LogPlusEquals(FM2i, FM1i[offset[i]+k] + FMi[offset[k]+j]);
              
  #else
@@ -554,7 +578,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
  #endif
              
  #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
-@@ -4104,7 +4166,7 @@
+@@ -4104,7 +4174,7 @@
              //
              // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
              
@@ -563,7 +587,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  RealT outside = FCo[offset[i]+j] - Z;
                  
-@@ -4198,7 +4260,7 @@
+@@ -4198,7 +4268,7 @@
              //
              //            (assuming 0 < i < i+2 <= j < L)
              
@@ -572,7 +596,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  
                  // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
-@@ -4229,7 +4291,7 @@
+@@ -4229,7 +4299,7 @@
              //
              //            (assuming 0 < i < i+2 <= j < L)
              
@@ -581,7 +605,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              {
                  
                  // compute SUM (i<k<j : FM1[i,k] + FM[k,j]) -- do nothing
-@@ -4262,7 +4324,8 @@
+@@ -4262,7 +4332,8 @@
          
          // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
          
@@ -591,7 +615,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
              if (allow_paired[offset[k+1]+j])
              {
-@@ -4302,9 +4365,11 @@
+@@ -4302,9 +4373,11 @@
      
      for (int i = L; i >= 0; i--)
      {
@@ -605,7 +629,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
              
              RealT FM2i = RealT(NEG_INF);
-@@ -4329,6 +4394,7 @@
+@@ -4329,6 +4402,7 @@
              }
        
  #endif
@@ -613,7 +637,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
  
  #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
              
-@@ -4476,16 +4542,15 @@
+@@ -4476,16 +4550,15 @@
              //
              // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
              
@@ -634,7 +658,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
                  // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                  
  #if !FAST_SINGLE_BRANCH_LOOPS
-@@ -4551,7 +4616,6 @@
+@@ -4551,7 +4624,6 @@
              //                 FM1[i+1,j] + b                                          if i+2<=j]
              //
              //            (assuming 0 < i < i+2 <= j < L)
@@ -642,7 +666,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
              if (0 < i && i+2 <= j && j < L)
              {
                  
-@@ -4581,7 +4645,7 @@
+@@ -4581,7 +4653,7 @@
              // Compute FM1[i,j] -- do nothing
          }
      }
@@ -651,7 +675,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      for (int j = 1; j <= L; j++)
      {
          
-@@ -4597,7 +4661,8 @@
+@@ -4597,7 +4669,8 @@
          
          // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
          
@@ -661,7 +685,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
              if (allow_paired[offset[k+1]+j])
                  posterior[offset[k+1]+j] += Fast_Exp(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionA(j,k));
-@@ -4606,7 +4671,8 @@
+@@ -4606,7 +4679,8 @@
  
      for (int i = 1; i <= L; i++)
      {
@@ -671,7 +695,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
          {
              posterior[offset[i]+j] = Clip(posterior[offset[i]+j], RealT(0), RealT(1));
          }
-@@ -4627,9 +4693,9 @@
+@@ -4627,9 +4701,9 @@
  #if SHOW_TIMINGS
      double starting_time = GetSystemTime();
  #endif
@@ -684,7 +708,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      
      // compute the scores for unpaired nucleotides
      
-@@ -4644,8 +4710,8 @@
+@@ -4644,8 +4718,8 @@
      
      // initialize matrices
      
@@ -695,7 +719,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
      
      // dynamic programming
      
-@@ -4677,16 +4743,22 @@
+@@ -4677,16 +4751,22 @@
                          UPDATE_MAX(this_score, this_traceback, score[offset[i]+k] + score[offset[k]+j], k+4);	
                      
  #else
@@ -726,10 +750,47 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
  #endif
                  }
              }
-@@ -4743,6 +4815,284 @@
+@@ -4743,6 +4823,325 @@
      return solution;
  }
  
++double rand01()
++{
++    return rand()/(RAND_MAX+1.0);
++}
++
++template < class T, class RealT >
++class Roulette
++{
++public:
++    Roulette()
++        : t_(), sum_(0)
++    { }
++        
++    void add(T t, RealT v)
++    {
++        t_.push_back(std::make_pair(t, v));
++        sum_ += v;
++    }
++    
++    T choose() const
++    {
++        RealT r = rand01() * sum_;
++        RealT s = 0.0;
++        typename std::list< std::pair<T,RealT> >::const_iterator x;
++        for (x=t_.begin(); x!=t_.end(); ++x)
++        {
++            s += x->second;
++            if (r<s) return x->first;
++        }
++        return t_.back().first;
++    }
++
++private:
++    std::list<std::pair<T,RealT> > t_;
++    RealT sum_;
++};
++
 +
 +// stochastic traceback algorithm
 +template<class RealT>
@@ -741,12 +802,16 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +    solution[0] = SStruct::UNKNOWN;
 +
 +    std::queue<triple<int,int,int> > traceback_queue;
-+    traceback_queue.push(make_triple(ST_F5, 0, L));
++    traceback_queue.push(make_triple(int(ST_F5), 0, L));
 +
 +    while (!traceback_queue.empty())
 +    {
++        triple<int,int,int> t = traceback_queue.front();
++        traceback_queue.pop();
 +        const int i = t.second;
 +        const int j = t.third;
++        int L2 = max_bp_dist==0 ? L : std::min(L,i+max_bp_dist);
++        const RealT Z = ComputeLogPartitionCoefficient();
 +
 +        switch (t.first)
 +        {
@@ -762,7 +827,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +        {
 +            if (0 < i && j < L2 && allow_paired[offset[i]+j+1]) // ???
 +            {
-+                Roulette roulette;
++                Roulette<int,RealT> roulette;
 +                RealT outside = FCo[offset[i]+j] - Z;
 +                
 +                // compute ScoreHairpin(i,j)
@@ -770,7 +835,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +                    roulette.add(EncodeTraceback(TB_FC_HAIRPIN,0), Fast_Exp(outside + ScoreHairpin(i,j)));
 +                
 +                // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
-+#if !FAST_SINGLE_BRANCH_LOOPS
++#if 1 //!FAST_SINGLE_BRANCH_LOOPS
 +                for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
 +                {
 +                    if (p > i && !allow_unpaired_position[p]) break;
@@ -846,19 +911,19 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +                    const int q = j - traceback.second % (C_MAX_SINGLE_LENGTH+1);
 +                    solution[p+1] = q;
 +                    solution[q] = p+1;
-+                    traceback_queue.push(make_triple(ST_FC, p+1, q-1));
++                    traceback_queue.push(make_triple(int(ST_FC), p+1, q-1));
 +                }
 +                break;
 +                case TB_FC_BIFURCATION:
 +                {
 +                    const int k = traceback.second;
-+                    traceback_queue.push(make_triple(ST_FM1, i, k));
-+                    traceback_queue.push(make_triple(ST_FM, k, j));
++                    traceback_queue.push(make_triple(int(ST_FM1), i, k));
++                    traceback_queue.push(make_triple(int(ST_FM), k, j));
 +                }
 +                break;
 +                }
-+            }
-+        } else { assert(!"unreachable"); }
++            } else { assert(!"unreachable"); }
++        } 
 +        break;
 +#endif
 +
@@ -866,7 +931,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +            if (0 < i && i+2 <= j && j < L2) // ???
 +            {
 +                RealT outside = FMo[offset[i]+j] - Z;
-+                Roulette roulette;
++                Roulette<int,RealT> roulette;
 +
 +                // compute SUM (i<k<j : FM1[i,k] + FM[k,j]) 
 +                for (int k=i+1; k < j; k++)
@@ -892,18 +957,18 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +                case TB_FM_BIFURCATION:
 +                {
 +                    const int k = traceback.second;
-+                    traceback_queue.push(make_triple(ST_FM1, i, k));
-+                    traceback_queue.push(make_triple(ST_FM, k, j));
++                    traceback_queue.push(make_triple(int(ST_FM1), i, k));
++                    traceback_queue.push(make_triple(int(ST_FM), k, j));
 +                }
 +                break;
 +                case TB_FM_UNPAIRED:
 +                {
-+                    traceback_queue.push(make_triple(ST_FM, i, j-1));
++                    traceback_queue.push(make_triple(int(ST_FM), i, j-1));
 +                }
 +                break;
 +                case TB_FM_FM1: 
 +                {
-+                    traceback_queue.push(make_triple(ST_FM1, i, j));
++                    traceback_queue.push(make_triple(int(ST_FM1), i, j));
 +                }
 +                break;
 +                }
@@ -914,7 +979,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +        case ST_FM1:
 +            if (0 < i && i+2 <= j && j < L2) // ???
 +            {
-+                Roulette roulette;
++                Roulette<int,RealT> roulette;
 +
 +                // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
 +                if (allow_paired[offset[i+1]+j])
@@ -939,12 +1004,12 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +                {
 +                    solution[i+1] = j;
 +                    solution[j] = i+1;
-+                    traceback_queue.push(make_triple(ST_FC, i+1, j-1));
++                    traceback_queue.push(make_triple(int(ST_FC), i+1, j-1));
 +                }
 +                break;
 +                case TB_FM1_UNPAIRED:
 +                {
-+                    traceback_queue.push(make_triple(ST_FM1, i+1, j));
++                    traceback_queue.push(make_triple(int(ST_FM1), i+1, j));
 +                }
 +                break;
 +                }
@@ -954,7 +1019,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +        case ST_F5:
 +            if (j!=0)
 +            {
-+                Roulette roulette;
++                Roulette<int,RealT> roulette;
 +                RealT outside = F5o[j] - Z;
 +
 +                // compute F5[j-1] + ScoreExternalUnpaired()
@@ -984,7 +1049,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +                    break;
 +                case TB_F5_UNPAIRED:
 +                {
-+                    traceback_queue.push(make_triple(ST_F5, 0, j-1));
++                    traceback_queue.push(make_triple(int(ST_F5), 0, j-1));
 +                }
 +                break;
 +                case TB_F5_BIFURCATION:
@@ -992,15 +1057,15 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +                    const int k = traceback.second;
 +                    solution[k+1] = j;
 +                    solution[j] = k+1;
-+                    traceback_queue.push(make_triple(ST_F5, 0, k));
-+                    traceback_queue.push(make_triple(ST_FC, k+1, j-1));
++                    traceback_queue.push(make_triple(int(ST_F5), 0, k));
++                    traceback_queue.push(make_triple(int(ST_FC), k+1, j-1));
 +                }
 +                break;
 +                }
 +            }
 +            break;
 +
-+        defalut:
++        default:
 +            break;
 +        }
 +    }
@@ -1011,7 +1076,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
  //////////////////////////////////////////////////////////////////////
  // InferenceEngine::GetPosterior()
  //
-@@ -4757,3 +5107,13 @@
+@@ -4757,3 +5156,13 @@
          ret[i] = (posterior[i] >= posterior_cutoff ? posterior[i] : RealT(0));
      return ret;
  }
@@ -1156,8 +1221,8 @@ diff -urN contrafold_v2_02.orig/src/Utilities.cpp contrafold/src/Utilities.cpp
  
 diff -urN contrafold_v2_02.orig/src/contrafold.h contrafold/src/contrafold.h
 --- contrafold_v2_02.orig/src/contrafold.h	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/contrafold.h	2008-10-27 10:55:12.926313945 +0900
-@@ -0,0 +1,53 @@
++++ contrafold/src/contrafold.h	2008-10-27 16:19:11.065440421 +0900
+@@ -0,0 +1,56 @@
 +/*
 + * wrapper routines for CONTRAfold
 + *
@@ -1199,6 +1264,9 @@ diff -urN contrafold_v2_02.orig/src/contrafold.h contrafold/src/contrafold.h
 +  const T* ComputePosterior(const std::string& seq);
 +  const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
 +
++  void PrepareStochasticTraceback(const std::string& seq);
++  std::vector<int> StochasticTraceback() const;
++
 +  int max_bp_dist() const { return max_bp_dist_; }
 +  
 +private:
@@ -1213,8 +1281,8 @@ diff -urN contrafold_v2_02.orig/src/contrafold.h contrafold/src/contrafold.h
 +// End:
 diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 --- contrafold_v2_02.orig/src/wrapper.cpp	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/wrapper.cpp	2008-10-27 10:55:12.926313945 +0900
-@@ -0,0 +1,145 @@
++++ contrafold/src/wrapper.cpp	2008-10-27 16:30:36.385942665 +0900
+@@ -0,0 +1,191 @@
 +// 
 +#include <vector>
 +#include <string>
@@ -1235,6 +1303,9 @@ diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +  
 +  const T* ComputePosterior(const std::string& seq);
 +  const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
++
++  void PrepareStochasticTraceback(const std::string& seq);
++  std::vector<int> StochasticTraceback() const;
 +
 +  ParameterManager<T> pm_;
 +  InferenceEngine<T> engine_;
@@ -1286,6 +1357,22 @@ diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +ComputePosterior(const std::string& seq, std::vector<T>& p)
 +{
 +  return impl_->ComputePosterior(seq, p);
++}
++
++template < class T >
++void
++CONTRAfold<T>::
++PrepareStochasticTraceback(const std::string& seq)
++{
++  return impl_->PrepareStochasticTraceback(seq);
++}
++
++template < class T >
++std::vector<int>
++CONTRAfold<T>::
++StochasticTraceback() const
++{
++  return impl_->StochasticTraceback();
 +}
 +
 +template < class T > 
@@ -1356,6 +1443,33 @@ diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +  engine_.ComputePosterior();
 +  delete s;
 +  return engine_.GetPosterior(0.0, p);
++}
++
++template < class T > 
++void
++CONTRAfold<T>::Impl::
++PrepareStochasticTraceback(const std::string& seq)
++{
++  SStruct* s=NULL;
++  if (paren_.empty())
++    s = new SStruct("unknown", seq);
++  else
++    s = new SStruct("unknown", seq, paren_);
++  engine_.LoadSequence(*s);
++  if (!paren_.empty())
++    engine_.UseConstraints(s->GetMapping());
++  engine_.LoadValues(w_);
++  engine_.ComputeInside();
++  engine_.ComputeOutside();
++  delete s;
++}
++
++template < class T > 
++std::vector<int>
++CONTRAfold<T>::Impl::
++StochasticTraceback() const
++{
++  return engine_.PredictPairingsStochasticTraceback();
 +}
 +
 +template
