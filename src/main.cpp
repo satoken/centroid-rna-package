@@ -42,19 +42,21 @@ namespace po = boost::program_options;
 int
 main(int argc, char* argv[])
 {
-  std::vector<double> gamma, gamma_ali;
+  std::vector<float> gamma, gamma_ali;
   std::string input;
   std::vector<std::string> model;
   float p_th=0.0;
   uint max_bp_dist;
   std::string param;
+  uint max_clusters;
+  uint num_samples;
   
   // parse command line options
   po::options_description desc("Options");
   desc.add_options()
     ("help,h", "show this message")
     ("gamma,g",
-     po::value<std::vector<double> >(&gamma),
+     po::value<std::vector<float> >(&gamma),
      "weight of base pairs")
     ("mea", "run as an MEA estimator")
 #ifdef HAVE_LIBRNA
@@ -62,6 +64,13 @@ main(int argc, char* argv[])
 #ifdef HAVE_LIBCONTRAFOLD
     ("pf_fold", "use pf_fold base-pairing probabilities")
 #endif
+    ("stochastic", "use the stochastic sampling algorithm")
+    ("max-clusters,c",
+     po::value<uint>(&max_clusters)->default_value(10),
+     "the maximum number of clusters")
+    ("num-samples,n",
+     po::value<uint>(&num_samples)->default_value(10),
+     "the number of generating samples for each model")
 #endif
     ("noncanonical", "allow non-canonical base-pairs")
 #ifdef HAVE_LIBCONTRAFOLD
@@ -123,8 +132,8 @@ main(int argc, char* argv[])
 
   if (gamma.size()==1 && gamma[0]<0.0)
   {
-    double g[] = { 0.03125, 0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 6.0,
-		   8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0 };
+    float g[] = { 0.03125, 0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 6.0,
+                  8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0 };
     gamma.resize(boost::size(g));
     std::copy(boost::begin(g), boost::end(g), gamma.begin());
     gamma_ali.resize(boost::size(g));
@@ -178,6 +187,12 @@ main(int argc, char* argv[])
     Aln aln;
     if (fa.load(fi))
     {
+      if (vm.count("stochastic"))
+      {
+        cf.stochastic_fold(fa.name(), fa.seq(), num_samples, max_clusters,
+                           gamma, std::cout);
+        continue;
+      }
       if (!vm.count("aux"))
       {
         if (!vm.count("constraints"))

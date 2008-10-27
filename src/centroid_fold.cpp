@@ -32,9 +32,14 @@
 #include <cassert>
 #include <boost/shared_ptr.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/dynamic_bitset.hpp>
+#include <boost/multi_array.hpp>
+#include <boost/bind.hpp>
+#include <boost/format.hpp>
 #include "centroid_fold.h"
 #include "mea.h"
 #include "centroid.h"
+#include "diana.h"
 
 #ifdef HAVE_LIBRNA
 namespace Vienna {
@@ -45,6 +50,8 @@ extern "C" {
 #include <ViennaRNA/LPfold.h>
 #include <ViennaRNA/PS_dot.h>
 #include <ViennaRNA/aln_util.h>
+#include <ViennaRNA/utils.h>
+  extern int   st_back;
 };
 };
 #endif
@@ -52,6 +59,67 @@ extern "C" {
 #ifdef HAVE_LIBCONTRAFOLD
 #include <contrafold.h>
 #endif
+
+typedef boost::dynamic_bitset<> BPvec;
+typedef boost::shared_ptr<BPvec> BPvecPtr;
+
+inline
+uint
+hamming_distance(const BPvec& x, const BPvec& y)
+{
+  return (x^y).count();
+}
+
+struct EncodeBP
+{
+  EncodeBP()
+    : t_(NULL), vec_(), p_(0)
+  {}
+
+  BPvecPtr execute(const SCFG::CYKTable<uint>& t)
+  {
+    t_ = &t;
+    p_ = 0;
+    vec_ = BPvecPtr(new BPvec(t_->table_size(), false));
+    SCFG::inside_traverse(0, t_->size()-1, *this);
+    t_ = NULL;
+    return vec_;
+  }
+
+  void operator()(uint i, uint j)
+  {
+    if (i!=j && (*t_)(i,j)>0) (*vec_)[p_]=true;
+    p_++;
+  }
+
+private:
+  const SCFG::CYKTable<uint>* t_;
+  BPvecPtr vec_;
+  uint p_;
+};
+
+template < class L >
+struct CountBP
+{
+  CountBP(const L& bp, uint sz)
+    : bp_(bp), table(sz, 0), p(0)
+  {}
+
+  void operator()(uint i, uint j)
+  {
+    typename L::const_iterator x;
+    uint c=0;
+    for (x=bp_.begin(); x!=bp_.end(); ++x) {
+      if (i!=j && (**x)[p]) c++;
+    }
+    table(i,j)=static_cast<double>(c)/bp_.size();
+    p++;
+  }
+  
+  const L& bp_;
+  SCFG::CYKTable<float> table;
+  uint p;
+};
 
 
 // folding routines
@@ -175,6 +243,45 @@ contra_fold(T& bp, CONTRAfold<U>& cf, const std::string& seq, const std::string&
 }
 #endif
 
+#ifdef HAVE_LIBRNA
+static
+uint
+pf_fold_st(uint num_samples, const std::string& seq, std::list<BPvecPtr>& bp)
+{
+  int bk_st_back=Vienna::st_back;
+  Vienna::st_back=1;
+
+  Vienna::pf_scale = -1;
+  Vienna::init_pf_fold(seq.size());
+  Vienna::pf_fold(const_cast<char*>(seq.c_str()), NULL);
+  EncodeBP encoder;
+
+  // stochastic sampling
+  for (uint n=0; n!=num_samples; ++n) {
+    SCFG::CYKTable<uint> bp_pos(seq.size(), 0);
+    char *str = Vienna::pbacktrack(const_cast<char*>(seq.c_str()));
+    //std::cout << s << std::endl << str << std::endl;
+    assert(seq.size()==strlen(str));
+    std::stack<uint> st;
+    for (uint i=0; i!=seq.size(); ++i) {
+      if (str[i]=='(') {
+	st.push(i);
+      } else if (str[i]==')') {
+	bp_pos(st.top(), i)++;
+	st.pop();
+      }
+    }
+    bp.push_back(encoder.execute(bp_pos));
+    free(str);
+  }
+
+  Vienna::st_back=bk_st_back;
+  Vienna::free_pf_arrays();
+
+  return num_samples;
+}
+#endif
+
 CentroidFold::
 CentroidFold(unsigned int engine,
              bool run_as_mea,
@@ -190,6 +297,9 @@ CentroidFold(unsigned int engine,
     max_bp_dist_(0)
 #endif
 {
+#ifdef HAVE_LIBRNA
+  Vienna::init_rand();
+#endif  
 }
 
 CentroidFold::
@@ -210,6 +320,17 @@ set_options_for_pf_fold(bool canonical_only, uint max_dist)
   if (!canonical_only_)
     Vienna::nonstandards = const_cast<char*>("AAACAGCACCCUGAGGUCUU");
   max_bp_dist_ = max_dist;
+}
+#endif
+
+#ifdef HAVE_LIBCONTRAFOLD
+void
+CentroidFold::
+set_options_for_contrafold(const std::string& model, bool canonical_only, uint max_bp_dist)
+{
+  model_ = model;
+  canonical_only_ = canonical_only;
+  max_bp_dist_ = max_bp_dist;
 }
 #endif
 
@@ -528,10 +649,10 @@ decode_structure(float gamma) const
 void
 CentroidFold::
 print(std::ostream& out, const std::string& name, const std::string& seq,
-      const std::vector<double>& gamma) const
+      const std::vector<float>& gamma) const
 {
   out << ">" << name << std::endl << seq << std::endl;
-  std::vector<double>::const_iterator g;
+  std::vector<float>::const_iterator g;
   for (g=gamma.begin(); g!=gamma.end(); ++g) {
     std::string paren;
     float p = decode_structure(*g, paren);
@@ -550,6 +671,72 @@ print_posterior(std::ostream& out, const std::string& seq, float th) const
 {
   bp_.save(out, seq, th);
 }
+
+void
+CentroidFold::
+stochastic_fold(const std::string& name, const std::string& seq,
+                uint num_samples, uint max_clusters,
+                const std::vector<float>& gamma, std::ostream& out)
+{
+  std::list<BPvecPtr> bpvl;
+  pf_fold_st(num_samples, seq, bpvl);
+
+  std::vector<BPvecPtr> bpv(bpvl.size());
+  std::copy(bpvl.begin(), bpvl.end(), bpv.begin());
+  bpvl.clear();
+  if (max_clusters>=2) {
+    // calculate the distance matrix
+    typedef boost::multi_array<double, 2> DMatrix;
+    DMatrix dmatrix(boost::extents[bpv.size()][bpv.size()]);
+    for (uint i=0; i!=bpv.size(); ++i) {
+      for (uint j=i; j!=bpv.size(); ++j) {
+	dmatrix[i][j]=dmatrix[j][i]=hamming_distance(*bpv[i], *bpv[j]);
+      }
+    }
+
+    // hierarchical clustering by DIANA
+    HCLUST::Diana<DMatrix> diana(dmatrix);
+    diana.build(max_clusters);
+    uint opt_n = diana.optimal_size();
+    std::vector<uint> res;
+    std::vector<uint> num;
+    diana.get_clusters(opt_n, res, num);
+
+    // centroid estimation for each cluster
+    uint p=0;
+    for (uint i=0; i!=num.size(); ++i) {
+      std::vector<BPvecPtr> v(num[i]);
+      for (uint j=0; j!=v.size(); ++j) v[j] = bpv[res[p++]];
+      CountBP< std::vector<BPvecPtr> > count_bp(v, seq.size());
+      SCFG::inside_traverse(0, seq.size()-1, count_bp);
+
+      out << ">" << name << " (" << i+1 << " of " << num.size() << ", size="
+          << boost::format("%3.1f%%") % (static_cast<float>(num[i])/bpv.size()*100)
+          << ")" << std::endl
+          << seq << std::endl;
+
+      std::vector<float>::const_iterator g;
+      for (g=gamma.begin(); g!=gamma.end(); ++g) {
+        std::string paren(seq.size(), '.');
+        SCFG::Centroid::execute(count_bp.table, paren, *g);
+        out << paren << " (g=" << *g << ",th=" << (1.0/(1.0+*g)) << ")" << std::endl;
+      }
+    }
+  } else {
+    CountBP< std::vector<BPvecPtr> > count_bp(bpv, seq.size());
+    SCFG::inside_traverse(0, seq.size()-1, count_bp);
+    std::string paren(seq.size(), '.');
+    std::vector<float>::const_iterator g;
+    std::cout << ">" << name << std::endl
+	      << seq << std::endl;
+    for (g=gamma.begin(); g!=gamma.end(); ++g) {
+      std::fill(paren.begin(), paren.end(), '.');
+      SCFG::Centroid::execute(count_bp.table, paren, *g);
+      std::cout << paren << " (g=" << *g << ",th=" << (1.0/(1.0+*g)) << ")" << std::endl;
+    }
+  }
+}
+
 
 #ifdef HAVE_LIBRNA
 void

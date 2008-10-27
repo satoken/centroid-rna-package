@@ -259,5 +259,10 @@ execute(const SCFG::BP::Table<float>& table, std::string& paren, float gamma);
 template
 float
 SCFG::Centroid::
+execute(const SCFG::CYKTable<float>& table, std::string& paren, float gamma);
+
+template
+float
+SCFG::Centroid::
 execute(const SCFG::BP::Table<float>& table, std::string& paren, uint max_dist, float gamma);
 
