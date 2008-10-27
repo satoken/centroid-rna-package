@@ -58,12 +58,7 @@ public:
   ~CentroidFold();
 
 #ifdef HAVE_LIBCONTRAFOLD
-  void set_options_for_contrafold(const std::string& model, bool canonical_only, uint max_bp_dist)
-  {
-    model_ = model;
-    canonical_only_ = canonical_only;
-    max_bp_dist_ = max_bp_dist;
-  }
+  void set_options_for_contrafold(const std::string& model, bool canonical_only, uint max_bp_dist);
 #endif
 
 #ifdef HAVE_LIBRNA
@@ -84,8 +79,13 @@ public:
   std::pair<std::string,float> decode_structure(float gamma) const;
 
   void print(std::ostream& out, const std::string& name, const std::string& seq,
-	     const std::vector<double>& gamma) const;
+	     const std::vector<float>& gamma) const;
   void print_posterior(std::ostream& out, const std::string& seq, float th) const;
+
+  void stochastic_fold(const std::string& name, const std::string& seq,
+                       uint num_samples, uint max_clusters,
+                       const std::vector<float>& gamma, std::ostream& out);
+
 
 #ifdef HAVE_LIBRNA
   void ps_plot(const std::string& name, const std::string& seq, float g) const;
