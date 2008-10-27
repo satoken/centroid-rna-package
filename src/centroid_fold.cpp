@@ -280,6 +280,89 @@ pf_fold_st(uint num_samples, const std::string& seq, std::list<BPvecPtr>& bp)
 
   return num_samples;
 }
+
+static
+uint
+pf_fold_st(uint num_samples, const std::string& seq, std::list<BPvecPtr>& bp,
+           const std::vector<uint>& idxmap, uint sz)
+{
+  int bk_st_back=Vienna::st_back;
+  Vienna::st_back=1;
+
+  Vienna::pf_scale = -1;
+  Vienna::init_pf_fold(seq.size());
+  Vienna::pf_fold(const_cast<char*>(seq.c_str()), NULL);
+  EncodeBP encoder;
+
+  // stochastic sampling
+  for (uint n=0; n!=num_samples; ++n) {
+    SCFG::CYKTable<uint> bp_pos(sz, 0);
+    char *str = Vienna::pbacktrack(const_cast<char*>(seq.c_str()));
+    //std::cout << s << std::endl << str << std::endl;
+    assert(seq.size()==strlen(str));
+    std::stack<uint> st;
+    for (uint i=0; i!=seq.size(); ++i) {
+      if (str[i]=='(') {
+	st.push(i);
+      } else if (str[i]==')') {
+	bp_pos(idxmap[st.top()], idxmap[i])++;
+	st.pop();
+      }
+    }
+    bp.push_back(encoder.execute(bp_pos));
+    free(str);
+  }
+
+  Vienna::st_back=bk_st_back;
+  Vienna::free_pf_arrays();
+
+  return num_samples;
+}
+#endif
+
+#ifdef HAVE_LIBCONTRAFOLD
+template < class U >
+static
+uint
+contra_fold_st(uint num_samples, CONTRAfold<U>& cf, const std::string& seq, std::list<BPvecPtr>& bp)
+{
+  EncodeBP encoder;
+  cf.PrepareStochasticTraceback(seq);
+  for (uint n=0; n!=num_samples; ++n) {
+    SCFG::CYKTable<uint> bp_pos(seq.size(), 0);
+    std::vector<int> paren = cf.StochasticTraceback();
+    for (uint i=0; i!=paren.size(); ++i) {
+      if (paren[i]>int(i)) {
+        bp_pos(i-1, paren[i]-1)++;
+      }
+    }
+    bp.push_back(encoder.execute(bp_pos));
+  }
+
+  return num_samples;
+}
+
+template < class U >
+static
+uint
+contra_fold_st(uint num_samples, CONTRAfold<U>& cf, const std::string& seq, std::list<BPvecPtr>& bp,
+               const std::vector<uint>& idxmap, uint sz)
+{
+  EncodeBP encoder;
+  cf.PrepareStochasticTraceback(seq);
+  for (uint n=0; n!=num_samples; ++n) {
+    SCFG::CYKTable<uint> bp_pos(sz, 0);
+    std::vector<int> paren = cf.StochasticTraceback();
+    for (uint i=0; i!=paren.size(); ++i) {
+      if (paren[i]>int(i)) {
+        bp_pos(idxmap[i-1], idxmap[paren[i]-1])++;
+      }
+    }
+    bp.push_back(encoder.execute(bp_pos));
+  }
+
+  return num_samples;
+}
 #endif
 
 CentroidFold::
@@ -672,18 +755,13 @@ print_posterior(std::ostream& out, const std::string& seq, float th) const
   bp_.save(out, seq, th);
 }
 
-void
-CentroidFold::
-stochastic_fold(const std::string& name, const std::string& seq,
-                uint num_samples, uint max_clusters,
-                const std::vector<float>& gamma, std::ostream& out)
-{
-  std::list<BPvecPtr> bpvl;
-  pf_fold_st(num_samples, seq, bpvl);
 
-  std::vector<BPvecPtr> bpv(bpvl.size());
-  std::copy(bpvl.begin(), bpvl.end(), bpv.begin());
-  bpvl.clear();
+static
+void
+stochastic_fold_helper(const std::string& name, const std::string& seq,
+                       const std::vector<BPvecPtr>& bpv, uint max_clusters,
+                       const std::vector<float>& gamma, std::ostream& out)
+{    
   if (max_clusters>=2) {
     // calculate the distance matrix
     typedef boost::multi_array<double, 2> DMatrix;
@@ -737,6 +815,109 @@ stochastic_fold(const std::string& name, const std::string& seq,
   }
 }
 
+void
+CentroidFold::
+stochastic_fold(const std::string& name, const std::string& seq,
+                uint num_samples, uint max_clusters,
+                const std::vector<float>& gamma, std::ostream& out)
+{
+  std::list<BPvecPtr> bpvl;
+
+  std::string seq2(seq);
+  std::replace(seq2.begin(), seq2.end(), 't', 'u');
+  std::replace(seq2.begin(), seq2.end(), 'T', 'U');
+  switch (engine_) {
+#ifdef HAVE_LIBRNA
+  case PFFOLD:
+    pf_fold_st(num_samples, seq2, bpvl);
+    break;
+#endif
+#ifdef HAVE_LIBCONTRAFOLD
+  case CONTRAFOLD:
+    if (contrafold_==NULL) {
+      contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
+      if (!model_.empty()) contrafold_->SetParameters(model_);
+    }
+    contra_fold_st(num_samples, *contrafold_, seq2, bpvl);
+    break;
+#endif
+  default:
+    throw "not supported yet";
+    break;
+  }
+
+  std::vector<BPvecPtr> bpv(bpvl.size());
+  std::copy(bpvl.begin(), bpvl.end(), bpv.begin());
+  bpvl.clear();
+
+  stochastic_fold_helper(name, seq, bpv, max_clusters, gamma, out);
+}
+
+void
+CentroidFold::
+stochastic_fold(const std::string& name, const std::string& consensus,
+                const std::vector<std::string>& seq,
+                uint num_samples, uint max_clusters,
+                const std::vector<float>& gamma, std::ostream& out)
+{
+  std::list<std::string> seq2(seq.size());
+  std::copy(seq.begin(), seq.end(), seq2.begin());
+  stochastic_fold(name, consensus, seq2, num_samples, max_clusters, gamma, out);
+}
+
+void
+CentroidFold::
+stochastic_fold(const std::string& name, const std::string& consensus,
+                const std::list<std::string>& seq,
+                uint num_samples, uint max_clusters,
+                const std::vector<float>& gamma, std::ostream& out)
+{
+  uint sz = seq.front().size();
+  std::list<BPvecPtr> bpvl;
+  std::list<std::string>::const_iterator x;
+  for (x=seq.begin(); x!=seq.end(); ++x) {
+    std::string s;
+    std::vector<uint> idxmap(x->size(), static_cast<uint>(-1));
+    uint j=0;
+    for (uint i=0; i!=x->size(); ++i) {
+      if ((*x)[i]!='-') {
+        switch ((*x)[i]) {
+        case 't': s += 'u'; break;
+        case 'T': s += 'U'; break;
+        default:  s += (*x)[i];
+        }
+	idxmap[j++] = i;
+      }
+    }
+    idxmap.resize(j);
+
+    switch (engine_) {
+#ifdef HAVE_LIBRNA
+    case PFFOLD:
+      pf_fold_st(num_samples, s, bpvl, idxmap, sz);
+      break;
+#endif
+#ifdef HAVE_LIBCONTRAFOLD
+    case CONTRAFOLD:
+      if (contrafold_==NULL) {
+        contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
+        if (!model_.empty()) contrafold_->SetParameters(model_);
+      }
+      contra_fold_st(num_samples, *contrafold_, s, bpvl, idxmap, sz);
+      break;
+#endif
+    default:
+      throw "not supported yet";
+      break;
+    }
+  }
+  
+  std::vector<BPvecPtr> bpv(bpvl.size());
+  std::copy(bpvl.begin(), bpvl.end(), bpv.begin());
+  bpvl.clear();
+
+  stochastic_fold_helper(name, consensus, bpv, max_clusters, gamma, out);
+}
 
 #ifdef HAVE_LIBRNA
 void

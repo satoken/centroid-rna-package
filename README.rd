@@ -84,12 +84,20 @@ base-pairing probability matrix.
  centroid_fold [options] seq
 
  Options:
-   -g [ --gamma ] arg      weight of base pairs
-   --mea                   run as an MEA estimator
-   --noncanonical          allow non-canonical base-pairs   
-   -d [ --max-dist ] arg   the maximum distance of base-pairs
-   --aux                   use auxiliary base-pairing probabilities
-   -C [ --constraints ]    use structure constraints
+  -g [ --gamma ] arg              weight of base pairs
+  --mea                           run as an MEA estimator
+  --alipf_fold                    use alipf_fold base-pairing probabilities
+  --pf_fold                       use pf_fold base-pairing probabilities
+  --sampling arg                  use the stochastic sampling algorithm. Specif
+                                  y the number of samples to be generated for
+                                  each sequence
+  -c [ --max-clusters ] arg (=10) the maximum number of clusters for the stocha
+                                  stic sampling algorithm
+  --noncanonical                  allow non-canonical base-pairs
+  --params arg                    use the parameter file (for CONTRAfold model)
+  -d [ --max-dist ] arg (=0)      the maximum distance of base-pairs
+  --aux                           use auxiliary base-pairing probabilities
+  -C [ --constraints ]            use structure constraints
 
 If a negative value is given for the option '--gamma',
 (({centroid_fold})) calculates secondary structures for several values
@@ -110,6 +118,12 @@ with '-C' options.
 The positions at '(' and ')' are restricted to base-pairs,
 the position at '.' is restricted to unpaired bases, and
 the position at '?' is unrestricted.
+
+If '--sampling' option is given, (({centroid_fold})) uses the
+stochastic traceback algorithm instead of the McCaskill's base-pairing
+probability matrix. Like Sfold (Ding et al., 2005), build clusters of
+secondary structures, and then compute their centroids. The number of
+clusters can be specified by '--max-clusters' option.
 
 Using the option '--aux', (({centroid_fold})) can take an auxiliary
 base-pairing probability matrix instead of the McCaskill model.
@@ -137,7 +151,7 @@ Example:
  (((((((((((((...)))))..).(..(((((......)))))..)))))))) (g=1024,th=0.00097561)
 
 
-=== Common secondary structure predicion for multiple alignments
+=== Common secondary structure prediction for multiple alignments
 
 (({centroid_fold})) can automatically recognize the format of input
 sequences. For the FASTA format file, (({centroid_fold})) predicts

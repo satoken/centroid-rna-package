@@ -39,6 +39,9 @@ public:
   const T* ComputePosterior(const std::string& seq);
   const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
 
+  void PrepareStochasticTraceback(const std::string& seq);
+  std::vector<int> StochasticTraceback() const;
+
   int max_bp_dist() const { return max_bp_dist_; }
   
 private:
