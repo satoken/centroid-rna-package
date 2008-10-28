@@ -35,7 +35,6 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/multi_array.hpp>
 #include <boost/bind.hpp>
-#include <boost/format.hpp>
 #include "centroid_fold.h"
 #include "mea.h"
 #include "centroid.h"
@@ -787,10 +786,10 @@ stochastic_fold_helper(const std::string& name, const std::string& seq,
       for (uint j=0; j!=v.size(); ++j) v[j] = bpv[res[p++]];
       CountBP< std::vector<BPvecPtr> > count_bp(v, seq.size());
       SCFG::inside_traverse(0, seq.size()-1, count_bp);
-
+      char buf[100];
+      sprintf(buf, "%3.1f%%", static_cast<float>(num[i])/bpv.size()*100);
       out << ">" << name << " (" << i+1 << " of " << num.size() << ", size="
-          << boost::format("%3.1f%%") % (static_cast<float>(num[i])/bpv.size()*100)
-          << ")" << std::endl
+          << buf << ")" << std::endl
           << seq << std::endl;
 
       std::vector<float>::const_iterator g;
