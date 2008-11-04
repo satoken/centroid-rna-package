@@ -754,6 +754,15 @@ print_posterior(std::ostream& out, const std::string& seq, float th) const
   bp_.save(out, seq, th);
 }
 
+std::string
+CentroidFold::
+posterior(const std::string& seq, float th) const
+{
+  std::ostringstream out;
+  bp_.save(out, seq, th);
+  return out.str();
+}
+
 
 static
 void
