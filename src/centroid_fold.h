@@ -81,6 +81,7 @@ public:
   void print(std::ostream& out, const std::string& name, const std::string& seq,
 	     const std::vector<float>& gamma) const;
   void print_posterior(std::ostream& out, const std::string& seq, float th) const;
+  std::string posterior(const std::string& seq, float th) const;
 
   void stochastic_fold(const std::string& name, const std::string& seq,
                        uint num_samples, uint max_clusters,
