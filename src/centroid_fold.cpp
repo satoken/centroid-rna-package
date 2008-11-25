@@ -961,7 +961,7 @@ svg_plot(const std::string& name, const std::string& seq, float g) const
   char fname[100];
   sscanf(fbase.c_str(), "%12s", fname);
   //Vienna::rna_plot_type=0;
-  strcat(fname, "_ss.ps");
+  strcat(fname, "_ss.svg");
   Vienna::svg_rna_plot(const_cast<char*>(seq.c_str()),
 		       const_cast<char*>(paren.c_str()), fname);
 }

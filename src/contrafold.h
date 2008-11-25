@@ -38,6 +38,8 @@ public:
   
   const T* ComputePosterior(const std::string& seq);
   const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
+  T ComputeLogPartitionCoefficient() const;
+  T ComputeViterbi(const std::string& seq);
 
   void PrepareStochasticTraceback(const std::string& seq);
   std::vector<int> StochasticTraceback() const;
