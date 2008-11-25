@@ -1,6 +1,6 @@
 diff -urN contrafold_v2_02.orig/src/InferenceEngine.hpp contrafold/src/InferenceEngine.hpp
 --- contrafold_v2_02.orig/src/InferenceEngine.hpp	2008-08-14 09:08:31.000000000 +0900
-+++ contrafold/src/InferenceEngine.hpp	2008-11-25 18:34:17.954676900 +0900
++++ contrafold/src/InferenceEngine.hpp	2008-11-25 21:04:30.217555564 +0900
 @@ -26,6 +26,7 @@
      int is_complementary[M+1][M+1];
      bool cache_initialized;
@@ -46,7 +46,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.hpp contrafold/src/Inference
  #include "InferenceEngine.ipp"
 diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/InferenceEngine.ipp
 --- contrafold_v2_02.orig/src/InferenceEngine.ipp	2008-08-14 09:08:31.000000000 +0900
-+++ contrafold/src/InferenceEngine.ipp	2008-11-25 11:17:53.532260965 +0900
++++ contrafold/src/InferenceEngine.ipp	2008-11-25 21:04:30.226578386 +0900
 @@ -6,6 +6,11 @@
  // Wrapper macros for certain model features.
  //////////////////////////////////////////////////////////////////////
@@ -1085,7 +1085,7 @@ diff -urN contrafold_v2_02.orig/src/InferenceEngine.ipp contrafold/src/Inference
 +}
 diff -urN contrafold_v2_02.orig/src/Makefile contrafold/src/Makefile
 --- contrafold_v2_02.orig/src/Makefile	2008-08-14 09:08:30.000000000 +0900
-+++ contrafold/src/Makefile	2008-11-25 11:17:53.532260965 +0900
++++ contrafold/src/Makefile	2008-11-25 21:04:30.226578386 +0900
 @@ -1,4 +1,6 @@
  CXX = g++
 +AR = ar
@@ -1138,7 +1138,7 @@ diff -urN contrafold_v2_02.orig/src/Makefile contrafold/src/Makefile
 +	rm -f contrafold make_coords plot_rna score_prediction *.o Defaults.ipp libcontrafold.a
 diff -urN contrafold_v2_02.orig/src/SStruct.cpp contrafold/src/SStruct.cpp
 --- contrafold_v2_02.orig/src/SStruct.cpp	2008-08-14 09:08:30.000000000 +0900
-+++ contrafold/src/SStruct.cpp	2008-11-25 11:17:53.536262455 +0900
++++ contrafold/src/SStruct.cpp	2008-11-25 21:04:30.226578386 +0900
 @@ -639,3 +639,39 @@
      this->mapping = mapping;
      ValidateMapping(mapping);
@@ -1181,7 +1181,7 @@ diff -urN contrafold_v2_02.orig/src/SStruct.cpp contrafold/src/SStruct.cpp
 +}
 diff -urN contrafold_v2_02.orig/src/SStruct.hpp contrafold/src/SStruct.hpp
 --- contrafold_v2_02.orig/src/SStruct.hpp	2008-08-14 09:08:31.000000000 +0900
-+++ contrafold/src/SStruct.hpp	2008-11-25 11:17:53.536262455 +0900
++++ contrafold/src/SStruct.hpp	2008-11-25 21:04:30.226578386 +0900
 @@ -57,12 +57,18 @@
      // constructor and destructor
      SStruct();
@@ -1203,7 +1203,7 @@ diff -urN contrafold_v2_02.orig/src/SStruct.hpp contrafold/src/SStruct.hpp
  
 diff -urN contrafold_v2_02.orig/src/Utilities.cpp contrafold/src/Utilities.cpp
 --- contrafold_v2_02.orig/src/Utilities.cpp	2008-08-14 09:08:31.000000000 +0900
-+++ contrafold/src/Utilities.cpp	2008-11-25 11:17:53.536262455 +0900
++++ contrafold/src/Utilities.cpp	2008-11-25 21:04:30.230578666 +0900
 @@ -3,6 +3,7 @@
  //////////////////////////////////////////////////////////////////////
  
@@ -1214,8 +1214,8 @@ diff -urN contrafold_v2_02.orig/src/Utilities.cpp contrafold/src/Utilities.cpp
  
 diff -urN contrafold_v2_02.orig/src/contrafold.h contrafold/src/contrafold.h
 --- contrafold_v2_02.orig/src/contrafold.h	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/contrafold.h	2008-11-25 16:15:24.800887782 +0900
-@@ -0,0 +1,58 @@
++++ contrafold/src/contrafold.h	2008-11-25 21:05:24.453556347 +0900
+@@ -0,0 +1,59 @@
 +/*
 + * wrapper routines for CONTRAfold
 + *
@@ -1256,6 +1256,7 @@ diff -urN contrafold_v2_02.orig/src/contrafold.h contrafold/src/contrafold.h
 +  
 +  const T* ComputePosterior(const std::string& seq);
 +  const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
++  T ComputeInside(const std::string& seq);
 +  T ComputeLogPartitionCoefficient() const;
 +  T ComputeViterbi(const std::string& seq);
 +
@@ -1276,8 +1277,8 @@ diff -urN contrafold_v2_02.orig/src/contrafold.h contrafold/src/contrafold.h
 +// End:
 diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 --- contrafold_v2_02.orig/src/wrapper.cpp	1970-01-01 09:00:00.000000000 +0900
-+++ contrafold/src/wrapper.cpp	2008-11-25 16:18:22.675105823 +0900
-@@ -0,0 +1,236 @@
++++ contrafold/src/wrapper.cpp	2008-11-25 21:07:04.901608929 +0900
+@@ -0,0 +1,264 @@
 +// 
 +#include <vector>
 +#include <string>
@@ -1298,6 +1299,7 @@ diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +  
 +  const T* ComputePosterior(const std::string& seq);
 +  const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
++  T ComputeInside(const std::string& seq);
 +  T ComputeLogPartitionCoefficient() const;
 +  T ComputeViterbi(const std::string& seq);
 +
@@ -1354,6 +1356,14 @@ diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +ComputePosterior(const std::string& seq, std::vector<T>& p)
 +{
 +  return impl_->ComputePosterior(seq, p);
++}
++
++template < class T >
++T
++CONTRAfold<T>::
++ComputeInside(const std::string& seq)
++{
++  return impl_->ComputeInside(seq);
 +}
 +
 +template < class T >
@@ -1456,6 +1466,25 @@ diff -urN contrafold_v2_02.orig/src/wrapper.cpp contrafold/src/wrapper.cpp
 +  engine_.ComputePosterior();
 +  delete s;
 +  return engine_.GetPosterior(0.0, p);
++}
++
++template < class T > 
++T
++CONTRAfold<T>::Impl::
++ComputeInside(const std::string& seq)
++{
++  SStruct* s=NULL;
++  if (paren_.empty())
++    s = new SStruct("unknown", seq);
++  else
++    s = new SStruct("unknown", seq, paren_);
++  engine_.LoadSequence(*s);
++  if (!paren_.empty())
++    engine_.UseConstraints(s->GetMapping());
++  engine_.LoadValues(w_);
++  engine_.ComputeInside();
++  delete s;
++  return engine_.ComputeLogPartitionCoefficient();
 +}
 +
 +template < class T > 

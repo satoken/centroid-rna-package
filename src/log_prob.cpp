@@ -36,10 +36,10 @@ main(int argc, char *argv[])
   
   while (std::cin >> seq >> paren)
   {
-    cf.ComputePosterior(seq);
-    float pf = cf.ComputeLogPartitionCoefficient();
+    float pf = cf.ComputeInside(seq);
     cf.SetConstraint(paren);
     float sc = cf.ComputeViterbi(seq);
+    //float sc = cf.ComputeInside(seq);
     std::cout << sc - pf << std::endl;
   }
   

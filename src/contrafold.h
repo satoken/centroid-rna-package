@@ -38,6 +38,7 @@ public:
   
   const T* ComputePosterior(const std::string& seq);
   const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
+  T ComputeInside(const std::string& seq);
   T ComputeLogPartitionCoefficient() const;
   T ComputeViterbi(const std::string& seq);
 
