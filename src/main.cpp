@@ -156,9 +156,11 @@ main(int argc, char* argv[])
       break;
     default:
       gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
-      gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+      gamma_ali.push_back(vm.count("mea") ? 6.0 : 1.0);
       break;
     }
+  } else {
+    gamma_ali = gamma;
   }
 
   boost::spirit::file_iterator<> fi(input.c_str());
