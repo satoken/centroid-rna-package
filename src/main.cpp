@@ -26,6 +26,7 @@
 #endif
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <cassert>
 #include <boost/program_options.hpp>
@@ -46,6 +47,7 @@ main(int argc, char* argv[])
   std::string input;
   std::vector<std::string> model;
   float p_th=0.0;
+  std::string p_outname;
   uint max_bp_dist;
   std::string param;
   uint max_clusters;
@@ -82,6 +84,8 @@ main(int argc, char* argv[])
     ("constraints,C", "use structure constraints")
     ("posteriors", po::value<float>(&p_th),
      "output base-pairing probability matrices which contain base-pairing probabilities more than the given value.")
+    ("posteriors-output", po::value<std::string>(&p_outname),
+      "specify filename to output base-pairing probability matrices. If empty, use the standard output.")
 #ifdef HAVE_LIBRNA
     ("ps", "draw predicted secondary structures with the postscript (PS) format")
     ("svg", "draw predicted secondary structures with the scalable vector graphics (SVG) format")
@@ -182,7 +186,19 @@ main(int argc, char* argv[])
     break;
   }
 #endif
-  
+
+  std::ostream* p_out = &std::cout;
+  if (vm.count("posteriors") && vm.count("posteriors-output"))
+  {
+    p_out = new std::ofstream(p_outname.c_str());
+    if (p_out->fail())
+    {
+      perror(p_outname.c_str());
+      delete p_out;
+      return 1;
+    }
+  }
+
   while (1)
   {
     Fasta fa;
@@ -219,10 +235,8 @@ main(int argc, char* argv[])
         bp.load(model[0].c_str());
         cf.calculate_posterior(fa.seq(), bp);
       }
-      if (!vm.count("posteriors"))
-	cf.print(std::cout, fa.name(), fa.seq(), gamma);
-      else
-	cf.print_posterior(std::cout, fa.seq(), p_th);
+      cf.print(std::cout, fa.name(), fa.seq(), gamma);
+      if (vm.count("posteriors")) cf.print_posterior(*p_out, fa.seq(), p_th);
       if (vm.count("ps")) cf.ps_plot(fa.name(), fa.seq(), gamma[0]);
       if (vm.count("svg")) cf.svg_plot(fa.name(), fa.seq(), gamma[0]);
     }
@@ -266,10 +280,9 @@ main(int argc, char* argv[])
           cf.calculate_posterior(aln.seq(), str);
         }
       }
-      if (!vm.count("posteriors"))
-	cf.print(std::cout, aln.name().front(), aln.consensus(), gamma_ali);
-      else
-	cf.print_posterior(std::cout, aln.consensus(), p_th);
+      
+      cf.print(std::cout, aln.name().front(), aln.consensus(), gamma_ali);
+      if (vm.count("posteriors")) cf.print_posterior(*p_out, aln.consensus(), p_th);
       if (vm.count("ps")) cf.ps_plot(aln.name().front(), aln.consensus(), gamma_ali[0]);
       if (vm.count("svg")) cf.svg_plot(aln.name().front(), aln.consensus(), gamma_ali[0]);
     }
@@ -278,6 +291,8 @@ main(int argc, char* argv[])
       break;
     }
   }
+
+  if (p_out != &std::cout) delete p_out;
 
   return 0;
 }
