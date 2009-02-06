@@ -59,6 +59,8 @@ AC_SUBST(BOOST_LIBS)
 AC_CHECK_LIB(RNA, init_pf_fold)
 
 # Checks for header files.
+AC_CHECK_HEADER([ViennaRNA/ribo.h],
+		[AC_DEFINE([HAVE_VIENNA18], [], [have the Vienna RNA package version 1.8 or above])])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL

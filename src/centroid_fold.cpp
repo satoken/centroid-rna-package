@@ -160,8 +160,11 @@ pfl_fold(T& bp, const std::string& seq, uint max_dist, float th=1e-5)
   bp.resize(seq.size(), max_dist);
   Vienna::pf_scale = -1;
   Vienna::plist *pl;
-  pl = Vienna::pfl_fold(const_cast<char*>(seq.c_str()),
-                        max_dist, max_dist, th, NULL);
+#ifdef HAVE_VIENNA18
+  pl = Vienna::pfl_fold(const_cast<char*>(seq.c_str()), max_dist, max_dist, th, NULL, NULL, NULL, NULL);  
+#else
+  pl = Vienna::pfl_fold(const_cast<char*>(seq.c_str()), max_dist, max_dist, th, NULL);
+#endif
   for (uint k=0; pl[k].i!=0; ++k)
     bp.update(pl[k].i, pl[k].j, pl[k].p);
   free(pl);
@@ -197,8 +200,12 @@ alipf_fold(T& bp, const std::list<std::string>& ma, const std::string& str="")
     Vienna::pf_scale = exp(-(1.07*min_en)/kT/length);
   }
   // build a base pair probablity matrix
-  Vienna::pair_info* pi;
   strcpy(str2, str.c_str());
+#ifdef HAVE_VIENNA18
+      Vienna::plist* pi;
+#else
+      Vienna::pair_info* pi;
+#endif
   Vienna::alipf_fold(seqs, str2, &pi);
   for (uint k=0; pi[k].i!=0; ++k)
     bp.update(pi[k].i-1, pi[k].j-1, pi[k].p);
