@@ -29,6 +29,7 @@
 #include <map>
 #include <stdexcept>
 #include <boost/spirit.hpp>
+#include <boost/algorithm/string.hpp>
 #include <cstring>
 
 #ifdef HAVE_LIBRNA
@@ -114,35 +115,24 @@ struct aln_parser : public grammar< aln_parser >
     rule_t empty;
     rule_t seq;
     rule_t status;
+    rule_t status_or_empty;
     
     definition(const aln_parser& self)
     {
-#if 0
-      aln = header >> +empty >> body;
-      head_word = str_p("CLUSTAL") | str_p("PROBCONS");
-      header =  head_word >> +print_p >> eol_p;
-      body_part = +seq[push_seq(self.wa)] >> !status >> +empty;
-      body = +(body_part[reset_index(self.wa)]);
-      empty = *blank_p >> eol_p;
-      seq
-	= (+graph_p - head_word)[assign_a(self.wa.cur_name)]
-	>> +blank_p >> (+graph_p)[assign_a(self.wa.cur_seq)]
-	>> *blank_p >> eol_p;
-      status = *(chset<>("*:.") | blank_p) >> eol_p;
-#else
       aln = header >> +empty >> body;
       head_word = str_p("CLUSTAL") | str_p("PROBCONS");
       header =  head_word >> +print_p >> eol_p;
       empty = *blank_p >> eol_p;
-      body_part = +seq[push_seq(self.wa)] >> !status;
+      body_part = +seq[push_seq(self.wa)];
       body = body_part[reset_index(self.wa)]
-	>> *(+empty >> body_part[reset_index(self.wa)]);
+	>> *(+status_or_empty >> body_part[reset_index(self.wa)]);
       seq
-	= (+graph_p - head_word)[assign_a(self.wa.cur_name)]
+	= *blank_p
+        >> (+graph_p - head_word)[assign_a(self.wa.cur_name)]
 	>> +blank_p >> (+graph_p)[assign_a(self.wa.cur_seq)]
 	>> *blank_p >> eol_p;
       status = *(chset<>("*:.") | blank_p) >> eol_p;
-#endif
+      status_or_empty = status | empty;
     }
 
     const rule_t& start() const { return aln; }
@@ -205,8 +195,9 @@ main(int argc, char* argv[])
     return 1;
   }
   Aln aln;
-  return aln.load(fi) ? 0 : 1;
 #if 0
+  return aln.load(fi) ? 0 : 1;
+#else
   std::cout << aln.load(fi) << std::endl;
   std::copy(aln.seq().begin(), aln.seq().end(),
 	    std::ostream_iterator<std::string>(std::cout, "\n"));
@@ -229,7 +220,8 @@ consensus() const
   for (x=seq_.begin(); x!=seq_.end(); ++x) {
     assert(x->size()==length);
     seqs[i] = new char[length+1];
-    strcpy(seqs[i++], x->c_str());
+    strcpy(seqs[i], x->c_str());
+    boost::to_upper(seqs[i++]);
   }
 
   // make a consensus string
