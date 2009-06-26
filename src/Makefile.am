@@ -10,3 +10,7 @@ libcentroid_a_SOURCES = \
 	centroid_fold.cpp centroid.cpp mea.cpp bp.cpp iupac.cpp \
 	centroid_fold.h centroid.h mea.h bp.h iupac.h cyktable.h rule.h contrafold.h \
         diana.cpp diana.h
+
+install-exec-hook:
+	$(LN_S) $(DESTDIR)$(bindir)/centroid_fold$(EXEEXT) \
+		$(DESTDIR)$(bindir)/centroid_alifold$(EXEEXT)

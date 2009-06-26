@@ -13,6 +13,7 @@ AC_PROG_CC
 AC_LANG(C++)
 AC_CXX_HAVE_STL
 AC_PROG_RANLIB
+AC_PROG_LN_S
 
 # CONTRAfold
 AC_ARG_WITH([contrafold], AS_HELP_STRING([--with-contrafold],[link the CONTRAfold library]),
