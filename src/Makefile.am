@@ -1,6 +1,8 @@
 bin_PROGRAMS = centroid_fold
 noinst_LIBRARIES = libcentroid.a
-dist_bin_SCRIPTS = contrafold.rb simfold.rb 
+dist_bin_SCRIPTS = contrafold.rb simfold.rb
+CLEANFILES = centroid_alifold$(EXEEXT)
+all: centroid_alifold$(EXEEXT)
 
 centroid_fold_SOURCES = \
 	main.cpp fa.cpp aln.cpp iupac.cpp fa.h aln.h
@@ -14,3 +16,6 @@ libcentroid_a_SOURCES = \
 install-exec-hook:
 	$(LN_S) $(DESTDIR)$(bindir)/centroid_fold$(EXEEXT) \
 		$(DESTDIR)$(bindir)/centroid_alifold$(EXEEXT)
+
+centroid_alifold$(EXEEXT): centroid_fold$(EXEEXT)
+	$(LN_S) centroid_fold$(EXEEXT) centroid_alifold$(EXEEXT)
