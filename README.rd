@@ -2,13 +2,13 @@
 
 CentroidFold is one of the most accurate tools for predicting RNA
 secondary structures. It is based on the gamma-centroid estimator
-(Hamada et.al., 2008) for high-dimensional discrete spaces. Generally,
+(Hamada et.al., 2009) for high-dimensional discrete spaces. Generally,
 a gamma-centroid estimator is ((*slightly*)) more accurate than an MEA
 estimator (Do et.al., 2005) under the same probability distribution. 
 
 Furthermore, CentroidFold can predict common secondary structures for
 multiple alignments of RNA sequences by using an averaged
-gamma-centroid estimator (Hamada et al., 2008).
+gamma-centroid estimator (Hamada et al., 2009).
 
 CentroidFold can employ various probability distributions. Currently,
 * the McCaskill model implemented in the Vienna RNA package,
@@ -68,8 +68,10 @@ distribution rather than the McCaskill model.
 
 == Usage
 
-(({centroid_fold})) can take the FASTA format and the CLUSTAL format
-as an input sequence or a multiple alignment.
+(({centroid_fold})) can take the FASTA format as an input sequence,
+then predict its secondary structure.
+(({centroid_alifold})) take the CLUSTAL format as an input aligment,
+the predict its common secondary structure.
 
 === Secondary structure prediction for single sequences
 
@@ -153,14 +155,11 @@ Example:
 
 === Common secondary structure prediction for multiple alignments
 
-(({centroid_fold})) can automatically recognize the format of input
-sequences. For the FASTA format file, (({centroid_fold})) predicts
-secondary structures for every contained sequence. 
-For the CLUSTAL format, (({centroid_fold})) predicts common
+For the CLUSTAL format, (({centroid_alifold})) predicts common
 secondary structures for the given multiple alignments.
 
 Example:
- % centroid_fold -g -1 RF00436.aln
+ % centroid_alifold -g -1 RF00436.aln
  >AB029447-1/1210-1265
  --BCAHuUGYAVgUCGCUUUGGAYAaaAG--CGUCUGCUAAAUGM-VURwrukKAAAUDu-
  ............................................................. (g=0.03125,th=0.969697)
@@ -277,7 +276,7 @@ Example:
     ensemble, RNA, 11:1157-1166, 2005
   * Hamada, M., Kiryu, H., Sato, K., Mituyama, T. and Asai, K.:
     Predictions of RNA secondary structure using generalized centroid
-    estimators, submitted, 2008.
+    estimators, Bioinformatics, 25:465-473, 2009
 * The CONTRAfold model and MEA estimators
   * Do, C. B., Woods, D. A. and Batzoglou, S.: CONTRAfold: RNA
     secondary structure prediction without physics-based
