@@ -127,11 +127,10 @@ struct aln_parser : public grammar< aln_parser >
       body = body_part[reset_index(self.wa)]
 	>> *(+status_or_empty >> body_part[reset_index(self.wa)]);
       seq
-	= *blank_p
-        >> (+graph_p - head_word)[assign_a(self.wa.cur_name)]
+	= (+graph_p - head_word)[assign_a(self.wa.cur_name)]
 	>> +blank_p >> (+graph_p)[assign_a(self.wa.cur_seq)]
 	>> *blank_p >> eol_p;
-      status = *(chset<>("*:.") | blank_p) >> eol_p;
+      status = blank_p >> *(chset<>("*:.") | blank_p) >> eol_p;
       status_or_empty = status | empty;
     }
 

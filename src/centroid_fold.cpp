@@ -30,6 +30,7 @@
 #include <cmath>
 #include <string>
 #include <stack>
+#include <cstdio>
 #include <cassert>
 #include <boost/shared_ptr.hpp>
 #include <boost/algorithm/string.hpp>
