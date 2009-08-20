@@ -54,6 +54,7 @@ centroid_fold_main(int argc, char* argv[])
   std::string param;
   uint max_clusters;
   uint num_samples;
+  uint seed;
   
   // parse command line options
   po::options_description desc("Options");
@@ -74,6 +75,9 @@ centroid_fold_main(int argc, char* argv[])
     ("max-clusters,c",
      po::value<uint>(&max_clusters)->default_value(10),
      "the maximum number of clusters for the stochastic sampling algorithm")
+    ("seed",
+     po::value<uint>(&seed)->default_value(0),
+      "Specify the seed for the random number generator (set this automatically if seed=0)")
 #endif
     ("noncanonical", "allow non-canonical base-pairs")
 #ifdef HAVE_LIBCONTRAFOLD
@@ -168,7 +172,7 @@ centroid_fold_main(int argc, char* argv[])
     return 1;
   }
 
-  CentroidFold cf(engine, vm.count("mea"));
+  CentroidFold cf(engine, vm.count("mea"), 0, seed);
 #ifdef HAVE_LIBCONTRAFOLD
   switch (engine) {
   case CentroidFold::PFFOLD:
@@ -251,6 +255,7 @@ centroid_alifold_main(int argc, char* argv[])
   std::string param;
   uint max_clusters;
   uint num_samples;
+  uint seed;
   
   // parse command line options
   po::options_description desc("Options");
@@ -272,6 +277,9 @@ centroid_alifold_main(int argc, char* argv[])
     ("max-clusters,c",
      po::value<uint>(&max_clusters)->default_value(10),
      "the maximum number of clusters for the stochastic sampling algorithm")
+    ("seed",
+     po::value<uint>(&seed)->default_value(0),
+      "Specify the seed for the random number generator (set this automatically if seed=0)")
 #endif
     ("noncanonical", "allow non-canonical base-pairs")
 #ifdef HAVE_LIBCONTRAFOLD
@@ -366,7 +374,7 @@ centroid_alifold_main(int argc, char* argv[])
     return 1;
   }
 
-  CentroidFold cf(engine, vm.count("mea"));
+  CentroidFold cf(engine, vm.count("mea"), 0, seed);
 #ifdef HAVE_LIBCONTRAFOLD
   switch (engine) {
   case CentroidFold::PFFOLD:
