@@ -54,7 +54,8 @@ public:
 public:
   CentroidFold(unsigned int engine,
                bool run_as_mea=false,
-	       unsigned int reserved_size=0);
+	       unsigned int reserved_size=0,
+               unsigned int seed=0);
   ~CentroidFold();
 
 #ifdef HAVE_LIBCONTRAFOLD

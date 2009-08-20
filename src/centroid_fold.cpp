@@ -376,7 +376,8 @@ contra_fold_st(uint num_samples, CONTRAfold<U>& cf, const std::string& seq, std:
 CentroidFold::
 CentroidFold(unsigned int engine,
              bool run_as_mea,
-             unsigned int reserved_size)
+             unsigned int reserved_size,
+             unsigned int seed)
   : engine_(engine),
     mea_(run_as_mea),
     bp_(reserved_size),
@@ -388,9 +389,17 @@ CentroidFold(unsigned int engine,
     max_bp_dist_(0)
 #endif
 {
+  time_t t;
+  if (seed!=0) t=seed;
+  else time(&t);
 #ifdef HAVE_LIBRNA
-  Vienna::init_rand();
+  using namespace Vienna;
+  // copy from ViennaRNA-x.x.x/lib/utils.c
+  xsubi[0] = xsubi[1] = xsubi[2] = (unsigned short) t;  /* lower 16 bit */
+  xsubi[1] += (unsigned short) ((unsigned)t >> 6);
+  xsubi[2] += (unsigned short) ((unsigned)t >> 12);
 #endif  
+  srand((unsigned int) t);
 }
 
 CentroidFold::
