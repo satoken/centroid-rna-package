@@ -30,13 +30,11 @@
 #include <iosfwd>
 #include <boost/shared_ptr.hpp>
 #include "bp.h"
-#ifdef HAVE_LIBCONTRAFOLD
 #if 0
-#include <contrafold.h>
+#include <contrafold/contrafold.h>
 #else
 template < class RealT >
 class CONTRAfold;
-#endif
 #endif
 
 class CentroidFold
@@ -58,9 +56,7 @@ public:
                unsigned int seed=0);
   ~CentroidFold();
 
-#ifdef HAVE_LIBCONTRAFOLD
   void set_options_for_contrafold(const std::string& model, bool canonical_only, uint max_bp_dist);
-#endif
 
 #ifdef HAVE_LIBRNA
   void set_options_for_pf_fold(bool canonical_only, uint max_dist);
@@ -107,10 +103,8 @@ private:
   bool mea_;
   BPTable bp_;
   bool canonical_only_;
-#ifdef HAVE_LIBCONTRAFOLD
   CONTRAfold<float>* contrafold_;
   std::string model_;
-#endif
   uint max_bp_dist_;
 };
 

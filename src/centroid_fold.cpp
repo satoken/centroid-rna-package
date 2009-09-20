@@ -57,9 +57,7 @@ extern "C" {
 };
 #endif
 
-#ifdef HAVE_LIBCONTRAFOLD
-#include <contrafold.h>
-#endif
+#include "contrafold/contrafold.h"
 
 typedef boost::dynamic_bitset<> BPvec;
 typedef boost::shared_ptr<BPvec> BPvecPtr;
@@ -220,7 +218,6 @@ alipf_fold(T& bp, const std::list<std::string>& ma, const std::string& str="")
 }
 #endif
 
-#ifdef HAVE_LIBCONTRAFOLD
 template < class T, class U >
 static
 void
@@ -249,7 +246,6 @@ contra_fold(T& bp, CONTRAfold<U>& cf, const std::string& seq, const std::string&
     }
   }
 }
-#endif
 
 #ifdef HAVE_LIBRNA
 static
@@ -328,7 +324,6 @@ pf_fold_st(uint num_samples, const std::string& seq, std::list<BPvecPtr>& bp,
 }
 #endif
 
-#ifdef HAVE_LIBCONTRAFOLD
 template < class U >
 static
 uint
@@ -371,7 +366,6 @@ contra_fold_st(uint num_samples, CONTRAfold<U>& cf, const std::string& seq, std:
 
   return num_samples;
 }
-#endif
 
 CentroidFold::
 CentroidFold(unsigned int engine,
@@ -381,13 +375,10 @@ CentroidFold(unsigned int engine,
   : engine_(engine),
     mea_(run_as_mea),
     bp_(reserved_size),
-    canonical_only_(true)
-#ifdef HAVE_LIBCONTRAFOLD
-  ,
+    canonical_only_(true),
     contrafold_(NULL),
     model_(),
     max_bp_dist_(0)
-#endif
 {
   time_t t;
   if (seed!=0) t=seed;
@@ -405,9 +396,7 @@ CentroidFold(unsigned int engine,
 CentroidFold::
 ~CentroidFold()
 {
-#ifdef HAVE_LIBCONTRAFOLD
   if (contrafold_) delete contrafold_;
-#endif
 }
 
 
@@ -423,7 +412,6 @@ set_options_for_pf_fold(bool canonical_only, uint max_dist)
 }
 #endif
 
-#ifdef HAVE_LIBCONTRAFOLD
 void
 CentroidFold::
 set_options_for_contrafold(const std::string& model, bool canonical_only, uint max_bp_dist)
@@ -432,7 +420,6 @@ set_options_for_contrafold(const std::string& model, bool canonical_only, uint m
   canonical_only_ = canonical_only;
   max_bp_dist_ = max_bp_dist;
 }
-#endif
 
 void
 CentroidFold::
@@ -453,7 +440,6 @@ calculate_posterior(const std::string& seq)
       pfl_fold(bp_, seq2, max_bp_dist_);
     break;
 #endif
-#ifdef HAVE_LIBCONTRAFOLD
   case CONTRAFOLD:
     if (contrafold_==NULL) {
       contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
@@ -461,7 +447,6 @@ calculate_posterior(const std::string& seq)
     }
     contra_fold(bp_, *contrafold_, seq2);
     break;
-#endif
   default:
     assert(!"never come here");
     break;
@@ -491,7 +476,6 @@ calculate_posterior(const std::string& seq, const std::string& str)
     break;
   }
 #endif
-#ifdef HAVE_LIBCONTRAFOLD
   case CONTRAFOLD:
     if (contrafold_==NULL) {
       contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
@@ -499,7 +483,6 @@ calculate_posterior(const std::string& seq, const std::string& str)
     }
     contra_fold(bp_, *contrafold_, seq2, str);
     break;
-#endif
   default:
     assert(!"never come here");
     break;
@@ -560,7 +543,6 @@ calculate_posterior(const std::list<std::string>& seq)
 	pf_fold(*bpi, *x);
 	break;
 #endif
-#ifdef HAVE_LIBCONTRAFOLD
       case CONTRAFOLD:
         if (contrafold_==NULL) {
           contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
@@ -568,7 +550,6 @@ calculate_posterior(const std::list<std::string>& seq)
         }
         contra_fold(*bpi, *contrafold_, *x);
 	break;
-#endif
       default:
 	assert(!"never come here");
 	break;
@@ -659,7 +640,6 @@ calculate_posterior(const std::list<std::string>& seq, const std::string& str)
 	break;
       }
 #endif
-#ifdef HAVE_LIBCONTRAFOLD
       case CONTRAFOLD:
         if (contrafold_==NULL) {
           contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
@@ -667,7 +647,6 @@ calculate_posterior(const std::list<std::string>& seq, const std::string& str)
         }
         contra_fold(*bpi, *contrafold_, *x, str2);
 	break;
-#endif
       default:
 	assert(!"never come here");
 	break;
@@ -858,7 +837,6 @@ stochastic_fold(const std::string& name, const std::string& seq,
     pf_fold_st(num_samples, seq2, bpvl);
     break;
 #endif
-#ifdef HAVE_LIBCONTRAFOLD
   case CONTRAFOLD:
     if (contrafold_==NULL) {
       contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
@@ -866,7 +844,6 @@ stochastic_fold(const std::string& name, const std::string& seq,
     }
     contra_fold_st(num_samples, *contrafold_, seq2, bpvl);
     break;
-#endif
   default:
     throw "not supported yet";
     break;
@@ -923,7 +900,6 @@ stochastic_fold(const std::string& name, const std::string& consensus,
       pf_fold_st(num_samples, s, bpvl, idxmap, sz);
       break;
 #endif
-#ifdef HAVE_LIBCONTRAFOLD
     case CONTRAFOLD:
       if (contrafold_==NULL) {
         contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
@@ -931,7 +907,6 @@ stochastic_fold(const std::string& name, const std::string& consensus,
       }
       contra_fold_st(num_samples, *contrafold_, s, bpvl, idxmap, sz);
       break;
-#endif
     default:
       throw "not supported yet";
       break;
