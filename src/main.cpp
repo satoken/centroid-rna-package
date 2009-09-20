@@ -48,9 +48,7 @@ centroid_fold_main(int argc, char* argv[])
   std::vector<std::string> model;
   float p_th=0.0;
   std::string p_outname;
-#ifdef HAVE_LIBCONTRAFOLD
   uint max_bp_dist;
-#endif
   std::string param;
   uint max_clusters;
   uint num_samples;
@@ -65,7 +63,6 @@ centroid_fold_main(int argc, char* argv[])
      "weight of base pairs")
     ("mea", "run as an MEA estimator")
 #ifdef HAVE_LIBRNA
-#ifdef HAVE_LIBCONTRAFOLD
     ("pf_fold", "use pf_fold base-pairing probabilities")
 #endif
     ("sampling", 
@@ -78,13 +75,10 @@ centroid_fold_main(int argc, char* argv[])
     ("seed",
      po::value<uint>(&seed)->default_value(0),
       "Specify the seed for the random number generator (set this automatically if seed=0)")
-#endif
     ("noncanonical", "allow non-canonical base-pairs")
-#ifdef HAVE_LIBCONTRAFOLD
     ("params", po::value<std::string>(&param), "use the parameter file (for CONTRAfold model)")
     ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
       "the maximum distance of base-pairs")
-#endif
     ("aux", "use auxiliary base-pairing probabilities")
     ("constraints,C", "use structure constraints")
     ("posteriors", po::value<float>(&p_th),
@@ -114,11 +108,9 @@ centroid_fold_main(int argc, char* argv[])
       (vm.count("aux") && model.empty()))
   {
     std::string features("aux files");
+    features += ", CONTRAfold model";
 #ifdef HAVE_LIBRNA
     features += ", McCaskill model";
-#endif
-#ifdef HAVE_LIBCONTRAFOLD
-    features += ", CONTRAfold model";
 #endif
     std::cout << "CentroidFold v" << VERSION 
 	      << " for predicting RNA secondary structures" << std::endl
@@ -130,11 +122,7 @@ centroid_fold_main(int argc, char* argv[])
     return 1;
   }
 
-#ifdef HAVE_LIBCONTRAFOLD
   unsigned int engine = CentroidFold::CONTRAFOLD;
-#else
-  unsigned int engine = CentroidFold::PFFOLD;
-#endif
   if (vm.count("aux")) engine = CentroidFold::AUX;
   if (vm.count("pf_fold")) engine = CentroidFold::PFFOLD;
   if (vm.count("alipf_fold")) engine = CentroidFold::ALIPFFOLD;
@@ -150,11 +138,9 @@ centroid_fold_main(int argc, char* argv[])
   {
     switch (engine)
     {
-#ifdef HAVE_LIBCONTRAFOLD
     case CentroidFold::CONTRAFOLD:
       gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
       break;
-#endif
     case CentroidFold::PFFOLD:
     case CentroidFold::ALIPFFOLD:
       gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
@@ -173,7 +159,6 @@ centroid_fold_main(int argc, char* argv[])
   }
 
   CentroidFold cf(engine, vm.count("mea"), 0, seed);
-#ifdef HAVE_LIBCONTRAFOLD
   switch (engine) {
   case CentroidFold::PFFOLD:
   case CentroidFold::ALIPFFOLD:
@@ -183,7 +168,6 @@ centroid_fold_main(int argc, char* argv[])
     cf.set_options_for_contrafold(param, !vm.count("noncanonical"), max_bp_dist);
     break;
   }
-#endif
 
   std::ostream* p_out = &std::cout;
   if (vm.count("posteriors") && vm.count("posteriors-output"))
@@ -249,9 +233,7 @@ centroid_alifold_main(int argc, char* argv[])
   std::vector<std::string> model;
   float p_th=0.0;
   std::string p_outname;
-#ifdef HAVE_LIBCONTRAFOLD
   uint max_bp_dist;
-#endif
   std::string param;
   uint max_clusters;
   uint num_samples;
@@ -267,7 +249,6 @@ centroid_alifold_main(int argc, char* argv[])
     ("mea", "run as an MEA estimator")
 #ifdef HAVE_LIBRNA
     ("alipf_fold", "use alipf_fold base-pairing probabilities")
-#ifdef HAVE_LIBCONTRAFOLD
     ("pf_fold", "use pf_fold base-pairing probabilities")
 #endif
     ("sampling", 
@@ -280,13 +261,10 @@ centroid_alifold_main(int argc, char* argv[])
     ("seed",
      po::value<uint>(&seed)->default_value(0),
       "Specify the seed for the random number generator (set this automatically if seed=0)")
-#endif
     ("noncanonical", "allow non-canonical base-pairs")
-#ifdef HAVE_LIBCONTRAFOLD
     ("params", po::value<std::string>(&param), "use the parameter file (for CONTRAfold model)")
     ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
       "the maximum distance of base-pairs")
-#endif
     ("aux", "use auxiliary base-pairing probabilities")
     ("constraints,C", "use structure constraints")
     ("posteriors", po::value<float>(&p_th),
@@ -316,11 +294,9 @@ centroid_alifold_main(int argc, char* argv[])
       (vm.count("aux") && model.empty()))
   {
     std::string features("aux files");
+    features += ", CONTRAfold model";
 #ifdef HAVE_LIBRNA
     features += ", McCaskill model";
-#endif
-#ifdef HAVE_LIBCONTRAFOLD
-    features += ", CONTRAfold model";
 #endif
     std::cout << "CentroidFold v" << VERSION 
 	      << " for predicting RNA secondary structures" << std::endl
@@ -332,11 +308,7 @@ centroid_alifold_main(int argc, char* argv[])
     return 1;
   }
 
-#ifdef HAVE_LIBCONTRAFOLD
   unsigned int engine = CentroidFold::CONTRAFOLD;
-#else
-  unsigned int engine = CentroidFold::PFFOLD;
-#endif
   if (vm.count("aux")) engine = CentroidFold::AUX;
   if (vm.count("pf_fold")) engine = CentroidFold::PFFOLD;
   if (vm.count("alipf_fold")) engine = CentroidFold::ALIPFFOLD;
@@ -352,11 +324,9 @@ centroid_alifold_main(int argc, char* argv[])
   {
     switch (engine)
     {
-#ifdef HAVE_LIBCONTRAFOLD
     case CentroidFold::CONTRAFOLD:
       gamma.push_back(vm.count("mea") ? 6.0 : 4.0);
       break;
-#endif
     case CentroidFold::PFFOLD:
     case CentroidFold::ALIPFFOLD:
       gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
@@ -375,7 +345,6 @@ centroid_alifold_main(int argc, char* argv[])
   }
 
   CentroidFold cf(engine, vm.count("mea"), 0, seed);
-#ifdef HAVE_LIBCONTRAFOLD
   switch (engine) {
   case CentroidFold::PFFOLD:
   case CentroidFold::ALIPFFOLD:
@@ -385,7 +354,6 @@ centroid_alifold_main(int argc, char* argv[])
     cf.set_options_for_contrafold(param, !vm.count("noncanonical"), max_bp_dist);
     break;
   }
-#endif
 
   std::ostream* p_out = &std::cout;
   if (vm.count("posteriors") && vm.count("posteriors-output"))
