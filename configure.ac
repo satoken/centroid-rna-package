@@ -15,15 +15,6 @@ AC_CXX_HAVE_STL
 AC_PROG_RANLIB
 AC_PROG_LN_S
 
-# CONTRAfold
-AC_ARG_WITH([contrafold], AS_HELP_STRING([--with-contrafold],[link the CONTRAfold library]),
-    [
-      AC_DEFINE([HAVE_LIBCONTRAFOLD], [], [link the CONTRAfold library])
-      LIBCONTRAFOLD="libcontrafold.a"
-    ]
-)
-AC_SUBST(LIBCONTRAFOLD)
-
 # Memory Resevation
 AC_ARG_WITH([reserve], AS_HELP_STRING([--with-reserve],[the length of seqeunces for reserved memory (default: 500)]),
     [
@@ -71,5 +62,5 @@ AC_C_INLINE
 # Checks for library functions.
 AC_HEADER_STDC
 
-AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/contrafold/Makefile])
 AC_OUTPUT
