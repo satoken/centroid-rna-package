@@ -50,7 +50,7 @@
 #endif
 
 // score for a base-pair adjacent to a multi-branch loop
-
+#if 0
 #if PARAMS_MULTI_LENGTH
 #define ScoreMultiPaired() score_multi_paired.first
 #define CountMultiPaired(v) { score_multi_paired.second += (v); }
@@ -58,9 +58,28 @@
 #define ScoreMultiPaired() RealT(0)
 #define CountMultiPaired(v)
 #endif
+#else
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreMultiPaired() const
+{
+#if PARAMS_MULTI_LENGTH
+    return score_multi_paired.first;
+#else
+    return RealT(0);
+#endif
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountMultiPaired(RealT value)
+{
+#if PARAMS_MULTI_LENGTH
+    score_multi_paired.second += value;
+#endif
+}
+#endif
 
 // score for each unpaired position in a multi-branch loop
-
+#if 0
 #if PARAMS_MULTI_LENGTH
 #define ScoreMultiUnpaired(i) (score_multi_unpaired.first + ScoreUnpairedPosition(i))
 #define CountMultiUnpaired(i,v) { score_multi_unpaired.second += (v); CountUnpairedPosition(i,v); }
@@ -68,9 +87,32 @@
 #define ScoreMultiUnpaired(i) (ScoreUnpairedPosition(i))
 #define CountMultiUnpaired(i,v) { CountUnpairedPosition(i,v); }
 #endif
+#else
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreMultiUnpaired(int i) const
+{
+#if PARAMS_MULTI_LENGTH
+    return score_multi_unpaired.first + ScoreUnpairedPosition(i);
+#else
+    return ScoreUnpairedPosition(i);
+#endif
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountMultiUnpaired(int i, RealT value)
+{
+#if PARAMS_MULTI_LENGTH
+    score_multi_unpaired.second += value;
+    CountUnpairedPosition(i,value);
+#else
+    CountUnpairedPosition(i,value);
+#endif
+}
+#endif
 
 // score for each base-pair adjacent to an external loop
 
+#if 0
 #if PARAMS_EXTERNAL_LENGTH
 #define ScoreExternalPaired() score_external_paired.first
 #define CountExternalPaired(v) { score_external_paired.second += (v); }
@@ -78,15 +120,56 @@
 #define ScoreExternalPaired() RealT(0)
 #define CountExternalPaired(v)
 #endif
+#else
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreExternalPaired() const
+{
+#if PARAMS_EXTERNAL_LENGTH
+    return score_external_paired.first;
+#else
+    return RealT(0);
+#endif
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountExternalPaired(RealT value)
+{
+#if PARAMS_EXTERNAL_LENGTH
+    score_external_paired.second += value;
+#endif
+}
+#endif
 
 // score for each unpaired position in an external loop
-
+#if 0
 #if PARAMS_EXTERNAL_LENGTH
 #define ScoreExternalUnpaired(i) (score_external_unpaired.first + ScoreUnpairedPosition(i))
 #define CountExternalUnpaired(i,v) { score_external_unpaired.second += (v); CountUnpairedPosition(i,v); }
 #else
 #define ScoreExternalUnpaired(i) (ScoreUnpairedPosition(i))
 #define CountExternalUnpaired(i,v) { CountUnpairedPosition(i,v); }
+#endif
+#else
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreExternalUnpaired(int i) const
+{
+#if PARAMS_EXTERNAL_LENGTH
+    return score_external_unpaired.first + ScoreUnpairedPosition(i);
+#else
+    return ScoreUnpairedPosition(i);
+#endif
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountExternalUnpaired(int i, RealT value)
+{
+#if PARAMS_EXTERNAL_LENGTH
+    score_external_unpaired.second += value;
+    CountUnpairedPosition(i,v); 
+#else
+    CountUnpairedPosition(i,v);
+#endif
+}
 #endif
 
 // score for a helix stacking pair of the form:

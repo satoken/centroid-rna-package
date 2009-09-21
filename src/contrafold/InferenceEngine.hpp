@@ -240,6 +240,10 @@ class InferenceEngine
     RealT ScoreHelix(int i, int j, int m) const;
     RealT ScoreSingleNucleotides(int i, int j, int p, int q) const;
     RealT ScoreSingle(int i, int j, int p, int q) const;
+    RealT ScoreMultiPaired() const;
+    RealT ScoreMultiUnpaired(int i) const;
+    RealT ScoreExternalPaired() const;
+    RealT ScoreExternalUnpaired(int i) const;
     
     void CountJunctionA(int i, int j, RealT value);
     void CountJunctionB(int i, int j, RealT value);
@@ -248,6 +252,10 @@ class InferenceEngine
     void CountHelix(int i, int j, int m, RealT value);
     void CountSingleNucleotides(int i, int j, int p, int q, RealT value);
     void CountSingle(int i, int j, int p, int q, RealT value);
+    void CountMultiPaired(RealT value);
+    void CountMultiUnpaired(int i, RealT value);
+    void CountExternalPaired(RealT value);
+    void CountExternalUnpaired(int i, RealT value);
 
     int EncodeTraceback(int i, int j) const;
     std::pair<int,int> DecodeTraceback(int s) const;
