@@ -259,5 +259,126 @@ StochasticTraceback() const
   return engine_.PredictPairingsStochasticTraceback();
 }
 
+template < class T > 
+struct CONTRAfoldM<T>::Impl
+{
+  Impl(bool canonical_only, int max_bp_dist);
+  ~Impl()
+  {
+    for (uint i=0; i!=en_.size(); ++i) if (en_[i]) delete en_[i];
+  };
+
+  void SetParameters(const std::string& params);
+  //void SetConstraint(const std::string& paren);
+  
+  //const T* ComputePosterior(const std::string& seq);
+  //const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
+  //T ComputeInside(const std::string& seq);
+  //T ComputeLogPartitionCoefficient() const;
+  //T ComputeViterbi(const std::string& seq);
+
+  void PrepareStochasticTraceback(const std::vector<std::string>& aln);
+  std::vector<int> StochasticTraceback() const;
+
+  ParameterManager<T> pm_;
+  InferenceEngine<T> engine_;
+  std::vector<T> w_;
+  std::string paren_;
+  int max_bp_dist_;
+  bool canonical_only_;
+  std::vector< std::vector<uint> > idx_;
+  std::vector<InferenceEngine<T>*> en_;  
+};
+
+template < class T >
+CONTRAfoldM<T>::
+CONTRAfoldM(bool canonical_only, int max_bp_dist)
+  : impl_(new Impl(canonical_only, max_bp_dist)), max_bp_dist_(max_bp_dist)
+{
+}
+
+template < class T >
+CONTRAfoldM<T>::
+~CONTRAfoldM()
+{
+  delete impl_;
+}
+
+template < class T >
+void
+CONTRAfoldM<T>::
+SetParameters(const std::string& params)
+{
+  impl_->SetParameters(params);
+}
+
+template < class T > 
+CONTRAfoldM<T>::Impl::
+Impl(bool canonical_only, int max_bp_dist)
+  : pm_(), engine_(!canonical_only, max_bp_dist), paren_(),
+    max_bp_dist_(max_bp_dist), canonical_only_(canonical_only)
+{
+  engine_.RegisterParameters(pm_);
+  if (canonical_only)
+    w_ = GetDefaultComplementaryValues<float>();
+  else
+    w_ = GetDefaultNoncomplementaryValues<float>();
+}
+
+template < class T >
+void
+CONTRAfoldM<T>::Impl::
+SetParameters(const std::string& params)
+{
+  pm_.ReadFromFile(params, w_);
+}
+
+template < class T > 
+void
+CONTRAfoldM<T>::Impl::
+PrepareStochasticTraceback(const std::vector<std::string>& aln)
+{
+  for (uint i=0; i!=en_.size(); ++i) if (en_[i]) delete en_[i];
+  en_.resize(aln.size(), NULL);
+  idx_.clear(); idx_.resize(aln.size());
+  for (uint i=0; i!=aln.size(); ++i)
+  {
+    std::string seq;
+    idx_[i].resize(aln[i].size());
+    for (uint j=0, k=0; j!=aln[i].size(); ++j)
+    {
+      if (aln[i][j]=='-')
+      {
+        idx_[i][j] =  static_cast<uint>(-1);
+      }
+      else
+      {
+        idx_[i][j] =  k++;
+        seq.push_back(aln[i][j]);
+      }
+    }
+
+    SStruct s("unknown", seq);
+    en_[i] = new InferenceEngine<T>(!canonical_only_, max_bp_dist_);
+    en_[i]->RegisterParameters(pm_);
+    en_[i]->LoadSequence(s);
+    en_[i]->LoadValues(w_);
+    en_[i]->ComputeInside();
+    en_[i]->ComputeOutside();
+  }
+}
+
+template < class T > 
+std::vector<int>
+CONTRAfoldM<T>::Impl::
+StochasticTraceback() const
+{
+  return engine_.PredictPairingsStochasticTracebackM(idx_, en_);
+}
+
+// instantiation
 template
 class CONTRAfold<float>;
+
+template
+class CONTRAfoldM<float>;

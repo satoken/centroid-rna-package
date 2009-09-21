@@ -52,6 +52,35 @@ private:
   int max_bp_dist_;
 };
 
+template < class T >
+class CONTRAfoldM
+{
+private:
+  struct Impl;
+
+public:
+  CONTRAfoldM(bool canonical_only = true, int max_bp_dist = 0);
+  ~CONTRAfoldM();
+
+  void SetParameters(const std::string& params);
+  //void SetConstraint(const std::string& paren);
+  
+  //const T* ComputePosterior(const std::string& seq);
+  //const T* ComputePosterior(const std::string& seq, std::vector<T>& p);
+  //T ComputeInside(const std::string& seq);
+  //T ComputeLogPartitionCoefficient() const;
+  //T ComputeViterbi(const std::string& seq);
+
+  void PrepareStochasticTraceback(const std::string& seq);
+  std::vector<int> StochasticTraceback() const;
+
+  int max_bp_dist() const { return max_bp_dist_; }
+  
+private:
+  Impl* impl_;
+  int max_bp_dist_;
+};
+
 #endif	// __INC_CONTRAFOLD_H__
 
 // Local Variables:
