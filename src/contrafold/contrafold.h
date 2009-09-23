@@ -71,7 +71,7 @@ public:
   //T ComputeLogPartitionCoefficient() const;
   //T ComputeViterbi(const std::string& seq);
 
-  void PrepareStochasticTraceback(const std::string& seq);
+  void PrepareStochasticTraceback(const std::vector<std::string>& aln);
   std::vector<int> StochasticTraceback() const;
 
   int max_bp_dist() const { return max_bp_dist_; }

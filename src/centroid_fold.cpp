@@ -348,6 +348,27 @@ contra_fold_st(uint num_samples, CONTRAfold<U>& cf, const std::string& seq, std:
 template < class U >
 static
 uint
+contra_fold_st(uint num_samples, CONTRAfoldM<U>& cf, const std::vector<std::string>& aln, std::list<BPvecPtr>& bp)
+{
+  EncodeBP encoder;
+  cf.PrepareStochasticTraceback(aln);
+  for (uint n=0; n!=num_samples; ++n) {
+    SCFG::CYKTable<uint> bp_pos(aln.front().size(), 0);
+    std::vector<int> paren = cf.StochasticTraceback();
+    for (uint i=0; i!=paren.size(); ++i) {
+      if (paren[i]>int(i)) {
+        bp_pos(i-1, paren[i]-1)++;
+      }
+    }
+    bp.push_back(encoder.execute(bp_pos));
+  }
+
+  return num_samples;
+}
+
+template < class U >
+static
+uint
 contra_fold_st(uint num_samples, CONTRAfold<U>& cf, const std::string& seq, std::list<BPvecPtr>& bp,
                const std::vector<uint>& idxmap, uint sz)
 {
@@ -875,42 +896,58 @@ stochastic_fold(const std::string& name, const std::string& consensus,
                 uint num_samples, uint max_clusters,
                 const std::vector<float>& gamma, std::ostream& out)
 {
-  uint sz = seq.front().size();
   std::list<BPvecPtr> bpvl;
-  std::list<std::string>::const_iterator x;
-  for (x=seq.begin(); x!=seq.end(); ++x) {
-    std::string s;
-    std::vector<uint> idxmap(x->size(), static_cast<uint>(-1));
-    uint j=0;
-    for (uint i=0; i!=x->size(); ++i) {
-      if ((*x)[i]!='-') {
-        switch ((*x)[i]) {
-        case 't': s += 'u'; break;
-        case 'T': s += 'U'; break;
-        default:  s += (*x)[i];
-        }
-	idxmap[j++] = i;
-      }
-    }
-    idxmap.resize(j);
 
-    switch (engine_) {
+  switch (engine_)
+  {
 #ifdef HAVE_LIBRNA
     case PFFOLD:
-      pf_fold_st(num_samples, s, bpvl, idxmap, sz);
+    {
+      uint sz = seq.front().size();
+      std::list<std::string>::const_iterator x;
+      for (x=seq.begin(); x!=seq.end(); ++x)
+      {
+        std::string s;
+        std::vector<uint> idxmap(x->size(), static_cast<uint>(-1));
+        uint j=0;
+        for (uint i=0; i!=x->size(); ++i)
+        {
+          if ((*x)[i]!='-')
+          {
+            switch ((*x)[i])
+            {
+              case 't': s += 'u'; break;
+              case 'T': s += 'U'; break;
+              default:  s += (*x)[i];
+            }
+            idxmap[j++] = i;
+          }
+        }
+        idxmap.resize(j);
+        pf_fold_st(num_samples, s, bpvl, idxmap, sz);
+      }
       break;
+    }
 #endif
     case CONTRAFOLD:
-      if (contrafold_==NULL) {
-        contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
-        if (!model_.empty()) contrafold_->SetParameters(model_);
+    {
+      CONTRAfoldM<float>* cf = new CONTRAfoldM<float>(canonical_only_, max_bp_dist_);
+      if (!model_.empty()) cf->SetParameters(model_);
+      std::vector<std::string> aln(seq.size());
+      std::copy(seq.begin(), seq.end(), aln.begin());
+      for (uint i=0; i!=aln.size(); ++i)
+      {
+        std::replace(aln[i].begin(), aln[i].end(), 't', 'u');
+        std::replace(aln[i].begin(), aln[i].end(), 'T', 'U');
       }
-      contra_fold_st(num_samples, *contrafold_, s, bpvl, idxmap, sz);
+      contra_fold_st(num_samples, *cf, aln, bpvl);
+      delete cf;
       break;
+    }
+
     default:
       throw "not supported yet";
       break;
-    }
   }
   
   std::vector<BPvecPtr> bpv(bpvl.size());

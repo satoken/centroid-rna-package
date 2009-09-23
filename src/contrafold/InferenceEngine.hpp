@@ -240,11 +240,13 @@ class InferenceEngine
     RealT ScoreHelix(int i, int j, int m) const;
     RealT ScoreSingleNucleotides(int i, int j, int p, int q) const;
     RealT ScoreSingle(int i, int j, int p, int q) const;
+    RealT ScoreMultiBase() const;
     RealT ScoreMultiPaired() const;
     RealT ScoreMultiUnpaired(int i) const;
     RealT ScoreExternalPaired() const;
     RealT ScoreExternalUnpaired(int i) const;
-    
+    RealT ScoreHelixStacking(int i, int j) const;
+
     void CountJunctionA(int i, int j, RealT value);
     void CountJunctionB(int i, int j, RealT value);
     void CountBasePair(int i, int j, RealT value);
@@ -252,10 +254,12 @@ class InferenceEngine
     void CountHelix(int i, int j, int m, RealT value);
     void CountSingleNucleotides(int i, int j, int p, int q, RealT value);
     void CountSingle(int i, int j, int p, int q, RealT value);
+    void CountMultiBase(RealT value);
     void CountMultiPaired(RealT value);
     void CountMultiUnpaired(int i, RealT value);
     void CountExternalPaired(RealT value);
     void CountExternalUnpaired(int i, RealT value);
+    void CountHelixStacking(int i, int j, RealT value);
 
     int EncodeTraceback(int i, int j) const;
     std::pair<int,int> DecodeTraceback(int s) const;
@@ -306,6 +310,7 @@ public:
     std::vector<int> PredictPairingsPosterior(const RealT gamma) const;
     std::vector<int> PredictPairingsStochasticTraceback() const;
     std::vector<int> PredictPairingsStochasticTracebackM(const std::vector< std::vector<uint> >& idx,
+                                                         const std::vector< std::vector<int> >& rev,
                                                          const std::vector< InferenceEngine<RealT>* >& en ) const;
     RealT *GetPosterior(const RealT posterior_cutoff) const;
     RealT *GetPosterior(const RealT posterior_cutoff, std::vector<RealT>& p) const;
