@@ -5,5 +5,6 @@ libcontrafold_a_SOURCES = \
 	SStruct.cpp SStruct.hpp \
 	Utilities.cpp Utilities.hpp Utilities.ipp \
 	ParameterManager.ipp ParameterManager.hpp \
-	InferenceEngine.ipp InferenceEngine.ipp
-	Defaults.ipp Config.hpp LogSpace.hpp
+	InferenceEngine.ipp InferenceEngine.ipp \
+	Defaults.ipp Config.hpp LogSpace.hpp \
+	mt19937ar.c

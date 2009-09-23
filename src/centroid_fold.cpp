@@ -32,6 +32,7 @@
 #include <stack>
 #include <cstdio>
 #include <cassert>
+#include <sys/time.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/dynamic_bitset.hpp>
@@ -41,6 +42,7 @@
 #include "mea.h"
 #include "centroid.h"
 #include "diana.h"
+#include "ps_plot.h"
 
 #ifdef HAVE_LIBRNA
 namespace Vienna {
@@ -401,17 +403,27 @@ CentroidFold(unsigned int engine,
     model_(),
     max_bp_dist_(0)
 {
+  if (seed==0)
+  {
+#if 0
   time_t t;
-  if (seed!=0) t=seed;
-  else time(&t);
+  time(&t);
+  seed = (unsigned int)t;
+#else
+  timeval t;
+  gettimeofday(&t, NULL);
+  seed = t.tv_usec * t.tv_sec;
+#endif
+  }
 #ifdef HAVE_LIBRNA
   using namespace Vienna;
   // copy from ViennaRNA-x.x.x/lib/utils.c
-  xsubi[0] = xsubi[1] = xsubi[2] = (unsigned short) t;  /* lower 16 bit */
-  xsubi[1] += (unsigned short) ((unsigned)t >> 6);
-  xsubi[2] += (unsigned short) ((unsigned)t >> 12);
+  xsubi[0] = xsubi[1] = xsubi[2] = (unsigned short) seed;  /* lower 16 bit */
+  xsubi[1] += (unsigned short) ((unsigned)seed >> 6);
+  xsubi[2] += (unsigned short) ((unsigned)seed >> 12);
 #endif  
-  srand((unsigned int) t);
+  srand((unsigned int)seed);
+  CONTRAfold<float>::init_rand((unsigned int)seed);
 }
 
 CentroidFold::
@@ -957,7 +969,6 @@ stochastic_fold(const std::string& name, const std::string& consensus,
   stochastic_fold_helper(name, consensus, bpv, max_clusters, gamma, out);
 }
 
-#ifdef HAVE_LIBRNA
 void
 CentroidFold::
 ps_plot(const std::string& name, const std::string& seq, float g) const
@@ -971,12 +982,11 @@ ps_plot(const std::string& name, const std::string& seq, float g) const
   if (fbase.empty()) fbase="rna";
   char fname[100];
   sscanf(fbase.c_str(), "%12s", fname);
-  //Vienna::rna_plot_type=0;
   strcat(fname, "_ss.ps");
-  Vienna::PS_rna_plot(const_cast<char*>(seq.c_str()),
-		      const_cast<char*>(paren.c_str()), fname);
+  ::ps_color_plot(seq.c_str(), paren.c_str(), bp_, fname);
 }
 
+#ifdef HAVE_LIBRNA
 void
 CentroidFold::
 svg_plot(const std::string& name, const std::string& seq, float g) const

@@ -11,6 +11,8 @@
 #include <cassert>
 #include <cstdlib>
 
+extern "C" { double genrand_real2(); }
+
 // score for leaving s[i] unpaired
 
 #if defined(HAMMING_LOSS)
@@ -4953,7 +4955,8 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsPosterior(const RealT ga
 
 double rand01()
 {
-    return rand()/(RAND_MAX+1.0);
+    double genrand_real2(void);
+    return genrand_real2();
 }
 
 template < class T, class RealT >

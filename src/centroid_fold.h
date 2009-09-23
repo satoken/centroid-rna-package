@@ -92,9 +92,8 @@ public:
                        uint num_samples, uint max_clusters,
                        const std::vector<float>& gamma, std::ostream& out);
 
-
-#ifdef HAVE_LIBRNA
   void ps_plot(const std::string& name, const std::string& seq, float g) const;
+#ifdef HAVE_LIBRNA
   void svg_plot(const std::string& name, const std::string& seq, float g) const;
 #endif
 

@@ -7,6 +7,8 @@
 #include "Defaults.ipp"
 #include "contrafold.h"
 
+extern "C" { void init_genrand(unsigned long s); }
+
 template < class T > 
 struct CONTRAfold<T>::Impl
 {
@@ -99,6 +101,15 @@ CONTRAfold<T>::
 ComputeViterbi(const std::string& seq)
 {
   return impl_->ComputeViterbi(seq);
+}
+
+// static
+template < class T >
+void
+CONTRAfold<T>::
+init_rand(unsigned long seed)
+{
+  init_genrand(seed);
 }
 
 template < class T >
@@ -311,6 +322,15 @@ CONTRAfoldM<T>::
 SetParameters(const std::string& params)
 {
   impl_->SetParameters(params);
+}
+
+// static
+template < class T >
+void
+CONTRAfoldM<T>::
+init_rand(unsigned long seed)
+{
+  init_genrand(seed);
 }
 
 template < class T >
