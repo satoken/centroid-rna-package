@@ -46,7 +46,9 @@ public:
   std::vector<int> StochasticTraceback() const;
 
   int max_bp_dist() const { return max_bp_dist_; }
-  
+
+  static void init_rand(unsigned long seed);
+
 private:
   Impl* impl_;
   int max_bp_dist_;
@@ -75,6 +77,8 @@ public:
   std::vector<int> StochasticTraceback() const;
 
   int max_bp_dist() const { return max_bp_dist_; }
+
+  static void init_rand(unsigned long seed);
   
 private:
   Impl* impl_;
