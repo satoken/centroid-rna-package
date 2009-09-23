@@ -58,6 +58,7 @@ inline float Fast_Exp(float x)
     return (x > float(46.052) ? float(1e20) : expf(x));
 }
 
+
 //////////////////////////////////////////////////////////////////////
 // Fast_LogExpPlusOne()
 //
