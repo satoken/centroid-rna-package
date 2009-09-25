@@ -213,7 +213,7 @@ alipf_fold(T& bp, const std::list<std::string>& ma, const std::string& str="")
     bp.update(pi[k].i-1, pi[k].j-1, pi[k].p);
   free(pi);
   for (uint i=0; seqs[i]!=NULL; ++i) delete[] seqs[i];
-
+  Vienna::free_alipf_arrays();
   Vienna::fold_constrained = bk;
   delete[] seqs;
   delete[] str2;
@@ -324,6 +324,69 @@ pf_fold_st(uint num_samples, const std::string& seq, std::list<BPvecPtr>& bp,
 
   return num_samples;
 }
+
+#ifdef HAVE_VIENNA18
+static
+uint
+alipf_fold_st(uint num_samples, const std::vector<std::string>& ma, std::list<BPvecPtr>& bp)
+{
+  EncodeBP encoder;
+  // prepare an alignment
+  uint length = ma.front().size();
+  char** seqs = new char*[ma.size()+1];
+  seqs[ma.size()]=NULL;
+  std::vector<std::string>::const_iterator x;
+  uint i=0;
+  for (x=ma.begin(); x!=ma.end(); ++x) {
+    assert(x->size()==length);
+    seqs[i] = new char[length+1];
+    strcpy(seqs[i++], x->c_str());
+  }
+
+  char* str2 = new char[length+1];
+  //int bk = Vienna::fold_constrained;
+  //if (!str.empty()) Vienna::fold_constrained=1;
+  // scaling parameters to avoid overflow
+  //strcpy(str2, str.c_str());
+  double min_en = Vienna::alifold(seqs, str2);
+  Vienna::free_alifold_arrays();
+  double kT = (Vienna::temperature+273.15)*1.98717/1000.; /* in Kcal */
+  Vienna::pf_scale = exp(-(1.07*min_en)/kT/length);
+  // build a base pair probablity matrix
+  //strcpy(str2, str.c_str());
+  Vienna::plist* pi;
+  Vienna::alipf_fold(seqs, str2, &pi);
+
+  // stochastic sampling
+  for (uint n=0; n!=num_samples; ++n) {
+    SCFG::CYKTable<uint> bp_pos(length, 0);
+    double prob=1;
+    char *str = Vienna::alipbacktrack(&prob);
+    //std::cout << s << std::endl << str << std::endl;
+    assert(length==strlen(str));
+    std::stack<uint> st;
+    for (uint i=0; i!=length; ++i) {
+      if (str[i]=='(') {
+	st.push(i);
+      } else if (str[i]==')') {
+	bp_pos(st.top(), i)++;
+	st.pop();
+      }
+    }
+    bp.push_back(encoder.execute(bp_pos));
+    free(str);
+  }
+
+  Vienna::free_alipf_arrays();
+  free(pi);
+  for (uint i=0; seqs[i]!=NULL; ++i) delete[] seqs[i];
+  //Vienna::fold_constrained = bk;
+  delete[] seqs;
+  delete[] str2;
+
+  return num_samples;
+}
+#endif
 #endif
 
 template < class U >
@@ -940,6 +1003,20 @@ stochastic_fold(const std::string& name, const std::string& consensus,
       }
       break;
     }
+#ifdef HAVE_VIENNA18
+    case ALIPFFOLD:
+    {
+      std::vector<std::string> aln(seq.size());
+      std::copy(seq.begin(), seq.end(), aln.begin());
+      for (uint i=0; i!=aln.size(); ++i)
+      {
+        std::replace(aln[i].begin(), aln[i].end(), 't', 'u');
+        std::replace(aln[i].begin(), aln[i].end(), 'T', 'U');
+      }
+      alipf_fold_st(num_samples, aln, bpvl);
+      break;
+    }
+#endif
 #endif
     case CONTRAFOLD:
     {
