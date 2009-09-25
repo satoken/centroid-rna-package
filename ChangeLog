@@ -1,0 +1,349 @@
+2009-09-25 02:47  sato-kengo
+
+	* src/centroid_fold.cpp:
+
+2009-09-23 16:37  sato-kengo
+
+	* src/Makefile.am, src/centroid_fold.cpp, src/centroid_fold.h,
+	  src/contrafold/InferenceEngine.ipp, src/contrafold/Makefile.am,
+	  src/contrafold/contrafold.h, src/contrafold/wrapper.cpp,
+	  src/naview.c, src/ps_plot.cpp, src/ps_plot.h:
+
+2009-09-23 09:58  sato-kengo
+
+	* src/centroid_fold.cpp, src/contrafold/InferenceEngine.hpp,
+	  src/contrafold/InferenceEngine.ipp, src/contrafold/LogSpace.hpp,
+	  src/contrafold/contrafold.h, src/contrafold/wrapper.cpp:
+
+2009-09-21 16:08  sato-kengo
+
+	* src/contrafold/InferenceEngine.hpp,
+	  src/contrafold/InferenceEngine.ipp, src/contrafold/contrafold.h,
+	  src/contrafold/wrapper.cpp:
+
+2009-09-20 16:26  sato-kengo
+
+	* configure.ac:
+
+2009-09-20 16:20  sato-kengo
+
+	* src/Makefile.am, src/centroid_fold.cpp, src/centroid_fold.h,
+	  src/contrafold, src/contrafold.h, src/contrafold/Config.hpp,
+	  src/contrafold/Defaults.ipp, src/contrafold/InferenceEngine.hpp,
+	  src/contrafold/InferenceEngine.ipp, src/contrafold/LogSpace.hpp,
+	  src/contrafold/Makefile.am, src/contrafold/ParameterManager.hpp,
+	  src/contrafold/ParameterManager.ipp, src/contrafold/SStruct.cpp,
+	  src/contrafold/SStruct.hpp, src/contrafold/Utilities.cpp,
+	  src/contrafold/Utilities.hpp, src/contrafold/Utilities.ipp,
+	  src/contrafold/contrafold.h, src/contrafold/wrapper.cpp,
+	  src/main.cpp:
+
+2009-08-20 13:50  sato-kengo
+
+	* contrafold_v2_02.patch, src/centroid_fold.cpp,
+	  src/centroid_fold.h, src/main.cpp: * add the option '--seed' for
+	  specifying the seed for the random number generator.
+
+2009-08-20 11:30  sato-kengo
+
+	* src/aln.cpp, src/centroid_fold.cpp: * bug fix in aln.cpp.
+
+2009-06-30 21:52  sato-kengo
+
+	* Makefile.am:
+
+2009-06-29 07:34  sato-kengo
+
+	* README.rd, configure.ac, src/Makefile.am, src/main.cpp: * fix
+	  cumulated bugs.
+	  * separate centroid_fold into two binaries: centroid_fold for a
+	  single sequence and centroid_alifold for a multiple alignment.
+
+2009-06-26 08:24  sato-kengo
+
+	* configure.ac, src/Makefile.am:
+
+2009-04-01 02:25  sato-kengo
+
+	* src/aln.cpp, src/centroid_fold.cpp: * the CLUSTAL parser was
+	  improved.
+
+2009-02-06 08:57  sato-kengo
+
+	* configure.ac, src/centroid_fold.cpp: * support the Vienna RNA
+	  package version 1.8 or above.
+
+2009-02-05 06:21  sato-kengo
+
+	* src/capi.cpp: * capi.cpp: support for deamon.
+
+2009-01-07 12:05  sato-kengo
+
+	* src/main.cpp: * add an option "--posteriors-output", which
+	  enables to output base-pairing probability matrices to a specfied
+	  file.
+
+2008-11-27 08:43  sato-kengo
+
+	* src/main.cpp:
+
+2008-11-25 12:57  sato-kengo
+
+	* contrafold_v2_02.patch, src/contrafold.h, src/log_prob.cpp:
+
+2008-11-25 10:35  sato-kengo
+
+	* src/log_prob.cpp:
+
+2008-11-25 09:51  sato-kengo
+
+	* contrafold_v2_02.patch, src/centroid_fold.cpp, src/contrafold.h:
+
+2008-11-04 01:35  sato-kengo
+
+	* src/centroid_fold.cpp, src/centroid_fold.h:
+
+2008-10-28 11:35  sato-kengo
+
+	* src/centroid_fold.cpp:
+
+2008-10-28 02:47  sato-kengo
+
+	* src/bp.cpp:
+
+2008-10-27 11:21  sato-kengo
+
+	* src/diana.h:
+
+2008-10-27 10:53  sato-kengo
+
+	* README.rd, contrafold_v2_02.patch, src/centroid_fold.cpp,
+	  src/centroid_fold.h, src/contrafold.h, src/main.cpp: * version
+	  0.0.5
+
+2008-10-27 05:19  sato-kengo
+
+	* contrafold_v2_02.patch:
+
+2008-10-27 01:34  sato-kengo
+
+	* src/Makefile.am, src/centroid.cpp, src/centroid_fold.cpp,
+	  src/centroid_fold.h, src/diana.cpp, src/diana.h, src/main.cpp:
+
+2008-10-24 06:33  sato-kengo
+
+	* README.rd, perl/centroid_fold.i, python/centroid_fold.i,
+	  ruby/centroid_fold.i, src/centroid_fold.cpp, src/centroid_fold.h:
+
+2008-10-23 13:55  sato-kengo
+
+	* Makefile.am, configure.ac, src/centroid_fold.cpp,
+	  src/centroid_fold.h, src/main.cpp:
+
+2008-10-22 11:32  sato-kengo
+
+	* README.rd, src/centroid_fold.cpp, src/centroid_fold.h,
+	  src/main.cpp:
+
+2008-10-22 07:27  sato-kengo
+
+	* src/bp.cpp, src/bp.h, src/centroid.cpp, src/centroid_fold.cpp,
+	  src/centroid_fold.h, src/cyktable.h, src/fa.cpp, src/main.cpp,
+	  src/mea.cpp, src/mea.h: * support predicting local stable
+	  structures.
+
+2008-10-21 16:39  sato-kengo
+
+	* src/bp.cpp, src/bp.h, src/centroid.cpp, src/centroid_fold.cpp:
+
+2008-10-21 15:19  sato-kengo
+
+	* src/centroid.cpp, src/centroid_fold.cpp, src/cyktable.h:
+
+2008-10-21 11:07  sato-kengo
+
+	* contrafold_v2_02.patch, src/bp.cpp, src/bp.h, src/centroid.cpp,
+	  src/centroid.h, src/centroid_fold.cpp, src/centroid_fold.h,
+	  src/contrafold.h, src/cyktable.h, src/main.cpp, src/mea.cpp:
+
+2008-10-21 01:48  sato-kengo
+
+	* src/bp.cpp, src/centroid.cpp, src/contrafold.h, src/cyktable.h:
+
+2008-10-20 10:36  sato-kengo
+
+	* contrafold_v2_02.patch:
+
+2008-10-20 09:44  sato-kengo
+
+	* contrafold_v2_02.patch:
+
+2008-10-20 06:00  sato-kengo
+
+	* src/bp.cpp, src/contrafold.h, src/main.cpp:
+
+2008-09-29 06:54  sato-kengo
+
+	* src/bp.cpp:
+
+2008-09-28 23:54  sato-kengo
+
+	* src/bp.cpp, src/bp.h, src/centroid_fold.cpp, src/cyktable.h,
+	  src/main.cpp:
+
+2008-09-28 03:28  sato-kengo
+
+	* contrafold_v2_02.patch, src/bp.cpp, src/bp.h, src/contrafold.h: *
+	  provide a patch for CONTRAfold v2.02
+
+2008-08-19 06:52  sato-kengo
+
+	* README.rd: * modify README.rd
+
+2008-07-30 08:24  sato-kengo
+
+	* src/contrafold_m.rb, src/main.cpp, src/simfold.rb,
+	  src/simfold_m.rb: * modify README.rd.
+	  * change the default gamma.
+	  * modify contrafold.rb and simfold.rb
+
+2008-07-30 01:16  sato-kengo
+
+	* README.rd, src/Makefile.am, src/contrafold.rb, src/main.cpp,
+	  src/simfold.rb:
+
+2008-07-29 11:40  sato-kengo
+
+	* README.rd, python/centroid_fold.i, python/test.py: * modify
+	  README.rd
+
+2008-07-17 06:10  yukiteruono
+
+	* deamon, deamon/Makefile.am, deamon/centroidfold_deamon.cpp,
+	  deamon/configure.ac: add deamon directory
+
+2008-07-15 07:25  sato-kengo
+
+	* src/capi.cpp, src/capi.h, src/centroid.cpp, src/centroid.h,
+	  src/centroid_fold.cpp, src/mea.cpp, src/mea.h: * modify
+	  capi.{cpp,h} to specify the weight parameter, gamma.
+	  * change the order of parameters for MEA::execute().
+
+2008-07-15 07:24  sato-kengo
+
+	* COPYING: * add COPYING
+
+2008-07-11 01:56  sato-kengo
+
+	* contrafold.patch, m4, m4/ac_cxx_have_stl.m4,
+	  m4/ac_cxx_namespace_std.m4, m4/ac_cxx_namespaces.m4,
+	  m4/ax_boost_program_options.m4, src/aln.cpp, src/aln.h,
+	  src/bp.cpp, src/bp.h, src/centroid.cpp, src/centroid.h,
+	  src/centroid_fold.cpp, src/centroid_fold.h, src/contrafold.h,
+	  src/cyktable.h, src/fa.cpp, src/fa.h, src/iupac.cpp, src/iupac.h,
+	  src/main.cpp, src/mea.cpp, src/mea.h, src/rule.h: * add the
+	  license declaration for all files.
+	  * add m4 scripts used in this package.
+
+2008-07-04 02:19  satoken
+
+	* src/aln.cpp, src/aln.h, src/fa.cpp, src/fa.h: \* Convert \'T\'
+	  into \'U\' automatically.
+
+2008-07-04 02:09  satoken
+
+	* ruby/Makefile, src/centroid_fold.cpp:
+
+2008-07-03 16:40  satoken
+
+	* contrafold.patch, src/Makefile.am:
+
+2008-07-03 16:08  satoken
+
+	* AUTHORS:
+
+2008-07-03 15:32  satoken
+
+	* Makefile.am, contrafold.patch, perl/README.rd,
+	  perl/centroid_fold.i, python/README.rd, python/test.py,
+	  ruby/Makefile, ruby/README.rd, src/bp.cpp, src/bp.h,
+	  src/contrafold.h: * change the default parameters for the
+	  CONTRAfold routine.
+
+2008-06-29 12:11  satoken
+
+	* Makefile.am, configure.ac, perl, perl/Makefile.PL,
+	  perl/centroid_fold.i, perl/test.pl, python,
+	  python/centroid_fold.i, python/setup.py, python/test.py, ruby,
+	  ruby/Makefile, ruby/centroid_fold.i, ruby/extconf.rb,
+	  ruby/test.rb, src/Makefile.am, src/centroid_fold.cpp,
+	  src/centroid_fold.h, src/main.cpp: * add bindings for perl, ruby
+	  and python with swig.
+
+2008-06-27 08:40  satoken
+
+	* src/capi.cpp, src/centroid.cpp, src/centroid.h,
+	  src/centroid_fold.cpp, src/mea.cpp, src/mea.h:
+
+2008-06-24 06:18  satoken
+
+	* configure.ac, src/capi.cpp, src/capi.h, src/centroid_fold.cpp,
+	  src/test.c:
+
+2008-06-21 05:46  satoken
+
+	* contrafold.patch, src/aln.cpp, src/contrafold.h, src/cyktable.h,
+	  src/iupac.cpp, src/iupac.h:
+
+2008-06-17 06:30  satoken
+
+	* README.rd, contrafold.patch, src/bp.cpp, src/bp.h, src/capi.cpp,
+	  src/capi.h, src/contrafold.h: * add the patch for CONTRAfold
+	  v2.00 which enables us to link CONTRAfold to centroid_fold.
+	  * provide C API.
+	  * reduce the number of the times of memory allocation.
+
+2008-06-16 10:44  satoken
+
+	* src/capi.cpp, src/capi.h, src/centroid_fold.cpp, src/test.c:
+
+2008-06-04 11:17  satoken
+
+	* src/centroid_fold.cpp:
+
+2008-06-04 11:12  satoken
+
+	* Makefile.am, README.rd, configure.ac, contrafold.patch,
+	  src/Makefile.am, src/bp.cpp, src/bp.h, src/centroid_fold.cpp,
+	  src/contrafold.h: * provide a patch for CONTRAfold v2.0.0, which
+	  makes it possible to link the routine for calculating
+	  base-pairing probabilities in CONTRAfold with CentroidFold.
+
+2008-05-09 05:06  satoken
+
+	* configure.ac, src/aln.cpp, src/aln.h, src/centroid_fold.cpp: *
+	  add the feature of drawing predicted secondary structures using
+	  drawing functions included in Vienna RNA package.
+
+2008-05-09 02:21  satoken
+
+	* src/centroid_fold.cpp:
+
+2008-03-22 18:14  satoken
+
+	* README.rd, src/contrafold.rb, src/contrafold_m.rb,
+	  src/simfold.rb, src/simfold_m.rb:
+
+2008-03-22 11:54  satoken
+
+	* Makefile.am, src/Makefile.am:
+
+2008-03-22 11:11  satoken
+
+	* ., Makefile.am, README.rd, configure.ac, src, src/Makefile.am,
+	  src/aln.cpp, src/aln.h, src/bp.cpp, src/bp.h, src/centroid.cpp,
+	  src/centroid.h, src/centroid_fold.cpp, src/contrafold.rb,
+	  src/contrafold_m.rb, src/cyktable.h, src/fa.cpp, src/fa.h,
+	  src/iupac.cpp, src/iupac.h, src/mea.cpp, src/mea.h, src/rule.h,
+	  src/simfold.rb, src/simfold_m.rb: * initial import
+

@@ -7,5 +7,5 @@ WriteMakefile(
         'CC'  => 'g++',
         'LD'  => 'g++',
 	'LIBS'    => ['-lRNA -lm'],                    # Name of custom libraries
-	'OBJECT'  => 'centroid_fold_wrap.o ../src/libcentroid.a ../src/libcontrafold.a '  # Object files
+	'OBJECT'  => 'centroid_fold_wrap.o ../src/libcentroid.a ../src/contrafold/libcontrafold.a '  # Object files
 );

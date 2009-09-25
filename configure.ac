@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(centroid_fold, 0.0.6, no-define)
+AC_INIT(centroid_fold, 0.0.7, no-define)
 AM_INIT_AUTOMAKE([-Wall foreign])
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR([src/centroid_fold.cpp])
@@ -30,6 +30,8 @@ dnl AC_CHECK_HEADER(boost/lambda/lambda.hpp, ,
 dnl                 AC_MSG_ERROR("boost/lambda/lambda.hpp is unavailable"))
 AC_CHECK_HEADER(boost/multi_array.hpp, ,
                 AC_MSG_ERROR("boost/multi_array.hpp is unavailable"))
+AC_CHECK_HEADER(boost/random.hpp, ,
+                AC_MSG_ERROR("boost/random.hpp is unavailable"))
 
 AX_BOOST_PROGRAM_OPTIONS
 if test "x$BOOST_PROGRAM_OPTIONS_LIB" != x; then
