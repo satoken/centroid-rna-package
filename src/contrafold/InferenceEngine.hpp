@@ -13,6 +13,7 @@
 #include "ParameterManager.hpp"
 #include "Utilities.hpp"
 #include "LogSpace.hpp"
+#include "rand.h"
 
 //////////////////////////////////////////////////////////////////////
 // class InferenceEngine
@@ -27,6 +28,7 @@ class InferenceEngine
     bool cache_initialized;
     ParameterManager<RealT> *parameter_manager;
     int max_bp_dist;
+    Die* die;
     
     // dimensions
     int L, SIZE;
@@ -308,6 +310,8 @@ public:
     std::vector<RealT> ComputeFeatureCountExpectations();
     void ComputePosterior();
     std::vector<int> PredictPairingsPosterior(const RealT gamma) const;
+
+    void InitRand(unsigned int seed);
     std::vector<int> PredictPairingsStochasticTraceback() const;
     std::vector<int> PredictPairingsStochasticTracebackM(const std::vector< std::vector<uint> >& idx,
                                                          const std::vector< std::vector<int> >& rev,

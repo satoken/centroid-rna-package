@@ -47,7 +47,7 @@ public:
 
   int max_bp_dist() const { return max_bp_dist_; }
 
-  static void init_rand(unsigned long seed);
+  void init_rand(unsigned long seed);
 
 private:
   Impl* impl_;
@@ -78,7 +78,7 @@ public:
 
   int max_bp_dist() const { return max_bp_dist_; }
 
-  static void init_rand(unsigned long seed);
+  void init_rand(unsigned long seed);
   
 private:
   Impl* impl_;

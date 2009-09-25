@@ -366,6 +366,7 @@ InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary, int max_bp_
     cache_initialized(false),
     parameter_manager(NULL),
     max_bp_dist(max_bp_dist),
+    die(NULL),
     L(0),
     SIZE(0)
 #if PROFILE
@@ -403,7 +404,9 @@ InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary, int max_bp_
 
 template<class RealT>
 InferenceEngine<RealT>::~InferenceEngine()
-{}
+{
+    if (die) delete die;
+}
 
 //////////////////////////////////////////////////////////////////////
 // InferenceEngine::RegisterParameters()
@@ -4953,18 +4956,12 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsPosterior(const RealT ga
     return solution;
 }
 
-double rand01()
-{
-    double genrand_real2(void);
-    return genrand_real2();
-}
-
 template < class T, class RealT >
 class Roulette
 {
 public:
-    Roulette()
-        : t_(), sum_(0.0)
+    Roulette(Die& die)
+        : t_(), sum_(0.0), die_(die)
     { }
         
     void add(T t, RealT v)
@@ -4976,7 +4973,7 @@ public:
     T choose() const
     {
         assert(sum_>0.0);
-        RealT r = rand01() * sum_;
+        RealT r = die_()*sum_;
         RealT s = 0.0;
         typename std::list< std::pair<T,RealT> >::const_iterator x;
         for (x=t_.begin(); x!=t_.end(); ++x)
@@ -4992,6 +4989,7 @@ public:
 private:
     std::list<std::pair<T,RealT> > t_;
     RealT sum_;
+    Die& die_;
 };
 
 
@@ -5029,7 +5027,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTraceback() co
             {
                 if (0 < i && j < L2 && allow_paired[offset[i]+j+1]) // ???
                 {
-                    Roulette<int,RealT> roulette;
+                    Roulette<int,RealT> roulette(*die);
                 
                     // compute ScoreHairpin(i,j)
                     if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
@@ -5103,7 +5101,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTraceback() co
             case ST_FM:
                 if (0 < i && i+2 <= j && j < L2) // ???
                 {
-                    Roulette<int,RealT> roulette;
+                    Roulette<int,RealT> roulette(*die);
 
                     // compute SUM (i<k<j : FM1[i,k] + FM[k,j]) 
                     for (int k=i+1; k < j; k++)
@@ -5155,7 +5153,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTraceback() co
             case ST_FM1:
                 if (0 < i && i+2 <= j && j < L2) // ???
                 {
-                    Roulette<int,RealT> roulette;
+                    Roulette<int,RealT> roulette(*die);
 
                     // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
                     if (allow_paired[offset[i+1]+j] && FCi[offset[i+1]+j-1]>NEG_INF)
@@ -5195,7 +5193,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTraceback() co
             case ST_F5:
                 if (j!=0)
                 {
-                    Roulette<int,RealT> roulette;
+                    Roulette<int,RealT> roulette(*die);
 
                     // compute F5[j-1] + ScoreExternalUnpaired()
                     if (allow_unpaired_position[j] && F5i[j-1]>NEG_INF)
@@ -5285,7 +5283,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
 #else
             case ST_FC:
             {
-                Roulette<std::pair<int,uint>,RealT> roulette;
+                Roulette<std::pair<int,uint>,RealT> roulette(*die);
                 for (uint r=0; r!=en.size(); ++r)
                 {
                     if (idx[r][i]==static_cast<uint>(-1) || idx[r][j]==static_cast<uint>(-1)) continue;
@@ -5384,7 +5382,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
 
             case ST_FM:
             {
-                Roulette<std::pair<int,uint>,RealT> roulette;
+                Roulette<std::pair<int,uint>,RealT> roulette(*die);
 
                 for (uint r=0; r!=en.size(); ++r)
                 {
@@ -5455,7 +5453,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
 
             case ST_FM1:
             {
-                Roulette<std::pair<int,uint>,RealT> roulette;
+                Roulette<std::pair<int,uint>,RealT> roulette(*die);
                 
                 for (uint r=0; r!=en.size(); ++r)
                 {
@@ -5514,7 +5512,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
 
             case ST_F5:
             {
-                Roulette<std::pair<int,uint>,RealT> roulette;
+                Roulette<std::pair<int,uint>,RealT> roulette(*die);
 
                 for (uint r=0; r!=en.size(); ++r)
                 {
@@ -5590,6 +5588,14 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
 
     return solution;
 }
+
+template<class RealT>
+void InferenceEngine<RealT>::InitRand(unsigned int seed)
+{
+    if (die) delete die;
+    die = new Die(seed);
+}
+
 
 //////////////////////////////////////////////////////////////////////
 // InferenceEngine::GetPosterior()

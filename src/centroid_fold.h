@@ -37,6 +37,8 @@ template < class RealT >
 class CONTRAfold;
 #endif
 
+typedef unsigned int uint;
+
 class CentroidFold
 {
 public:
@@ -50,10 +52,10 @@ public:
   };
   
 public:
-  CentroidFold(unsigned int engine,
+  CentroidFold(uint engine,
                bool run_as_mea=false,
-	       unsigned int reserved_size=0,
-               unsigned int seed=0);
+	       uint reserved_size=0,
+               uint seed=0);
   ~CentroidFold();
 
   void set_options_for_contrafold(const std::string& model, bool canonical_only, uint max_bp_dist);
@@ -82,29 +84,35 @@ public:
 
   void stochastic_fold(const std::string& name, const std::string& seq,
                        uint num_samples, uint max_clusters,
-                       const std::vector<float>& gamma, std::ostream& out);
+                       const std::vector<float>& gamma, std::ostream& out,
+                       const std::string& p_outname, float th);
   void stochastic_fold(const std::string& name, const std::string& consensus,
                        const std::vector<std::string>& seq,
                        uint num_samples, uint max_clusters,
-                       const std::vector<float>& gamma, std::ostream& out);
+                       const std::vector<float>& gamma, std::ostream& out,
+                       const std::string& p_outname, float th);
   void stochastic_fold(const std::string& name, const std::string& consensus,
                        const std::list<std::string>& seq,
                        uint num_samples, uint max_clusters,
-                       const std::vector<float>& gamma, std::ostream& out);
+                       const std::vector<float>& gamma, std::ostream& out,
+                       const std::string& p_outname, float th);
 
-  void ps_plot(const std::string& name, const std::string& seq, float g) const;
+  const BPTable& get_bp() const { return bp_; }
+
+  void ps_plot(const std::string& name, const std::string& seq, float g, bool color=true) const;
 #ifdef HAVE_LIBRNA
   void svg_plot(const std::string& name, const std::string& seq, float g) const;
 #endif
 
 private:
-  unsigned int engine_;
+  uint engine_;
   bool mea_;
   BPTable bp_;
   bool canonical_only_;
   CONTRAfold<float>* contrafold_;
   std::string model_;
   uint max_bp_dist_;
+  uint seed_;
 };
 
 #endif	// #ifndef __INC_CENTROID_FOLD_H__
