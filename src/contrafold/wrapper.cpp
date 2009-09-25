@@ -24,6 +24,7 @@ struct CONTRAfold<T>::Impl
   T ComputeLogPartitionCoefficient() const;
   T ComputeViterbi(const std::string& seq);
 
+  void InitRand(unsigned int seed) { engine_.InitRand(seed); }
   void PrepareStochasticTraceback(const std::string& seq);
   std::vector<int> StochasticTraceback() const;
 
@@ -109,7 +110,7 @@ void
 CONTRAfold<T>::
 init_rand(unsigned long seed)
 {
-  init_genrand(seed);
+  impl_->InitRand(seed);
 }
 
 template < class T >
@@ -288,6 +289,7 @@ struct CONTRAfoldM<T>::Impl
   //T ComputeLogPartitionCoefficient() const;
   //T ComputeViterbi(const std::string& seq);
 
+  void InitRand(unsigned int seed) { engine_.InitRand(seed); }
   void PrepareStochasticTraceback(const std::vector<std::string>& aln);
   std::vector<int> StochasticTraceback() const;
 
@@ -330,7 +332,7 @@ void
 CONTRAfoldM<T>::
 init_rand(unsigned long seed)
 {
-  init_genrand(seed);
+  impl_->InitRand(seed);
 }
 
 template < class T >

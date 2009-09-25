@@ -113,12 +113,12 @@ struct CountBP
     for (x=bp_.begin(); x!=bp_.end(); ++x) {
       if (i!=j && (**x)[p]) c++;
     }
-    table(i,j)=static_cast<double>(c)/bp_.size();
+    table.update(i, j, static_cast<double>(c)/bp_.size());
     p++;
   }
   
   const L& bp_;
-  SCFG::CYKTable<float> table;
+  CentroidFold::BPTable table;
   uint p;
 };
 
@@ -218,7 +218,7 @@ alipf_fold(T& bp, const std::list<std::string>& ma, const std::string& str="")
   delete[] seqs;
   delete[] str2;
 }
-#endif
+#endif  // HAVE_LIBRNA
 
 template < class T, class U >
 static
@@ -266,7 +266,6 @@ pf_fold_st(uint num_samples, const std::string& seq, std::list<BPvecPtr>& bp)
   for (uint n=0; n!=num_samples; ++n) {
     SCFG::CYKTable<uint> bp_pos(seq.size(), 0);
     char *str = Vienna::pbacktrack(const_cast<char*>(seq.c_str()));
-    //std::cout << s << std::endl << str << std::endl;
     assert(seq.size()==strlen(str));
     std::stack<uint> st;
     for (uint i=0; i!=seq.size(); ++i) {
@@ -304,7 +303,6 @@ pf_fold_st(uint num_samples, const std::string& seq, std::list<BPvecPtr>& bp,
   for (uint n=0; n!=num_samples; ++n) {
     SCFG::CYKTable<uint> bp_pos(sz, 0);
     char *str = Vienna::pbacktrack(const_cast<char*>(seq.c_str()));
-    //std::cout << s << std::endl << str << std::endl;
     assert(seq.size()==strlen(str));
     std::stack<uint> st;
     for (uint i=0; i!=seq.size(); ++i) {
@@ -316,6 +314,69 @@ pf_fold_st(uint num_samples, const std::string& seq, std::list<BPvecPtr>& bp,
       }
     }
     bp.push_back(encoder.execute(bp_pos));
+    free(str);
+  }
+
+  Vienna::st_back=bk_st_back;
+  Vienna::free_pf_arrays();
+
+  return num_samples;
+}
+
+static
+uint
+pf_fold_st(uint num_samples, const std::string& seq, std::ostream& out)
+{
+  int bk_st_back=Vienna::st_back;
+  Vienna::st_back=1;
+
+  Vienna::pf_scale = -1;
+  Vienna::init_pf_fold(seq.size());
+  Vienna::pf_fold(const_cast<char*>(seq.c_str()), NULL);
+
+  // stochastic sampling
+  for (uint n=0; n!=num_samples; ++n) {
+    char *str = Vienna::pbacktrack(const_cast<char*>(seq.c_str()));
+    assert(seq.size()==strlen(str));
+    out << str << std::endl;
+    free(str);
+  }
+
+  Vienna::st_back=bk_st_back;
+  Vienna::free_pf_arrays();
+
+  return num_samples;
+}
+
+static
+uint
+pf_fold_st(uint num_samples, const std::string& seq, std::ostream& out,
+           const std::vector<uint>& idxmap, uint sz)
+{
+  int bk_st_back=Vienna::st_back;
+  Vienna::st_back=1;
+
+  Vienna::pf_scale = -1;
+  Vienna::init_pf_fold(seq.size());
+  Vienna::pf_fold(const_cast<char*>(seq.c_str()), NULL);
+
+  // stochastic sampling
+  for (uint n=0; n!=num_samples; ++n) {
+    SCFG::CYKTable<uint> bp_pos(sz, 0);
+    std::string p(sz, '.');
+    char *str = Vienna::pbacktrack(const_cast<char*>(seq.c_str()));
+    assert(seq.size()==strlen(str));
+    std::stack<uint> st;
+    for (uint i=0; i!=seq.size(); ++i) {
+      if (str[i]=='(') {
+	st.push(i);
+      } else if (str[i]==')') {
+	p[idxmap[st.top()]] = '(';
+        p[idxmap[i]] = ')';
+	st.pop();
+      }
+    }
+    out << p << std::endl;
     free(str);
   }
 
@@ -386,8 +447,59 @@ alipf_fold_st(uint num_samples, const std::vector<std::string>& ma, std::list<BP
 
   return num_samples;
 }
-#endif
-#endif
+
+static
+uint
+alipf_fold_st(uint num_samples, const std::vector<std::string>& ma, std::ostream& out)
+{
+  // prepare an alignment
+  uint length = ma.front().size();
+  char** seqs = new char*[ma.size()+1];
+  seqs[ma.size()]=NULL;
+  std::vector<std::string>::const_iterator x;
+  uint i=0;
+  for (x=ma.begin(); x!=ma.end(); ++x) {
+    assert(x->size()==length);
+    seqs[i] = new char[length+1];
+    strcpy(seqs[i++], x->c_str());
+  }
+
+  char* str2 = new char[length+1];
+  //int bk = Vienna::fold_constrained;
+  //if (!str.empty()) Vienna::fold_constrained=1;
+  // scaling parameters to avoid overflow
+  //strcpy(str2, str.c_str());
+  double min_en = Vienna::alifold(seqs, str2);
+  Vienna::free_alifold_arrays();
+  double kT = (Vienna::temperature+273.15)*1.98717/1000.; /* in Kcal */
+  Vienna::pf_scale = exp(-(1.07*min_en)/kT/length);
+  // build a base pair probablity matrix
+  //strcpy(str2, str.c_str());
+  Vienna::plist* pi;
+  Vienna::alipf_fold(seqs, str2, &pi);
+
+  // stochastic sampling
+  for (uint n=0; n!=num_samples; ++n) {
+    SCFG::CYKTable<uint> bp_pos(length, 0);
+    double prob=1;
+    char *str = Vienna::alipbacktrack(&prob);
+    //std::cout << s << std::endl << str << std::endl;
+    assert(length==strlen(str));
+    out << str << std::endl;
+    free(str);
+  }
+
+  Vienna::free_alipf_arrays();
+  free(pi);
+  for (uint i=0; seqs[i]!=NULL; ++i) delete[] seqs[i];
+  //Vienna::fold_constrained = bk;
+  delete[] seqs;
+  delete[] str2;
+
+  return num_samples;
+}
+#endif  // HAVE_VIENNA18
+#endif  // HAVE_LIBRNA
 
 template < class U >
 static
@@ -434,59 +546,80 @@ contra_fold_st(uint num_samples, CONTRAfoldM<U>& cf, const std::vector<std::stri
 template < class U >
 static
 uint
-contra_fold_st(uint num_samples, CONTRAfold<U>& cf, const std::string& seq, std::list<BPvecPtr>& bp,
-               const std::vector<uint>& idxmap, uint sz)
+contra_fold_st(uint num_samples, CONTRAfold<U>& cf, const std::string& seq, std::ostream& out)
 {
-  EncodeBP encoder;
   cf.PrepareStochasticTraceback(seq);
   for (uint n=0; n!=num_samples; ++n) {
-    SCFG::CYKTable<uint> bp_pos(sz, 0);
+    std::string p(seq.size(), '.');
     std::vector<int> paren = cf.StochasticTraceback();
     for (uint i=0; i!=paren.size(); ++i) {
       if (paren[i]>int(i)) {
-        bp_pos(idxmap[i-1], idxmap[paren[i]-1])++;
+        p[i-1] = '(';
+        p[paren[i]-1] = ')';
       }
     }
-    bp.push_back(encoder.execute(bp_pos));
+    out << p << std::endl;
+  }
+
+  return num_samples;
+}
+
+template < class U >
+static
+uint
+contra_fold_st(uint num_samples, CONTRAfoldM<U>& cf, const std::vector<std::string>& aln, std::ostream& out)
+{
+  EncodeBP encoder;
+  cf.PrepareStochasticTraceback(aln);
+  for (uint n=0; n!=num_samples; ++n) {
+    std::string p(aln.front().size(), '.');
+    std::vector<int> paren = cf.StochasticTraceback();
+    for (uint i=0; i!=paren.size(); ++i) {
+      if (paren[i]>int(i)) {
+        p[i-1] = '(';
+        p[paren[i]-1] = ')';
+      }
+    }
+    out << p << std::endl;
   }
 
   return num_samples;
 }
 
 CentroidFold::
-CentroidFold(unsigned int engine,
+CentroidFold(uint engine,
              bool run_as_mea,
-             unsigned int reserved_size,
-             unsigned int seed)
+             uint reserved_size,
+             uint seed)
   : engine_(engine),
     mea_(run_as_mea),
     bp_(reserved_size),
     canonical_only_(true),
     contrafold_(NULL),
     model_(),
-    max_bp_dist_(0)
+    max_bp_dist_(0),
+    seed_(seed)
 {
-  if (seed==0)
+  if (seed_==0)
   {
 #if 0
-  time_t t;
-  time(&t);
-  seed = (unsigned int)t;
+    time_t t;
+    time(&t);
+    seed_ = (uint)t;
 #else
-  timeval t;
-  gettimeofday(&t, NULL);
-  seed = t.tv_usec * t.tv_sec;
+    timeval t;
+    gettimeofday(&t, NULL);
+    seed_ = t.tv_usec * t.tv_sec;
 #endif
   }
 #ifdef HAVE_LIBRNA
   using namespace Vienna;
   // copy from ViennaRNA-x.x.x/lib/utils.c
-  xsubi[0] = xsubi[1] = xsubi[2] = (unsigned short) seed;  /* lower 16 bit */
-  xsubi[1] += (unsigned short) ((unsigned)seed >> 6);
-  xsubi[2] += (unsigned short) ((unsigned)seed >> 12);
-#endif  
-  srand((unsigned int)seed);
-  CONTRAfold<float>::init_rand((unsigned int)seed);
+  xsubi[0] = xsubi[1] = xsubi[2] = (unsigned short) seed_;  /* lower 16 bit */
+  xsubi[1] += (unsigned short) ((unsigned)seed_ >> 6);
+  xsubi[2] += (unsigned short) ((unsigned)seed_ >> 12);
+#endif  // HAVE_LIBRNA
+  srand((uint)seed_);
 }
 
 CentroidFold::
@@ -861,7 +994,8 @@ static
 void
 stochastic_fold_helper(const std::string& name, const std::string& seq,
                        const std::vector<BPvecPtr>& bpv, uint max_clusters,
-                       const std::vector<float>& gamma, std::ostream& out)
+                       const std::vector<float>& gamma, std::ostream& out,
+                       const std::string& p_outname, float th)
 {    
   if (max_clusters>=2) {
     // calculate the distance matrix
@@ -900,6 +1034,13 @@ stochastic_fold_helper(const std::string& name, const std::string& seq,
         SCFG::Centroid::execute(count_bp.table, paren, *g);
         out << paren << " (g=" << *g << ",th=" << (1.0/(1.0+*g)) << ")" << std::endl;
       }
+
+      if (!p_outname.empty())
+      {
+        char buf[1024];
+        snprintf(buf, sizeof(buf), "%s-%d", p_outname.c_str(), i);
+        count_bp.table.save(buf, seq, th);
+      }
     }
   } else {
     CountBP< std::vector<BPvecPtr> > count_bp(bpv, seq.size());
@@ -920,7 +1061,8 @@ void
 CentroidFold::
 stochastic_fold(const std::string& name, const std::string& seq,
                 uint num_samples, uint max_clusters,
-                const std::vector<float>& gamma, std::ostream& out)
+                const std::vector<float>& gamma, std::ostream& out,
+                const std::string& p_outname, float th)
 {
   std::list<BPvecPtr> bpvl;
 
@@ -930,26 +1072,34 @@ stochastic_fold(const std::string& name, const std::string& seq,
   switch (engine_) {
 #ifdef HAVE_LIBRNA
   case PFFOLD:
-    pf_fold_st(num_samples, seq2, bpvl);
+    if (max_clusters>0)
+      pf_fold_st(num_samples, seq2, bpvl);
+    else
+      pf_fold_st(num_samples, seq2, out);
     break;
 #endif
   case CONTRAFOLD:
     if (contrafold_==NULL) {
       contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
       if (!model_.empty()) contrafold_->SetParameters(model_);
+      contrafold_->init_rand(seed_);
     }
-    contra_fold_st(num_samples, *contrafold_, seq2, bpvl);
+    if (max_clusters>0)
+      contra_fold_st(num_samples, *contrafold_, seq2, bpvl);
+    else
+      contra_fold_st(num_samples, *contrafold_, seq2, out);
     break;
   default:
     throw "not supported yet";
     break;
   }
 
-  std::vector<BPvecPtr> bpv(bpvl.size());
-  std::copy(bpvl.begin(), bpvl.end(), bpv.begin());
-  bpvl.clear();
-
-  stochastic_fold_helper(name, seq, bpv, max_clusters, gamma, out);
+  if (max_clusters>0) {
+    std::vector<BPvecPtr> bpv(bpvl.size());
+    std::copy(bpvl.begin(), bpvl.end(), bpv.begin());
+    bpvl.clear();
+    stochastic_fold_helper(name, seq, bpv, max_clusters, gamma, out, p_outname, th);
+  }
 }
 
 void
@@ -957,11 +1107,12 @@ CentroidFold::
 stochastic_fold(const std::string& name, const std::string& consensus,
                 const std::vector<std::string>& seq,
                 uint num_samples, uint max_clusters,
-                const std::vector<float>& gamma, std::ostream& out)
+                const std::vector<float>& gamma, std::ostream& out,
+                const std::string& p_outname, float th)
 {
   std::list<std::string> seq2(seq.size());
   std::copy(seq.begin(), seq.end(), seq2.begin());
-  stochastic_fold(name, consensus, seq2, num_samples, max_clusters, gamma, out);
+  stochastic_fold(name, consensus, seq2, num_samples, max_clusters, gamma, out, p_outname, th);
 }
 
 void
@@ -969,7 +1120,8 @@ CentroidFold::
 stochastic_fold(const std::string& name, const std::string& consensus,
                 const std::list<std::string>& seq,
                 uint num_samples, uint max_clusters,
-                const std::vector<float>& gamma, std::ostream& out)
+                const std::vector<float>& gamma, std::ostream& out,
+                const std::string& p_outname, float th)
 {
   std::list<BPvecPtr> bpvl;
 
@@ -999,7 +1151,10 @@ stochastic_fold(const std::string& name, const std::string& consensus,
           }
         }
         idxmap.resize(j);
-        pf_fold_st(num_samples, s, bpvl, idxmap, sz);
+        if (max_clusters>0)
+          pf_fold_st(num_samples, s, bpvl, idxmap, sz);
+        else
+          pf_fold_st(num_samples, s, out, idxmap, sz);
       }
       break;
     }
@@ -1013,7 +1168,10 @@ stochastic_fold(const std::string& name, const std::string& consensus,
         std::replace(aln[i].begin(), aln[i].end(), 't', 'u');
         std::replace(aln[i].begin(), aln[i].end(), 'T', 'U');
       }
-      alipf_fold_st(num_samples, aln, bpvl);
+      if (max_clusters>0)
+        alipf_fold_st(num_samples, aln, bpvl);
+      else
+        alipf_fold_st(num_samples, aln, out);
       break;
     }
 #endif
@@ -1022,6 +1180,7 @@ stochastic_fold(const std::string& name, const std::string& consensus,
     {
       CONTRAfoldM<float>* cf = new CONTRAfoldM<float>(canonical_only_, max_bp_dist_);
       if (!model_.empty()) cf->SetParameters(model_);
+      cf->init_rand(seed_);
       std::vector<std::string> aln(seq.size());
       std::copy(seq.begin(), seq.end(), aln.begin());
       for (uint i=0; i!=aln.size(); ++i)
@@ -1029,7 +1188,10 @@ stochastic_fold(const std::string& name, const std::string& consensus,
         std::replace(aln[i].begin(), aln[i].end(), 't', 'u');
         std::replace(aln[i].begin(), aln[i].end(), 'T', 'U');
       }
-      contra_fold_st(num_samples, *cf, aln, bpvl);
+      if (max_clusters>0)
+        contra_fold_st(num_samples, *cf, aln, bpvl);
+      else
+        contra_fold_st(num_samples, *cf, aln, out);
       delete cf;
       break;
     }
@@ -1038,29 +1200,25 @@ stochastic_fold(const std::string& name, const std::string& consensus,
       throw "not supported yet";
       break;
   }
-  
-  std::vector<BPvecPtr> bpv(bpvl.size());
-  std::copy(bpvl.begin(), bpvl.end(), bpv.begin());
-  bpvl.clear();
 
-  stochastic_fold_helper(name, consensus, bpv, max_clusters, gamma, out);
+  if (max_clusters>0) {
+    std::vector<BPvecPtr> bpv(bpvl.size());
+    std::copy(bpvl.begin(), bpvl.end(), bpv.begin());
+    bpvl.clear();
+    stochastic_fold_helper(name, consensus, bpv, max_clusters, gamma, out, p_outname, th);
+  }
 }
 
 void
 CentroidFold::
-ps_plot(const std::string& name, const std::string& seq, float g) const
+ps_plot(const std::string& name, const std::string& seq, float g, bool color) const
 {
   std::string paren;
   decode_structure(g, paren);
-  std::string fbase(name);
-  boost::algorithm::trim(fbase);
-  std::replace(boost::begin(fbase), boost::end(fbase), ' ', '_');
-  std::replace(boost::begin(fbase), boost::end(fbase), '/', '_');
-  if (fbase.empty()) fbase="rna";
-  char fname[100];
-  sscanf(fbase.c_str(), "%12s", fname);
-  strcat(fname, "_ss.ps");
-  ::ps_color_plot(seq.c_str(), paren.c_str(), bp_, fname);
+  if (color)
+    ::ps_color_plot(seq.c_str(), paren.c_str(), bp_, name.c_str());
+  else
+    ::ps_plot(seq.c_str(), paren.c_str(), name.c_str());
 }
 
 #ifdef HAVE_LIBRNA
@@ -1070,16 +1228,8 @@ svg_plot(const std::string& name, const std::string& seq, float g) const
 {
   std::string paren;
   decode_structure(g, paren);
-  std::string fbase(name);
-  boost::algorithm::trim(fbase);
-  std::replace(boost::begin(fbase), boost::end(fbase), ' ', '_');
-  std::replace(boost::begin(fbase), boost::end(fbase), '/', '_');
-  if (fbase.empty()) fbase="rna";
-  char fname[100];
-  sscanf(fbase.c_str(), "%12s", fname);
-  //Vienna::rna_plot_type=0;
-  strcat(fname, "_ss.svg");
   Vienna::svg_rna_plot(const_cast<char*>(seq.c_str()),
-		       const_cast<char*>(paren.c_str()), fname);
+		       const_cast<char*>(paren.c_str()),
+                       const_cast<char*>(name.c_str()));
 }
 #endif

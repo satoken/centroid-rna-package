@@ -31,6 +31,7 @@
 #include <cassert>
 #include <boost/program_options.hpp>
 #include <boost/range.hpp>
+#include <boost/algorithm/string.hpp>
 #include "centroid_fold.h"
 #include "iupac.h"
 #include "mea.h"
@@ -40,6 +41,18 @@
 
 namespace po = boost::program_options;
 
+void
+make_filename_from_seqname(std::string& fname, const std::string& seqname, const char* suffix)
+{
+  fname=seqname;
+  boost::algorithm::trim(fname);
+  std::replace(fname.begin(), fname.end(), ' ', '_');
+  std::replace(fname.begin(), fname.end(), '/', '_');
+  if (fname.empty()) fname="rna";
+  fname.erase(12);
+  fname += suffix;
+}
+
 int
 centroid_fold_main(int argc, char* argv[])
 {
@@ -48,6 +61,8 @@ centroid_fold_main(int argc, char* argv[])
   std::vector<std::string> model;
   float p_th=0.0;
   std::string p_outname;
+  std::string outname;
+  std::string ps_outname;
   uint max_bp_dist;
   std::string param;
   uint max_clusters;
@@ -58,44 +73,50 @@ centroid_fold_main(int argc, char* argv[])
   po::options_description desc("Options");
   desc.add_options()
     ("help,h", "show this message")
-    ("gamma,g",
-     po::value<std::vector<float> >(&gamma),
-     "weight of base pairs")
+    ("gamma,g", po::value<std::vector<float> >(&gamma), "weight of base pairs")
     ("mea", "run as an MEA estimator")
+    ("noncanonical", "allow non-canonical base-pairs")
+    ("aux", "use auxiliary base-pairing probabilities")
+    ("constraints,C", "use structure constraints")
+    ("output,o", po::value<std::string>(&outname),
+     "specify filename to output predicted secondary structures. If empty, use the standard output.")
+    ("posteriors", po::value<float>(&p_th),
+     "output base-pairing probability matrices which contain base-pairing probabilities more than the given value.")
+    ("posteriors-output", po::value<std::string>(&p_outname),
+     "specify filename to output base-pairing probability matrices. If empty, use the standard output.")
+    ("postscript", po::value<std::string>(&ps_outname),
+     "draw predicted secondary structures with the postscript (PS) format")
+    ("monochrome", "draw the postscript with monochrome");
+
+  po::options_description opts_contrafold("Options for CONTRAfold model");
+  opts_contrafold.add_options()
 #ifdef HAVE_LIBRNA
-    ("pf_fold", "use pf_fold base-pairing probabilities")
+    ("pf_fold", "use pf_fold base-pairing probabilities rather than those of CONTRAfold model")
 #endif
+    ("params", po::value<std::string>(&param), "use the parameter file")
+    ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
+     "the maximum distance of base-pairs");
+
+  po::options_description opts_sampling("Options for sampling");
+  opts_sampling.add_options()
     ("sampling", 
      po::value<uint>(&num_samples),
-     "use the stochastic sampling algorithm. "
-     "Specify the number of samples to be generated for each sequence")
+     "specify the number of samples to be generated for each sequence")
     ("max-clusters,c",
      po::value<uint>(&max_clusters)->default_value(10),
      "the maximum number of clusters for the stochastic sampling algorithm")
     ("seed",
      po::value<uint>(&seed)->default_value(0),
-      "Specify the seed for the random number generator (set this automatically if seed=0)")
-    ("noncanonical", "allow non-canonical base-pairs")
-    ("params", po::value<std::string>(&param), "use the parameter file (for CONTRAfold model)")
-    ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
-      "the maximum distance of base-pairs")
-    ("aux", "use auxiliary base-pairing probabilities")
-    ("constraints,C", "use structure constraints")
-    ("posteriors", po::value<float>(&p_th),
-     "output base-pairing probability matrices which contain base-pairing probabilities more than the given value.")
-    ("posteriors-output", po::value<std::string>(&p_outname),
-      "specify filename to output base-pairing probability matrices. If empty, use the standard output.")
-#ifdef HAVE_LIBRNA
-    ("ps", "draw predicted secondary structures with the postscript (PS) format")
-    ("svg", "draw predicted secondary structures with the scalable vector graphics (SVG) format")
-#endif
-    ;
+     "specify the seed for the random number generator (set this automatically if seed=0)");
+  
   po::options_description opts("Options");
   opts.add_options()
     ("seq-file", po::value<std::string>(&input), "training sequence filename")
     ("model-file", po::value<std::vector<std::string> >(&model), "model filename");
 
   opts.add(desc);
+  opts.add(opts_contrafold);
+  opts.add(opts_sampling);
   po::positional_options_description pd;
   pd.add("seq-file", 1); pd.add("model-file", -1);
   po::parsed_options parsed =
@@ -118,7 +139,9 @@ centroid_fold_main(int argc, char* argv[])
 	      << "Usage:" << std::endl
 	      << " " << argv[0]
 	      << " [options] seq [bp_matrix ...]\n\n"
-	      << desc << std::endl;
+	      << desc << std::endl
+              << opts_contrafold << std::endl
+              << opts_sampling << std::endl;
     return 1;
   }
 
@@ -169,8 +192,20 @@ centroid_fold_main(int argc, char* argv[])
     break;
   }
 
+  std::ostream* out = &std::cout;
+  if (vm.count("output"))
+  {
+    out = new std::ofstream(outname.c_str());
+    if (out->fail())
+    {
+      perror(outname.c_str());
+      delete out;
+      return 1;
+    }
+  }
+
   std::ostream* p_out = &std::cout;
-  if (vm.count("posteriors") && vm.count("posteriors-output"))
+  if (vm.count("posteriors") && vm.count("posteriors-output") && !vm.count("sampling"))
   {
     p_out = new std::ofstream(p_outname.c_str());
     if (p_out->fail())
@@ -182,12 +217,14 @@ centroid_fold_main(int argc, char* argv[])
   }
 
   Fasta fa;
+  uint n=0;
   while (fa.load(fi))
   {
+    n++;
     if (vm.count("sampling"))
     {
       cf.stochastic_fold(fa.name(), fa.seq(), num_samples, max_clusters,
-                         gamma, std::cout);
+                         gamma, *out, p_outname, p_th);
       continue;
     }
     if (!vm.count("aux"))
@@ -214,12 +251,20 @@ centroid_fold_main(int argc, char* argv[])
       bp.load(model[0].c_str());
       cf.calculate_posterior(fa.seq(), bp);
     }
-    cf.print(std::cout, fa.name(), fa.seq(), gamma);
+    cf.print(*out, fa.name(), fa.seq(), gamma);
     if (vm.count("posteriors")) cf.print_posterior(*p_out, fa.seq(), p_th);
-    if (vm.count("ps")) cf.ps_plot(fa.name(), fa.seq(), gamma[0]);
-    if (vm.count("svg")) cf.svg_plot(fa.name(), fa.seq(), gamma[0]);
+    if (!ps_outname.empty())
+    {
+      char buf[PATH_MAX];
+      if (n==1)
+        strncpy(buf, ps_outname.c_str(), sizeof(buf));
+      else
+        snprintf(buf, sizeof(buf), "%s-%d", ps_outname.c_str(), n-1);
+      cf.ps_plot(std::string(buf), fa.seq(), gamma[0], !vm.count("monochrome"));
+    }
   }
 
+  if (out != &std::cout) delete out;
   if (p_out != &std::cout) delete p_out;
 
   return 0;
@@ -233,6 +278,8 @@ centroid_alifold_main(int argc, char* argv[])
   std::vector<std::string> model;
   float p_th=0.0;
   std::string p_outname;
+  std::string outname;
+  std::string ps_outname;
   uint max_bp_dist;
   std::string param;
   uint max_clusters;
@@ -243,45 +290,51 @@ centroid_alifold_main(int argc, char* argv[])
   po::options_description desc("Options");
   desc.add_options()
     ("help,h", "show this message")
-    ("gamma,g",
-     po::value<std::vector<float> >(&gamma),
-     "weight of base pairs")
+    ("gamma,g", po::value<std::vector<float> >(&gamma), "weight of base pairs")
     ("mea", "run as an MEA estimator")
+    ("noncanonical", "allow non-canonical base-pairs")
+    ("aux", "use auxiliary base-pairing probabilities")
+    ("constraints,C", "use structure constraints")
+    ("output,o", po::value<std::string>(&outname),
+     "specify filename to output predicted secondary structures. If empty, use the standard output.")
+    ("posteriors", po::value<float>(&p_th),
+     "output base-pairing probability matrices which contain base-pairing probabilities more than the given value.")
+    ("posteriors-output", po::value<std::string>(&p_outname),
+     "specify filename to output base-pairing probability matrices. If empty, use the standard output.")
+    ("postscript", po::value<std::string>(&ps_outname),
+     "draw predicted secondary structures with the postscript (PS) format")
+    ("monochrome", "draw the postscript with monochrome");
+
+  po::options_description opts_contrafold("Options for CONTRAfold model");
+  opts_contrafold.add_options()
 #ifdef HAVE_LIBRNA
-    ("alipf_fold", "use alipf_fold base-pairing probabilities")
-    ("pf_fold", "use pf_fold base-pairing probabilities")
+    ("alipf_fold", "use alipf_fold base-pairing probabilities rather than those of CONTRAfold model")
+    ("pf_fold", "use pf_fold base-pairing probabilities rather than those of CONTRAfold model")
 #endif
+    ("params", po::value<std::string>(&param), "use the parameter file")
+    ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
+     "the maximum distance of base-pairs");
+
+  po::options_description opts_sampling("Options for sampling");
+  opts_sampling.add_options()
     ("sampling", 
      po::value<uint>(&num_samples),
-     "use the stochastic sampling algorithm. "
-     "Specify the number of samples to be generated for each sequence")
+     "specify the number of samples to be generated for each sequence")
     ("max-clusters,c",
      po::value<uint>(&max_clusters)->default_value(10),
      "the maximum number of clusters for the stochastic sampling algorithm")
     ("seed",
      po::value<uint>(&seed)->default_value(0),
-      "Specify the seed for the random number generator (set this automatically if seed=0)")
-    ("noncanonical", "allow non-canonical base-pairs")
-    ("params", po::value<std::string>(&param), "use the parameter file (for CONTRAfold model)")
-    ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
-      "the maximum distance of base-pairs")
-    ("aux", "use auxiliary base-pairing probabilities")
-    ("constraints,C", "use structure constraints")
-    ("posteriors", po::value<float>(&p_th),
-     "output base-pairing probability matrices which contain base-pairing probabilities more than the given value.")
-    ("posteriors-output", po::value<std::string>(&p_outname),
-      "specify filename to output base-pairing probability matrices. If empty, use the standard output.")
-#ifdef HAVE_LIBRNA
-    ("ps", "draw predicted secondary structures with the postscript (PS) format")
-    ("svg", "draw predicted secondary structures with the scalable vector graphics (SVG) format")
-#endif
-    ;
+     "specify the seed for the random number generator (set this automatically if seed=0)");
+
   po::options_description opts("Options");
   opts.add_options()
     ("seq-file", po::value<std::string>(&input), "training sequence filename")
     ("model-file", po::value<std::vector<std::string> >(&model), "model filename");
 
   opts.add(desc);
+  opts.add(opts_contrafold);
+  opts.add(opts_sampling);
   po::positional_options_description pd;
   pd.add("seq-file", 1); pd.add("model-file", -1);
   po::parsed_options parsed =
@@ -304,7 +357,9 @@ centroid_alifold_main(int argc, char* argv[])
 	      << "Usage:" << std::endl
 	      << " " << argv[0]
 	      << " [options] seq [bp_matrix ...]\n\n"
-	      << desc << std::endl;
+	      << desc << std::endl
+              << opts_contrafold << std::endl
+              << opts_sampling << std::endl;
     return 1;
   }
 
@@ -355,8 +410,20 @@ centroid_alifold_main(int argc, char* argv[])
     break;
   }
 
+  std::ostream* out = &std::cout;
+  if (vm.count("output"))
+  {
+    out = new std::ofstream(outname.c_str());
+    if (out->fail())
+    {
+      perror(outname.c_str());
+      delete out;
+      return 1;
+    }
+  }
+
   std::ostream* p_out = &std::cout;
-  if (vm.count("posteriors") && vm.count("posteriors-output"))
+  if (vm.count("posteriors") && vm.count("posteriors-output") && !vm.count("sampling"))
   {
     p_out = new std::ofstream(p_outname.c_str());
     if (p_out->fail())
@@ -368,13 +435,16 @@ centroid_alifold_main(int argc, char* argv[])
   }
 
   Aln aln;
+  uint n=0;
   while (aln.load(fi))
   {
+    n++;
+
     if (vm.count("sampling"))
     {
       cf.stochastic_fold(aln.name().front(), aln.consensus(),
                          aln.seq(), num_samples, max_clusters,
-                         gamma, std::cout);
+                         gamma, *out, p_outname, p_th);
       continue;
     }
     if (vm.count("aux"))
@@ -409,12 +479,20 @@ centroid_alifold_main(int argc, char* argv[])
       }
     }
       
-    cf.print(std::cout, aln.name().front(), aln.consensus(), gamma);
+    cf.print(*out, aln.name().front(), aln.consensus(), gamma);
     if (vm.count("posteriors")) cf.print_posterior(*p_out, aln.consensus(), p_th);
-    if (vm.count("ps")) cf.ps_plot(aln.name().front(), aln.consensus(), gamma[0]);
-    if (vm.count("svg")) cf.svg_plot(aln.name().front(), aln.consensus(), gamma[0]);
+    if (!ps_outname.empty())
+    {
+      char buf[PATH_MAX];
+      if (n==1)
+        strncpy(buf, ps_outname.c_str(), sizeof(buf));
+      else
+        snprintf(buf, sizeof(buf), "%s-%d", ps_outname.c_str(), n-1);
+      cf.ps_plot(std::string(buf), aln.consensus(), gamma[0], !vm.count("monochrome"));
+    }
   }
 
+  if (out != &std::cout) delete out;
   if (p_out != &std::cout) delete p_out;
 
   return 0;

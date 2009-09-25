@@ -38,7 +38,7 @@ namespace SCFG
     public:
       Table() : bp_(), q_(), size_(0) { }
       
-      Table(uint sz, uint max_dist=0) : bp_(sz), q_(sz), size_(0)
+      Table(uint sz, uint max_dist=0) : bp_(sz), q_(sz), size_(sz)
       {
 	reserve(sz, max_dist);
       }
