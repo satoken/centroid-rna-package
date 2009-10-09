@@ -68,12 +68,21 @@ centroid_fold_main(int argc, char* argv[])
   uint max_clusters;
   uint num_samples;
   uint seed;
-  
+  //
+  int num_ea_samples = -1;
+  int max_mcc = -1;
+
   // parse command line options
   po::options_description desc("Options");
   desc.add_options()
     ("help,h", "show this message")
     ("gamma,g", po::value<std::vector<float> >(&gamma), "weight of base pairs")
+    //
+    ("ea", po::value<int>(&num_ea_samples), 
+     "compute (pseudo-)expected accuracy (pseudo if arg==0, sampling if arg>0; arg: # of sampling)")
+    ("max-mcc", po::value<int>(&max_mcc), 
+     "predict secondary structure by maximizing pseudo-expected MCC (arg: # of sampling)")
+    // added by M. Hamada
     ("mea", "run as an MEA estimator")
     ("noncanonical", "allow non-canonical base-pairs")
     ("aux", "use auxiliary base-pairing probabilities")
@@ -181,7 +190,7 @@ centroid_fold_main(int argc, char* argv[])
     return 1;
   }
 
-  CentroidFold cf(engine, vm.count("mea"), 0, seed);
+  CentroidFold cf(engine, vm.count("mea"), num_ea_samples, 0, seed);
   switch (engine) {
 #ifdef HAVE_LIBRNA
   case CentroidFold::PFFOLD:
@@ -223,6 +232,10 @@ centroid_fold_main(int argc, char* argv[])
   while (fa.load(fi))
   {
     n++;
+    if (max_mcc > 0) {
+      cf.max_mcc_fold (fa.name(), fa.seq(), max_mcc, *out);
+      continue;
+    }    
     if (vm.count("sampling"))
     {
       cf.stochastic_fold(fa.name(), fa.seq(), num_samples, max_clusters,

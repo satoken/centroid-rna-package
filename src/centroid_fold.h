@@ -54,6 +54,7 @@ public:
 public:
   CentroidFold(uint engine,
                bool run_as_mea=false,
+	       int num_ea_samples=-1,
 	       uint reserved_size=0,
                uint seed=0);
   ~CentroidFold();
@@ -99,6 +100,15 @@ public:
 
   const BPTable& get_bp() const { return bp_; }
 
+  // added by M. Hamada
+  void max_mcc_fold(const std::string& name, const std::string& seq, uint num_samples, std::ostream& out);
+  static void compute_expected_accuracy (const std::string& paren, 
+					 const BPTable& bp,
+					 double& sen, double& ppv, double& mcc);
+  void compute_expected_accuracy_sampling (const std::string& paren, const std::string& seq,
+					   uint num_samples,
+					   double& sen, double& ppv, double& mcc) const;
+
   void ps_plot(const std::string& name, const std::string& seq, float g, bool color=true) const;
 #ifdef HAVE_LIBRNA
   void svg_plot(const std::string& name, const std::string& seq, float g) const;
@@ -107,6 +117,7 @@ public:
 private:
   uint engine_;
   bool mea_;
+  int num_ea_samples_; // for computing expected accuracies
   BPTable bp_;
   bool canonical_only_;
   CONTRAfold<float>* contrafold_;
