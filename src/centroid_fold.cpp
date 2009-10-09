@@ -759,7 +759,7 @@ calculate_posterior(const std::list<std::string>& seq)
     std::list<std::vector<uint> > idxmaps;
     BPTable::convert_to_raw_sequences(seq2, seqs, idxmaps);
     uint i;
-    std::list<std::string>::const_iterator x;
+    //std::list<std::string>::const_iterator x;
     for (x=seqs.begin(), i=0; x!=seqs.end(); ++x, ++i) {
       BPTablePtr bpi(new BPTable);
       switch (engine_) {
@@ -840,7 +840,7 @@ calculate_posterior(const std::list<std::string>& seq, const std::string& str)
       }
     }
 
-    std::list<std::string>::const_iterator x;
+    //std::list<std::string>::const_iterator x;
     std::list<std::vector<uint> >::const_iterator y;
     for (x=seqs.begin(), y=idxmaps.begin(); x!=seqs.end(); ++x, ++y) {
       // map the consensus structure for constraints
