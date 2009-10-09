@@ -183,10 +183,12 @@ centroid_fold_main(int argc, char* argv[])
 
   CentroidFold cf(engine, vm.count("mea"), 0, seed);
   switch (engine) {
+#ifdef HAVE_LIBRNA
   case CentroidFold::PFFOLD:
   case CentroidFold::ALIPFFOLD:
     cf.set_options_for_pf_fold(!vm.count("noncanonical"), max_bp_dist);
     break;
+#endif
   case CentroidFold::CONTRAFOLD:
     cf.set_options_for_contrafold(param, !vm.count("noncanonical"), max_bp_dist);
     break;
@@ -401,10 +403,12 @@ centroid_alifold_main(int argc, char* argv[])
 
   CentroidFold cf(engine, vm.count("mea"), 0, seed);
   switch (engine) {
+#ifdef HAVE_LIBRNA
   case CentroidFold::PFFOLD:
   case CentroidFold::ALIPFFOLD:
     cf.set_options_for_pf_fold(!vm.count("noncanonical"), max_bp_dist);
     break;
+#endif
   case CentroidFold::CONTRAFOLD:
     cf.set_options_for_contrafold(param, !vm.count("noncanonical"), max_bp_dist);
     break;
