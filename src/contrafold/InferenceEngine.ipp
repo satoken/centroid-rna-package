@@ -4992,8 +4992,6 @@ private:
     Die& die_;
 };
 
-#define expf(a) Fast_Exp(a)
-
 // stochastic traceback algorithm
 template<class RealT>
 std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTraceback() const
@@ -5018,241 +5016,262 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTraceback() co
         switch (t.first)
         {
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
-            case ST_FC:
-                break;
-            case ST_FE:
-                break;
-            case ST_FN:
-                break;
+        case ST_FC:
+            break;
+        case ST_FE:
+            break;
+        case ST_FN:
+            break;
 #else
-            case ST_FC:
+        case ST_FC:
+        {
+            if (0 < i && j < L2 && allow_paired[offset[i]+j+1]) // ???
             {
-                if (0 < i && j < L2 && allow_paired[offset[i]+j+1]) // ???
+                Roulette<int,RealT> roulette(*die);
+                RealT outside = FCo[offset[i]+j] - Z;
+                
+                // compute ScoreHairpin(i,j)
+                if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
+                    roulette.add(EncodeTraceback(TB_FC_HAIRPIN,0), Fast_Exp(outside + ScoreHairpin(i,j)));
+                
+                // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
+#if 1 //!FAST_SINGLE_BRANCH_LOOPS
+                for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
-                    Roulette<int,RealT> roulette(*die);
-                    RealT outside = FCo[offset[i]+j] - Z;
-                
-                    // compute ScoreHairpin(i,j)
-                    if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
-                        roulette.add(EncodeTraceback(TB_FC_HAIRPIN,0), expf(outside + ScoreHairpin(i,j)));
-                
-                    // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
+                    if (p > i && !allow_unpaired_position[p]) break;
+                    int q_min = std::max(p+2,p-i+j-C_MAX_SINGLE_LENGTH);
+                    for (int q = j; q >= q_min; q--)
+                    {
+                        if (q < j && !allow_unpaired_position[q+1]) break;
+                        if (!allow_paired[offset[p+1]+q]) continue;
+
+                        if (p == i && q == j)
+                        {
+                            roulette.add(EncodeTraceback(TB_FC_SINGLE,(p-i)*(C_MAX_SINGLE_LENGTH+1)+j-q),
+                                         Fast_Exp(outside + ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) +
+                                                  FCi[offset[p+1]+q-1]));
+                        }
+                        else
+                        {
+                            roulette.add(EncodeTraceback(TB_FC_SINGLE,(p-i)*(C_MAX_SINGLE_LENGTH+1)+j-q),
+                                         Fast_Exp(outside + ScoreSingle(i,j,p,q) + FCi[offset[p+1]+q-1]));
+                        }
+                    }
+                }
+#else
+                {
+                    RealT score_helix = (i+2 <= j ? outside + ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : 0);
+                    RealT score_other = outside + ScoreJunctionB(i,j);
+                    
                     for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                     {
                         if (p > i && !allow_unpaired_position[p]) break;
                         int q_min = std::max(p+2,p-i+j-C_MAX_SINGLE_LENGTH);
+                        const RealT *FCptr = &(FCi[offset[p+1]-1]);
                         for (int q = j; q >= q_min; q--)
                         {
                             if (q < j && !allow_unpaired_position[q+1]) break;
                             if (!allow_paired[offset[p+1]+q]) continue;
-
+                            
                             if (p == i && q == j)
                             {
-                                //if (FCi[offset[p+1]+q-1]>NEG_INF)
-                                    roulette.add(EncodeTraceback(TB_FC_SINGLE,(p-i)*(C_MAX_SINGLE_LENGTH+1)+j-q),
-                                                 expf(outside + ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) +
-                                                      FCi[offset[p+1]+q-1]));
+                                RealT value = Fast_Exp(score_helix + FCptr[q]);
+                                cache_score_single[0][0].second += value;
+                                roulette.add(EncodeTraceback(TB_FC_SINGLE,(p-i)*(C_MAX_SINGLE_LENGTH+1)+j-q), value);
                             }
                             else
                             {
-                                //if (FCi[offset[p+1]+q-1]>NEG_INF)
-                                    roulette.add(EncodeTraceback(TB_FC_SINGLE,(p-i)*(C_MAX_SINGLE_LENGTH+1)+j-q),
-                                                 expf(outside + ScoreSingle(i,j,p,q) + FCi[offset[p+1]+q-1]));
+                                RealT value = Fast_Exp(score_other + cache_score_single[p-i][j-q].first +
+                                                       FCptr[q] + ScoreBasePair(p+1,q) + 
+                                                       ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
+                                cache_score_single[p-i][j-q].second += value;
+                                roulette.add(EncodeTraceback(TB_FC_SINGLE,(p-i)*(C_MAX_SINGLE_LENGTH+1)+j-q), value);
                             }
                         }
                     }
-
-                    // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
-                    for (int k=i+1; k < j; k++)
-                    {
-                        //if (FM1i[offset[i]+k]>NEG_INF && FMi[offset[k]+j]>NEG_INF)
-                        {
-                            RealT FM2i = FM1i[offset[i]+k] + FMi[offset[k]+j];
-                            RealT val = expf(outside + FM2i + ScoreJunctionA(i,j) +
-                                             ScoreMultiPaired() + ScoreMultiBase());
-                            roulette.add(EncodeTraceback(TB_FC_BIFURCATION, k), val);
-                        }
-                    }
-
-                    // choose
-                    std::pair<int,int> traceback = DecodeTraceback(roulette.choose());
-                    switch (traceback.first)
-                    {
-                        case TB_FC_HAIRPIN: 
-                            break;
-                        case TB_FC_SINGLE: 
-                        {
-                            const int p = i + traceback.second / (C_MAX_SINGLE_LENGTH+1);
-                            const int q = j - traceback.second % (C_MAX_SINGLE_LENGTH+1);
-                            solution[p+1] = q;
-                            solution[q] = p+1;
-                            traceback_queue.push(make_triple(int(ST_FC), p+1, q-1));
-                        }
-                        break;
-                        case TB_FC_BIFURCATION:
-                        {
-                            const int k = traceback.second;
-                            traceback_queue.push(make_triple(int(ST_FM1), i, k));
-                            traceback_queue.push(make_triple(int(ST_FM), k, j));
-                        }
-                        break;
-                    }
-                } else { assert(!"unreachable"); }
-            } 
-            break;
+                }
 #endif
-
-            case ST_FM:
-                if (0 < i && i+2 <= j && j < L2) // ???
+                // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
+                for (int k=i+1; k < j; k++)
                 {
-                    RealT outside = FMo[offset[i]+j] - Z;
-                    Roulette<int,RealT> roulette(*die);
+                    RealT FM2i = FM1i[offset[i]+k] + FMi[offset[k]+j];
+                    RealT val = Fast_Exp(outside + FM2i + ScoreJunctionA(i,j) + ScoreMultiPaired() + ScoreMultiBase());
+                    roulette.add(EncodeTraceback(TB_FC_BIFURCATION, k), val);
+                }
 
-                    // compute SUM (i<k<j : FM1[i,k] + FM[k,j]) 
-                    for (int k=i+1; k < j; k++)
-                    {
-                        //if (FM1i[offset[i]+k]>NEG_INF && FMi[offset[k]+j]>NEG_INF)
-                        {
-                            RealT FM2i = FM1i[offset[i]+k] + FMi[offset[k]+j];
-                            roulette.add(EncodeTraceback(TB_FM_BIFURCATION, k), expf(outside + FM2i));
-                        }
-                    }
-
-                    // compute FM[i,j-1] + b
-                    if (allow_unpaired_position[j] /*&& FMi[offset[i]+j-1]>NEG_INF*/)
-                    {
-                        roulette.add(EncodeTraceback(TB_FM_UNPAIRED,0),
-                                     expf(outside + FMi[offset[i]+j-1] + ScoreMultiUnpaired(j)));
-                    }
-
-                    // compute FM1[i,j]
-                    //if (FM1i[offset[i]+j]>NEG_INF)
-                        roulette.add(EncodeTraceback(TB_FM_FM1,0), expf(outside + FM1i[offset[i]+j]));
-
-                    // choose
-                    std::pair<int,int> traceback = DecodeTraceback(roulette.choose());
-                    switch (traceback.first)
-                    {
-                        case TB_FM_BIFURCATION:
-                        {
-                            const int k = traceback.second;
-                            traceback_queue.push(make_triple(int(ST_FM1), i, k));
-                            traceback_queue.push(make_triple(int(ST_FM), k, j));
-                        }
-                        break;
-                        case TB_FM_UNPAIRED:
-                        {
-                            traceback_queue.push(make_triple(int(ST_FM), i, j-1));
-                        }
-                        break;
-                        case TB_FM_FM1: 
-                        {
-                            traceback_queue.push(make_triple(int(ST_FM1), i, j));
-                        }
-                        break;
-                    }
-                
-                } else { assert(!"unreachable"); }
-                break;
-
-            case ST_FM1:
-                if (0 < i && i+2 <= j && j < L2) // ???
+                // choose
+                std::pair<int,int> traceback = DecodeTraceback(roulette.choose());
+                switch (traceback.first)
                 {
-                    Roulette<int,RealT> roulette(*die);
-
-                    // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
-                    if (allow_paired[offset[i+1]+j] /*&& FCi[offset[i+1]+j-1]>NEG_INF*/)
-                    {
-                        RealT value = expf(FCi[offset[i+1]+j-1] + ScoreJunctionA(j,i) +
-                                           ScoreMultiPaired() + ScoreBasePair(i+1,j) - Z);
-                        roulette.add(EncodeTraceback(TB_FM1_PAIRED, 0), value);
-                    }
-                
-                    // compute FM1[i+1,j] + b
-                    if (allow_unpaired_position[i+1] /*&& FM1i[offset[i+1]+j]>NEG_INF*/)
-                    {
-                        roulette.add(EncodeTraceback(TB_FM1_UNPAIRED,0),
-                                     expf(FM1i[offset[i+1]+j] + ScoreMultiUnpaired(i+1) - Z));
-                    }
-
-                    // choose
-                    std::pair<int,int> traceback = DecodeTraceback(roulette.choose());
-                    switch (traceback.first)
-                    {
-                        case TB_FM1_PAIRED:
-                        {
-                            solution[i+1] = j;
-                            solution[j] = i+1;
-                            traceback_queue.push(make_triple(int(ST_FC), i+1, j-1));
-                        }
-                        break;
-                        case TB_FM1_UNPAIRED:
-                        {
-                            traceback_queue.push(make_triple(int(ST_FM1), i+1, j));
-                        }
-                        break;
-                    }
-                } else { assert(!"unreachable"); }
-                break;
-
-            case ST_F5:
-                if (j!=0)
+                case TB_FC_HAIRPIN: 
+                    break;
+                case TB_FC_SINGLE: 
                 {
-                    RealT outside = F5o[j] - Z;
-                    Roulette<int,RealT> roulette(*die);
-
-                    // compute F5[j-1] + ScoreExternalUnpaired()
-                    if (allow_unpaired_position[j] /*&& F5i[j-1]>NEG_INF*/)
-                    {
-                        roulette.add(EncodeTraceback(TB_F5_UNPAIRED,0),
-                                     expf(outside + F5i[j-1] + ScoreExternalUnpaired(j)));
-                    }
-        
-                    // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
-                    int l = max_bp_dist==0 ? 0 : std::max(0,j-max_bp_dist);
-                    for (int k = l; k < j; k++)
-                    {
-                        if (allow_paired[offset[k+1]+j] /*&& F5i[k]>NEG_INF && FCi[offset[k+1]+j-1]>NEG_INF*/)
-                        {
-                            RealT value = expf(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() +
-                                               ScoreBasePair(k+1,j) + ScoreJunctionA(j,k));
-                            roulette.add(EncodeTraceback(TB_F5_BIFURCATION,k), value);
-                        }      
-                    }
-
-                    // choose
-                    std::pair<int,int> traceback = DecodeTraceback(roulette.choose());
-                    switch (traceback.first)
-                    {
-                        case TB_F5_ZERO:
-                            break;
-                        case TB_F5_UNPAIRED:
-                        {
-                            traceback_queue.push(make_triple(int(ST_F5), 0, j-1));
-                        }
-                        break;
-                        case TB_F5_BIFURCATION:
-                        {
-                            const int k = traceback.second;
-                            solution[k+1] = j;
-                            solution[j] = k+1;
-                            traceback_queue.push(make_triple(int(ST_F5), 0, k));
-                            traceback_queue.push(make_triple(int(ST_FC), k+1, j-1));
-                        }
-                        break;
-                    }
+                    const int p = i + traceback.second / (C_MAX_SINGLE_LENGTH+1);
+                    const int q = j - traceback.second % (C_MAX_SINGLE_LENGTH+1);
+                    solution[p+1] = q;
+                    solution[q] = p+1;
+                    traceback_queue.push(make_triple(int(ST_FC), p+1, q-1));
                 }
                 break;
-
-            default:
+                case TB_FC_BIFURCATION:
+                {
+                    const int k = traceback.second;
+                    traceback_queue.push(make_triple(int(ST_FM1), i, k));
+                    traceback_queue.push(make_triple(int(ST_FM), k, j));
+                }
                 break;
+                }
+            } else { assert(!"unreachable"); }
+        } 
+        break;
+#endif
+
+        case ST_FM:
+            if (0 < i && i+2 <= j && j < L2) // ???
+            {
+                RealT outside = FMo[offset[i]+j] - Z;
+                Roulette<int,RealT> roulette(*die);
+
+                // compute SUM (i<k<j : FM1[i,k] + FM[k,j]) 
+                for (int k=i+1; k < j; k++)
+                {
+                    RealT FM2i = FM1i[offset[i]+k] + FMi[offset[k]+j];
+                    roulette.add(EncodeTraceback(TB_FM_BIFURCATION, k), Fast_Exp(outside + FM2i));
+                }
+
+                // compute FM[i,j-1] + b
+                if (allow_unpaired_position[j])
+                {
+                    roulette.add(EncodeTraceback(TB_FM_UNPAIRED,0),
+                                 Fast_Exp(outside + FMi[offset[i]+j-1] + ScoreMultiUnpaired(j)));
+                }
+
+                // compute FM1[i,j]
+                roulette.add(EncodeTraceback(TB_FM_FM1,0), Fast_Exp(outside + FM1i[offset[i]+j]));
+
+                // choose
+                std::pair<int,int> traceback = DecodeTraceback(roulette.choose());
+                switch (traceback.first)
+                {
+                case TB_FM_BIFURCATION:
+                {
+                    const int k = traceback.second;
+                    traceback_queue.push(make_triple(int(ST_FM1), i, k));
+                    traceback_queue.push(make_triple(int(ST_FM), k, j));
+                }
+                break;
+                case TB_FM_UNPAIRED:
+                {
+                    traceback_queue.push(make_triple(int(ST_FM), i, j-1));
+                }
+                break;
+                case TB_FM_FM1: 
+                {
+                    traceback_queue.push(make_triple(int(ST_FM1), i, j));
+                }
+                break;
+                }
+                
+            } else { assert(!"unreachable"); }
+            break;
+
+        case ST_FM1:
+            if (0 < i && i+2 <= j && j < L2) // ???
+            {
+                Roulette<int,RealT> roulette(*die);
+
+                // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
+                if (allow_paired[offset[i+1]+j])
+                {
+                    RealT value = Fast_Exp(FM1o[offset[i]+j] + FCi[offset[i+1]+j-1] + ScoreJunctionA(j,i) +
+                                           ScoreMultiPaired() + ScoreBasePair(i+1,j) - Z);
+                    roulette.add(EncodeTraceback(TB_FM1_PAIRED, 0), value);
+                }
+                
+                // compute FM1[i+1,j] + b
+                if (allow_unpaired_position[i+1])
+                {
+                    roulette.add(EncodeTraceback(TB_FM1_UNPAIRED,0),
+                                 Fast_Exp(FM1o[offset[i]+j] + FM1i[offset[i+1]+j] + ScoreMultiUnpaired(i+1) - Z));
+                }
+
+                // choose
+                std::pair<int,int> traceback = DecodeTraceback(roulette.choose());
+                switch (traceback.first)
+                {
+                case TB_FM1_PAIRED:
+                {
+                    solution[i+1] = j;
+                    solution[j] = i+1;
+                    traceback_queue.push(make_triple(int(ST_FC), i+1, j-1));
+                }
+                break;
+                case TB_FM1_UNPAIRED:
+                {
+                    traceback_queue.push(make_triple(int(ST_FM1), i+1, j));
+                }
+                break;
+                }
+            } else { assert(!"unreachable"); }
+            break;
+
+        case ST_F5:
+            if (j!=0)
+            {
+                Roulette<int,RealT> roulette(*die);
+                RealT outside = F5o[j] - Z;
+
+                // compute F5[j-1] + ScoreExternalUnpaired()
+                if (allow_unpaired_position[j])
+                {
+                    roulette.add(EncodeTraceback(TB_F5_UNPAIRED,0),
+                                 Fast_Exp(outside + F5i[j-1] + ScoreExternalUnpaired(j)));
+                }
+        
+                // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
+                int l = max_bp_dist==0 ? 0 : std::max(0,j-max_bp_dist);
+                for (int k = l; k < j; k++)
+                {
+                    if (allow_paired[offset[k+1]+j])
+                    {
+                        RealT value = Fast_Exp(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() +
+                                               ScoreBasePair(k+1,j) + ScoreJunctionA(j,k));
+                        roulette.add(EncodeTraceback(TB_F5_BIFURCATION,k), value);
+                    }      
+                }
+
+                // choose
+                std::pair<int,int> traceback = DecodeTraceback(roulette.choose());
+                switch (traceback.first)
+                {
+                case TB_F5_ZERO:
+                    break;
+                case TB_F5_UNPAIRED:
+                {
+                    traceback_queue.push(make_triple(int(ST_F5), 0, j-1));
+                }
+                break;
+                case TB_F5_BIFURCATION:
+                {
+                    const int k = traceback.second;
+                    solution[k+1] = j;
+                    solution[j] = k+1;
+                    traceback_queue.push(make_triple(int(ST_F5), 0, k));
+                    traceback_queue.push(make_triple(int(ST_FC), k+1, j-1));
+                }
+                break;
+                }
+            }
+            break;
+
+        default:
+            break;
         }
     }
 
     return solution;
 }
-
-#undef expf
 
 // stochastic traceback algorithm for multiple alignments
 template<class RealT>
