@@ -25,6 +25,21 @@ AC_ARG_WITH([reserve], AS_HELP_STRING([--with-reserve],[the length of seqeunces 
     ]
 )
 
+# debug option
+AC_ARG_ENABLE([debug], AS_HELP_STRING([--enable-debug], [turn on debugging (default: off)]))
+if test "$enable_debug" == "yes"; then
+  CFLAGS="-DDEBUG $CFLAGS"
+  CXXFLAGS="-DDEBUG $CXXFLAGS"
+else
+  CFLAGS="-DNDEBUG $CFLAGS"
+  CXXFLAGS="-DNDEBUG $CXXFLAGS"
+fi
+
+AC_ARG_ENABLE([mersenne-twister], AS_HELP_STRING([--enable-mersenne-twister], [use Mersenne Twister as a random number generator (default: on)]))
+if test "$enable_mersenne_twister" == "no"; then
+   AC_DEFINE([STD_RAND], [1], [use the standard random number generator instead of Mersenne Twister])
+fi
+
 # boost libraries
 dnl AC_CHECK_HEADER(boost/lambda/lambda.hpp, ,
 dnl                 AC_MSG_ERROR("boost/lambda/lambda.hpp is unavailable"))
