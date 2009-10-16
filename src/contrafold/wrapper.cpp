@@ -7,8 +7,6 @@
 #include "Defaults.ipp"
 #include "contrafold.h"
 
-extern "C" { void init_genrand(unsigned long s); }
-
 template < class T > 
 struct CONTRAfold<T>::Impl
 {
@@ -260,6 +258,7 @@ PrepareStochasticTraceback(const std::string& seq)
     engine_.UseConstraints(s->GetMapping());
   engine_.LoadValues(w_);
   engine_.ComputeInside();
+  engine_.ComputeOutside();
   delete s;
 }
 
