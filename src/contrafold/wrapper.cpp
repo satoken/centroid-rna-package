@@ -258,7 +258,7 @@ PrepareStochasticTraceback(const std::string& seq)
     engine_.UseConstraints(s->GetMapping());
   engine_.LoadValues(w_);
   engine_.ComputeInside();
-  engine_.ComputeOutside();
+  //engine_.ComputeOutside();
   delete s;
 }
 
