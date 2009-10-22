@@ -414,7 +414,7 @@ centroid_alifold_main(int argc, char* argv[])
     return 1;
   }
 
-  CentroidFold cf(engine, vm.count("mea"), 0, seed);
+  CentroidFold cf(engine, vm.count("mea"), -1, seed);
   switch (engine) {
 #ifdef HAVE_LIBRNA
   case CentroidFold::PFFOLD:
