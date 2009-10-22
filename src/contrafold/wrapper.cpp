@@ -407,7 +407,7 @@ PrepareStochasticTraceback(const std::vector<std::string>& aln)
     en_[i]->LoadSequence(s);
     en_[i]->LoadValues(w_);
     en_[i]->ComputeInside();
-    en_[i]->ComputeOutside();
+    //en_[i]->ComputeOutside();
   }
 }
 
