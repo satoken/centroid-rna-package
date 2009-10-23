@@ -41,22 +41,11 @@
 
 namespace po = boost::program_options;
 
-void
-make_filename_from_seqname(std::string& fname, const std::string& seqname, const char* suffix)
-{
-  fname=seqname;
-  boost::algorithm::trim(fname);
-  std::replace(fname.begin(), fname.end(), ' ', '_');
-  std::replace(fname.begin(), fname.end(), '/', '_');
-  if (fname.empty()) fname="rna";
-  fname.erase(12);
-  fname += suffix;
-}
-
 int
 centroid_fold_main(int argc, char* argv[])
 {
   std::vector<float> gamma;
+  std::vector<float> th;
   std::string input;
   std::vector<std::string> model;
   float p_th=0.0;
@@ -77,6 +66,8 @@ centroid_fold_main(int argc, char* argv[])
   desc.add_options()
     ("help,h", "show this message")
     ("gamma,g", po::value<std::vector<float> >(&gamma), "weight of base pairs")
+    ("threshold,t", po::value<std::vector<float> >(&th),
+     "thereshold of base pairs (this option overwrites 'gamma')")
     //
     ("ea", po::value<int>(&num_ea_samples), 
      "compute (pseudo-)expected accuracy (pseudo if arg==0, sampling if arg>0; arg: # of sampling)")
@@ -128,13 +119,18 @@ centroid_fold_main(int argc, char* argv[])
   opts.add(opts_sampling);
   po::positional_options_description pd;
   pd.add("seq-file", 1); pd.add("model-file", -1);
-  po::parsed_options parsed =
-    po::command_line_parser(argc, argv).options(opts).positional(pd).run();
   po::variables_map vm;
-  po::store(parsed, vm);
-  po::notify(vm);
+  bool usage=false;
+  try {
+    po::parsed_options parsed =
+      po::command_line_parser(argc, argv).options(opts).positional(pd).run();
+    po::store(parsed, vm);
+    po::notify(vm);
+  } catch (...) {
+    usage=true;
+  }
 
-  if (vm.count("help") || !vm.count("seq-file") ||
+  if (usage || vm.count("help") || !vm.count("seq-file") ||
       (vm.count("aux") && model.empty()))
   {
     std::string features("aux files");
@@ -158,6 +154,13 @@ centroid_fold_main(int argc, char* argv[])
   if (vm.count("aux")) engine = CentroidFold::AUX;
   if (vm.count("pf_fold")) engine = CentroidFold::PFFOLD;
   if (vm.count("alipf_fold")) engine = CentroidFold::ALIPFFOLD;
+
+  if (th.size()>0)
+  {
+    gamma.resize(th.size());
+    for (uint i=0; i!=th.size(); ++i)
+      gamma[i] = 1.0/th[i]-1.0;
+  }
 
   if (gamma.size()==1 && gamma[0]<0.0)
   {
@@ -289,6 +292,7 @@ int
 centroid_alifold_main(int argc, char* argv[])
 {
   std::vector<float> gamma;
+  std::vector<float> th;
   std::string input;
   std::vector<std::string> model;
   float p_th=0.0;
@@ -300,12 +304,23 @@ centroid_alifold_main(int argc, char* argv[])
   uint max_clusters;
   uint num_samples;
   uint seed;
+  //
+  int num_ea_samples = -1;
+  //int max_mcc = -1;
   
   // parse command line options
   po::options_description desc("Options");
   desc.add_options()
     ("help,h", "show this message")
     ("gamma,g", po::value<std::vector<float> >(&gamma), "weight of base pairs")
+    ("threshold,t", po::value<std::vector<float> >(&th),
+     "thereshold of base pairs (this option overwrites 'gamma')")
+    //
+    ("ea", po::value<int>(&num_ea_samples), 
+     "compute (pseudo-)expected accuracy (pseudo if arg==0, sampling if arg>0; arg: # of sampling)")
+    //("max-mcc", po::value<int>(&max_mcc), 
+    // "predict secondary structure by maximizing pseudo-expected MCC (arg: # of sampling)")
+    // added by M. Hamada
     ("mea", "run as an MEA estimator")
     ("noncanonical", "allow non-canonical base-pairs")
     ("aux", "use auxiliary base-pairing probabilities")
@@ -352,13 +367,18 @@ centroid_alifold_main(int argc, char* argv[])
   opts.add(opts_sampling);
   po::positional_options_description pd;
   pd.add("seq-file", 1); pd.add("model-file", -1);
-  po::parsed_options parsed =
-    po::command_line_parser(argc, argv).options(opts).positional(pd).run();
   po::variables_map vm;
-  po::store(parsed, vm);
-  po::notify(vm);
+  bool usage=false;
+  try {
+    po::parsed_options parsed =
+      po::command_line_parser(argc, argv).options(opts).positional(pd).run();
+    po::store(parsed, vm);
+    po::notify(vm);
+  } catch (...) {
+    usage=true;
+  }
 
-  if (vm.count("help") || !vm.count("seq-file") ||
+  if (usage || vm.count("help") || !vm.count("seq-file") ||
       (vm.count("aux") && model.empty()))
   {
     std::string features("aux files");
@@ -366,7 +386,7 @@ centroid_alifold_main(int argc, char* argv[])
 #ifdef HAVE_LIBRNA
     features += ", McCaskill model";
 #endif
-    std::cout << "CentroidFold v" << VERSION 
+    std::cout << "CentroidAlifold v" << VERSION 
 	      << " for predicting RNA secondary structures" << std::endl
 	      << "  (enabled features: " << features << ")" << std::endl
 	      << "Usage:" << std::endl
@@ -382,6 +402,13 @@ centroid_alifold_main(int argc, char* argv[])
   if (vm.count("aux")) engine = CentroidFold::AUX;
   if (vm.count("pf_fold")) engine = CentroidFold::PFFOLD;
   if (vm.count("alipf_fold")) engine = CentroidFold::ALIPFFOLD;
+
+  if (th.size()>0)
+  {
+    gamma.resize(th.size());
+    for (uint i=0; i!=th.size(); ++i)
+      gamma[i] = 1.0/th[i]-1.0;
+  }
 
   if (gamma.size()==1 && gamma[0]<0.0)
   {
@@ -414,7 +441,7 @@ centroid_alifold_main(int argc, char* argv[])
     return 1;
   }
 
-  CentroidFold cf(engine, vm.count("mea"), -1, seed);
+  CentroidFold cf(engine, vm.count("mea"), num_ea_samples>=0 ? 0 : -1, seed);
   switch (engine) {
 #ifdef HAVE_LIBRNA
   case CentroidFold::PFFOLD:
@@ -496,7 +523,7 @@ centroid_alifold_main(int argc, char* argv[])
       }
     }
       
-    cf.print(*out, aln.name().front(), aln.consensus(), gamma);
+    cf.print(*out, aln, gamma);
     if (vm.count("posteriors")) cf.print_posterior(*p_out, aln.consensus(), p_th);
     if (!ps_outname.empty())
     {
