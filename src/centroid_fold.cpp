@@ -47,6 +47,7 @@
 #ifdef HAVE_LIBRNA
 namespace Vienna {
 extern "C" {
+#include <ViennaRNA/fold.h>
 #include <ViennaRNA/fold_vars.h>
 #include <ViennaRNA/part_func.h>
 #include <ViennaRNA/alifold.h>
@@ -54,6 +55,7 @@ extern "C" {
 #include <ViennaRNA/PS_dot.h>
 #include <ViennaRNA/aln_util.h>
 #include <ViennaRNA/utils.h>
+  extern int eos_debug;
   extern int   st_back;
 };
 };
@@ -956,34 +958,195 @@ decode_structure(float gamma) const
   return std::make_pair(paren, p);
 }
 
+struct Result
+{
+  Result(float g_, float sen_, float ppv_, float mcc_, float ea_, float e_,
+         const std::string& paren_)
+    : g(g_), sen(sen_), ppv(ppv_), mcc(mcc_), ea(ea_), e(e_), paren(paren_)
+  { }
+
+  float g;
+  float sen;
+  float ppv;
+  float mcc;
+  float ea;
+  float e;
+  std::string paren;
+};
+
+struct cmp_by_mcc
+{
+  bool operator()(const Result& x, const Result& y) const
+  {
+    return x.paren!=y.paren ? x.mcc>y.mcc : x.g<y.g;
+  }
+};
+
 void
 CentroidFold::
 print(std::ostream& out, const std::string& name, const std::string& seq,
       const std::vector<float>& gamma) const
 {
-  out << ">" << name << std::endl << seq << std::endl;
-  std::vector<float>::const_iterator g;
-  for (g=gamma.begin(); g!=gamma.end(); ++g) {
-    std::string paren;
-    float p = decode_structure(*g, paren);
-    // Added by M. Hamada (2009/08/18)
-    double sen = 0.0; double ppv = 0.0; double mcc = 0.0;
-    if (num_ea_samples_==0) 
-      compute_expected_accuracy (paren, bp_, sen, ppv, mcc);
-    else if (num_ea_samples_>0) 
-      compute_expected_accuracy_sampling (paren, seq, num_ea_samples_, sen, ppv, mcc);
-    //
-    out << paren;
-    if (!mea_)
-      out << " (g=" << *g << ",th=" << (1.0/(1.0+*g)) << ")";
-    else
-      out << " (g=" << *g << ",EA=" << p << ")";
-    // Added by M. Hamada (2009/08/18)
-    if (num_ea_samples_>=0) {
-      out << " [" << "SEN=" << sen << ",PPV=" << ppv <<  ",MCC=" << mcc << "]";
+#ifdef HAVE_LIBRNA
+  Vienna::eos_debug = -1;
+#endif
+  if (num_ea_samples_>=0)
+  {
+    std::vector<Result> res;
+    std::vector<float>::const_iterator g;
+    for (g=gamma.begin(); g!=gamma.end(); ++g) {
+      std::string paren;
+      float p = decode_structure(*g, paren);
+      double sen = 0.0, ppv = 0.0, mcc = 0.0;
+      if (num_ea_samples_==0) 
+        compute_expected_accuracy (paren, bp_, sen, ppv, mcc);
+      else if (num_ea_samples_>0) 
+        compute_expected_accuracy_sampling (paren, seq, num_ea_samples_, sen, ppv, mcc);
+      float e=0;
+#ifdef HAVE_LIBRNA
+      e = Vienna::energy_of_struct(seq.c_str(), paren.c_str());
+#endif
+      res.push_back(Result(*g, sen, ppv, mcc, p, e, paren));
     }
-    //
-    out << std::endl;
+    std::sort(res.begin(), res.end(), cmp_by_mcc());
+
+    std::string prev_paren;
+    out << ">" << name << std::endl << seq << std::endl;
+    std::vector<Result>::const_iterator r;
+    for (r=res.begin(); r!=res.end(); ++r) {
+      if (prev_paren!=r->paren) {
+        out << r->paren;
+        if (!mea_) {
+          out << " (g=" << r->g << ",th=" << (1.0/(1.0+r->g));
+#ifdef HAVE_LIBRNA
+          out << ",e=" << r->e;
+#endif
+          out << ")";
+        } else {
+          out << " (g=" << r->g << ",EA=" << r->ea;
+#ifdef HAVE_LIBRNA
+          out << ",e=" << r->e;
+#endif
+          out << ")";
+        }
+        if (num_ea_samples_>=0) {
+          out << " [" << "SEN=" << r->sen << ",PPV=" << r->ppv <<  ",MCC=" << r->mcc << "]";
+        }
+        out << std::endl;
+        prev_paren = r->paren;
+      }
+    }
+  }
+  else
+  {
+    out << ">" << name << std::endl << seq << std::endl;
+    std::vector<float>::const_iterator g;
+    for (g=gamma.begin(); g!=gamma.end(); ++g) {
+      std::string paren;
+      float p = decode_structure(*g, paren);
+      out << paren;
+#ifdef HAVE_LIBRNA
+      float e = Vienna::energy_of_struct(seq.c_str(), paren.c_str());
+#endif
+      if (!mea_) {
+        out << " (g=" << *g << ",th=" << (1.0/(1.0+*g));
+#ifdef HAVE_LIBRNA
+        out << ",e=" << e;
+#endif
+        out  << ")";
+      } else {
+        out << " (g=" << *g << ",EA=" << p;
+#ifdef HAVE_LIBRNA
+        out << ",e=" << e;
+#endif
+        out << ")";
+      }
+      out << std::endl;
+    }
+  }
+}
+
+void
+CentroidFold::
+print(std::ostream& out, const Aln& aln, const std::vector<float>& gamma) const
+{
+#ifdef HAVE_LIBRNA
+  Vienna::eos_debug = -1;
+#endif
+  if (num_ea_samples_>=0)
+  {
+    std::vector<Result> res;
+    std::vector<float>::const_iterator g;
+    for (g=gamma.begin(); g!=gamma.end(); ++g) {
+      std::string paren;
+      float p = decode_structure(*g, paren);
+      double sen = 0.0, ppv = 0.0, mcc = 0.0;
+      if (num_ea_samples_==0) 
+        compute_expected_accuracy (paren, bp_, sen, ppv, mcc);
+      else if (num_ea_samples_>0)
+        assert(!"not implemented yet");
+        //compute_expected_accuracy_sampling (paren, seq, num_ea_samples_, sen, ppv, mcc);
+      float e=0;
+#ifdef HAVE_LIBRNA
+      e = aln.energy_of_struct(paren);
+#endif
+      res.push_back(Result(*g, sen, ppv, mcc, p, e, paren));
+    }
+    std::sort(res.begin(), res.end(), cmp_by_mcc());
+
+    std::string prev_paren;
+    out << ">" << aln.name().front() << std::endl << aln.consensus() << std::endl;
+    std::vector<Result>::const_iterator r;
+    for (r=res.begin(); r!=res.end(); ++r) {
+      if (prev_paren!=r->paren) {
+        out << r->paren;
+        if (!mea_) {
+          out << " (g=" << r->g << ",th=" << (1.0/(1.0+r->g));
+#ifdef HAVE_LIBRNA
+          out << ",e=" << r->e;
+#endif
+          out << ")";
+        } else {
+          out << " (g=" << r->g << ",EA=" << r->ea;
+#ifdef HAVE_LIBRNA
+          out << ",e=" << r->e;
+#endif
+          out << ")";
+        }
+        if (num_ea_samples_>=0) {
+          out << " [" << "SEN=" << r->sen << ",PPV=" << r->ppv <<  ",MCC=" << r->mcc << "]";
+        }
+        out << std::endl;
+        prev_paren = r->paren;
+      }
+    }
+  }
+  else
+  {
+    out << ">" << aln.name().front() << std::endl << aln.consensus() << std::endl;
+    std::vector<float>::const_iterator g;
+    for (g=gamma.begin(); g!=gamma.end(); ++g) {
+      std::string paren;
+      float p = decode_structure(*g, paren);
+      out << paren;
+#ifdef HAVE_LIBRNA
+      float e = aln.energy_of_struct(paren);
+#endif
+      if (!mea_) {
+        out << " (g=" << *g << ",th=" << (1.0/(1.0+*g));
+#ifdef HAVE_LIBRNA
+        out << ",e=" << e;
+#endif
+        out  << ")";
+      } else {
+        out << " (g=" << *g << ",EA=" << p;
+#ifdef HAVE_LIBRNA
+        out << ",e=" << e;
+#endif
+        out << ")";
+      }
+      out << std::endl;
+    }
   }
 }
 
@@ -1003,6 +1166,17 @@ posterior(const std::string& seq, float th) const
   return out.str();
 }
 
+struct cmp_by_size
+{
+  cmp_by_size(const std::vector<uint>& num) : num_(num) { }
+
+  bool operator()(uint i, uint j) const
+  {
+    return num_[i]>num_[j];
+  }
+
+  const std::vector<uint>& num_;  
+};
 
 static
 void
@@ -1029,15 +1203,23 @@ stochastic_fold_helper(const std::string& name, const std::string& seq,
     std::vector<uint> num;
     diana.get_clusters(opt_n, res, num);
 
-    // centroid estimation for each cluster
-    uint p=0;
+    // sort by size of clusters
+    std::vector<uint> s(num.size(), 0);
+    std::vector<uint> idx(num.size());
     for (uint i=0; i!=num.size(); ++i) {
-      std::vector<BPvecPtr> v(num[i]);
-      for (uint j=0; j!=v.size(); ++j) v[j] = bpv[res[p++]];
+      idx[i]=i;
+      if (i!=0) s[i]=s[i-1]+num[i-1];
+    }
+    std::sort(idx.begin(), idx.end(), cmp_by_size(num));
+
+    // centroid estimation for each cluster
+    for (uint i=0; i!=idx.size(); ++i) {
+      std::vector<BPvecPtr> v(num[idx[i]]);
+      for (uint j=0; j!=v.size(); ++j) v[j] = bpv[res[s[idx[i]]+j]];
       CountBP< std::vector<BPvecPtr> > count_bp(v, seq.size());
       SCFG::inside_traverse(0, seq.size()-1, count_bp);
       char buf[100];
-      sprintf(buf, "%3.1f%%", static_cast<float>(num[i])/bpv.size()*100);
+      sprintf(buf, "%3.1f%%", static_cast<float>(num[idx[i]])/bpv.size()*100);
       out << ">" << name << " (" << i+1 << " of " << num.size() << ", size="
           << buf << ")" << std::endl
           << seq << std::endl;
@@ -1309,8 +1491,16 @@ void CentroidFold::compute_expected_accuracy (const std::string& paren,
   double efn = sump - etp;
 
   sen = etp / (etp + efn);
-  ppv = etp / (etp + efp);
-  mcc = (etp*etn-efp*efn) / std::sqrt((etp+efp)*(etp+efn)*(etn+efp)*(etn+efn));
+  if (etp + efp == 0)
+  {
+    ppv = 0.0;
+    mcc = 0.0;
+  }
+  else
+  {
+    ppv = etp / (etp + efp);
+    mcc = (etp*etn-efp*efn) / std::sqrt((etp+efp)*(etp+efn)*(etn+efp)*(etn+efn));
+  }
 }
 
 #ifdef HAVE_LIBRNA
@@ -1346,10 +1536,11 @@ pf_fold_ea (BPvecPtr bp, const std::string& seq, int num_samples,
     free(str);    
     double TP, TN, FP, FN;
     get_TP_TN_FP_FN (*encoder.execute(bp_pos), *bp, TP, TN, FP, FN);
-    if (TP+FN==0) continue;
-    sen += (double) TP / (TP+FN);
-    ppv += (double) TP / (TP+FP);
-    mcc += (TP*TN-FP*FN)/std::sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN));
+    if (TP+FN!=0) sen += (double) TP / (TP+FN);
+    if (TP+FP!=0) {
+      ppv += (double) TP / (TP+FP);
+      mcc += (TP*TN-FP*FN)/std::sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN));
+    }
     ++N;
   }
 
@@ -1383,10 +1574,11 @@ contra_fold_ea (CONTRAfold<U>& cf, BPvecPtr bp, const std::string& seq, int num_
     }
     double TP, TN, FP, FN;
     get_TP_TN_FP_FN (*encoder.execute(bp_pos), *bp, TP, TN, FP, FN);
-    if (TP+FN==0) continue;
-    sen += (double) TP / (TP+FN);
-    ppv += (double) TP / (TP+FP);
-    mcc += (TP*TN-FP*FN)/std::sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN));
+    if (TP+FN!=0) sen += (double) TP / (TP+FN);
+    if (TP+FP!=0) {
+      ppv += (double) TP / (TP+FP);
+      mcc += (TP*TN-FP*FN)/std::sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN));
+    }
     ++N;
   }  
 

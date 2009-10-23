@@ -27,6 +27,7 @@
 #include <string>
 #include <deque>
 #include <map>
+#include <stack>
 #include <stdexcept>
 #include <boost/spirit.hpp>
 #include <boost/algorithm/string.hpp>
@@ -35,8 +36,10 @@
 #ifdef HAVE_LIBRNA
 namespace Vienna {
 extern "C" {
+#include <ViennaRNA/fold.h>
 #include <ViennaRNA/PS_dot.h>
 #include <ViennaRNA/aln_util.h>
+  extern int eos_debug;
 };
 };
 #endif
@@ -239,3 +242,48 @@ consensus() const
 #endif
 }
 
+#ifdef HAVE_LIBRNA
+float
+Aln::
+energy_of_struct(const std::string& paren) const
+{
+  float e=0.0;
+  std::list<std::string>::const_iterator seq;
+  for (seq=seq_.begin(); seq!=seq_.end(); ++seq) {
+    std::vector<uint> ppos(paren.size(), static_cast<uint>(-1));
+    std::stack<uint> st;
+    for (uint i=0; i!=paren.size(); ++i)
+    {
+      switch (paren[i])
+      {
+        case '(':
+          st.push(i);
+          break;
+        case ')':
+          ppos[i] = st.top();
+          ppos[st.top()] = i;
+          st.pop();
+          break;
+        default:
+          break;
+      }            
+    }
+    std::string s(*seq);
+    std::string p(paren);
+    for (uint i=0; i!=s.size(); ++i)
+    {
+      if (s[i]=='-')
+      {
+        p[i]='-';
+        if (ppos[i]!=static_cast<uint>(-1)) {
+          if (ppos[i]>i || p[ppos[i]]!='-') p[ppos[i]]=' ';
+        }
+      }
+    }
+    s.erase(std::remove(s.begin(), s.end(), '-'), s.end());
+    p.erase(std::remove(p.begin(), p.end(), '-'), p.end());
+    e += Vienna::energy_of_struct(s.c_str(), p.c_str());
+  }
+  return e/num_aln();
+}
+#endif

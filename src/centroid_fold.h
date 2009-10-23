@@ -30,6 +30,7 @@
 #include <iosfwd>
 #include <boost/shared_ptr.hpp>
 #include "bp.h"
+#include "aln.h"
 #if 0
 #include <contrafold/contrafold.h>
 #else
@@ -80,6 +81,7 @@ public:
 
   void print(std::ostream& out, const std::string& name, const std::string& seq,
 	     const std::vector<float>& gamma) const;
+  void print(std::ostream& out, const Aln& aln, const std::vector<float>& gamma) const;
   void print_posterior(std::ostream& out, const std::string& seq, float th) const;
   std::string posterior(const std::string& seq, float th) const;
 

@@ -55,7 +55,10 @@ public:
   unsigned int size() const { return seq_.begin()->size(); }
   unsigned int num_aln() const { return name_.size(); }
   std::string consensus() const;
-  
+#ifdef HAVE_LIBRNA
+  float energy_of_struct(const std::string& paren) const;
+#endif
+
   static
   unsigned int
   load(std::list<Aln>& data, const char* file );
