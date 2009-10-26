@@ -89,13 +89,7 @@ public:
                        uint num_samples, uint max_clusters,
                        const std::vector<float>& gamma, std::ostream& out,
                        const std::string& p_outname, float th);
-  void stochastic_fold(const std::string& name, const std::string& consensus,
-                       const std::vector<std::string>& seq,
-                       uint num_samples, uint max_clusters,
-                       const std::vector<float>& gamma, std::ostream& out,
-                       const std::string& p_outname, float th);
-  void stochastic_fold(const std::string& name, const std::string& consensus,
-                       const std::list<std::string>& seq,
+  void stochastic_fold(const Aln& aln,
                        uint num_samples, uint max_clusters,
                        const std::vector<float>& gamma, std::ostream& out,
                        const std::string& p_outname, float th);

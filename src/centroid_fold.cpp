@@ -1178,9 +1178,30 @@ struct cmp_by_size
   const std::vector<uint>& num_;  
 };
 
+const std::string& seq(const std::string& t) { return t; }
+uint length(const std::string& t) { return t.size(); }
+#ifdef HAVE_LIBRNA
+float energy(const std::string& t, const std::string& s)
+{
+  Vienna::eos_debug = -1;
+  return Vienna::energy_of_struct(t.c_str(), s.c_str());
+}
+#endif
+
+std::string seq(const Aln& aln) { return aln.consensus(); }
+uint length(const Aln& aln) { return aln.seq().front().size(); }
+#ifdef HAVE_LIBRNA
+float energy(const Aln& aln, const std::string& s)
+{
+  Vienna::eos_debug = -1;
+  return aln.energy_of_struct(s);
+}
+#endif
+
+template < class T >
 static
 void
-stochastic_fold_helper(const std::string& name, const std::string& seq,
+stochastic_fold_helper(const std::string& name, const T& t,
                        const std::vector<BPvecPtr>& bpv, uint max_clusters,
                        const std::vector<float>& gamma, std::ostream& out,
                        const std::string& p_outname, float th)
@@ -1216,39 +1237,47 @@ stochastic_fold_helper(const std::string& name, const std::string& seq,
     for (uint i=0; i!=idx.size(); ++i) {
       std::vector<BPvecPtr> v(num[idx[i]]);
       for (uint j=0; j!=v.size(); ++j) v[j] = bpv[res[s[idx[i]]+j]];
-      CountBP< std::vector<BPvecPtr> > count_bp(v, seq.size());
-      SCFG::inside_traverse(0, seq.size()-1, count_bp);
+      CountBP< std::vector<BPvecPtr> > count_bp(v, length(t));
+      SCFG::inside_traverse(0, length(t)-1, count_bp);
       char buf[100];
       sprintf(buf, "%3.1f%%", static_cast<float>(num[idx[i]])/bpv.size()*100);
       out << ">" << name << " (" << i+1 << " of " << num.size() << ", size="
           << buf << ")" << std::endl
-          << seq << std::endl;
+          << seq(t) << std::endl;
 
       std::vector<float>::const_iterator g;
       for (g=gamma.begin(); g!=gamma.end(); ++g) {
-        std::string paren(seq.size(), '.');
+        std::string paren(length(t), '.');
         SCFG::Centroid::execute(count_bp.table, paren, *g);
-        out << paren << " (g=" << *g << ",th=" << (1.0/(1.0+*g)) << ")" << std::endl;
+        out << paren << " (g=" << *g << ",th=" << (1.0/(1.0+*g));
+#ifdef HAVE_LIBRNA
+        out << ",e=" << energy(t, paren);
+#endif
+        out << ")" << std::endl;
       }
 
       if (!p_outname.empty())
       {
         char buf[1024];
         snprintf(buf, sizeof(buf), "%s-%d", p_outname.c_str(), i);
-        count_bp.table.save(buf, seq, th);
+        count_bp.table.save(buf, seq(t), th);
       }
     }
   } else {
-    CountBP< std::vector<BPvecPtr> > count_bp(bpv, seq.size());
-    SCFG::inside_traverse(0, seq.size()-1, count_bp);
-    std::string paren(seq.size(), '.');
+    CountBP< std::vector<BPvecPtr> > count_bp(bpv, length(t));
+    SCFG::inside_traverse(0, length(t)-1, count_bp);
+    std::string paren(length(t), '.');
     std::vector<float>::const_iterator g;
-    std::cout << ">" << name << std::endl
-	      << seq << std::endl;
+    out << ">" << name << std::endl
+        << seq(t) << std::endl;
     for (g=gamma.begin(); g!=gamma.end(); ++g) {
       std::fill(paren.begin(), paren.end(), '.');
       SCFG::Centroid::execute(count_bp.table, paren, *g);
-      std::cout << paren << " (g=" << *g << ",th=" << (1.0/(1.0+*g)) << ")" << std::endl;
+      out << paren << " (g=" << *g << ",th=" << (1.0/(1.0+*g));
+#ifdef HAVE_LIBRNA
+        out << ",e=" << energy(t, paren);
+#endif
+      out << ")" << std::endl;
     }
   }
 }
@@ -1300,26 +1329,13 @@ stochastic_fold(const std::string& name, const std::string& seq,
 
 void
 CentroidFold::
-stochastic_fold(const std::string& name, const std::string& consensus,
-                const std::vector<std::string>& seq,
-                uint num_samples, uint max_clusters,
-                const std::vector<float>& gamma, std::ostream& out,
-                const std::string& p_outname, float th)
-{
-  std::list<std::string> seq2(seq.size());
-  std::copy(seq.begin(), seq.end(), seq2.begin());
-  stochastic_fold(name, consensus, seq2, num_samples, max_clusters, gamma, out, p_outname, th);
-}
-
-void
-CentroidFold::
-stochastic_fold(const std::string& name, const std::string& consensus,
-                const std::list<std::string>& seq,
+stochastic_fold(const Aln& aln,
                 uint num_samples, uint max_clusters,
                 const std::vector<float>& gamma, std::ostream& out,
                 const std::string& p_outname, float th)
 {
   std::list<BPvecPtr> bpvl;
+  const std::list<std::string>& seq = aln.seq();
 
   switch (engine_)
   {
@@ -1401,7 +1417,7 @@ stochastic_fold(const std::string& name, const std::string& consensus,
     std::vector<BPvecPtr> bpv(bpvl.size());
     std::copy(bpvl.begin(), bpvl.end(), bpv.begin());
     bpvl.clear();
-    stochastic_fold_helper(name, consensus, bpv, max_clusters, gamma, out, p_outname, th);
+    stochastic_fold_helper(aln.name().front(), aln, bpv, max_clusters, gamma, out, p_outname, th);
   }
 }
 
