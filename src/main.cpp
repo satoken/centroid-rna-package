@@ -486,8 +486,7 @@ centroid_alifold_main(int argc, char* argv[])
 
     if (vm.count("sampling"))
     {
-      cf.stochastic_fold(aln.name().front(), aln.consensus(),
-                         aln.seq(), num_samples, max_clusters,
+      cf.stochastic_fold(aln, num_samples, max_clusters,
                          gamma, *out, p_outname, p_th);
       continue;
     }
