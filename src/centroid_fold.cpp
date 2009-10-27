@@ -1084,8 +1084,7 @@ print(std::ostream& out, const Aln& aln, const std::vector<float>& gamma) const
       if (num_ea_samples_==0) 
         compute_expected_accuracy (paren, bp_, sen, ppv, mcc);
       else if (num_ea_samples_>0)
-        assert(!"not implemented yet");
-        //compute_expected_accuracy_sampling (paren, seq, num_ea_samples_, sen, ppv, mcc);
+        compute_expected_accuracy_sampling (paren, aln, num_ea_samples_, sen, ppv, mcc);
       float e=0;
 #ifdef HAVE_LIBRNA
       e = aln.energy_of_struct(paren);
@@ -1522,7 +1521,7 @@ void CentroidFold::compute_expected_accuracy (const std::string& paren,
 #ifdef HAVE_LIBRNA
 static
 void
-pf_fold_ea (BPvecPtr bp, const std::string& seq, int num_samples,
+pf_fold_ea (const BPvecPtr& bp, const std::string& seq, int num_samples,
 	    double& sen, double& ppv, double& mcc)
 {
   int bk_st_back=Vienna::st_back;
@@ -1567,12 +1566,162 @@ pf_fold_ea (BPvecPtr bp, const std::string& seq, int num_samples,
   Vienna::st_back=bk_st_back;
   Vienna::free_pf_arrays();
 }
+
+static
+void
+pf_fold_ea(const BPvecPtr& bp, const std::vector<std::string>& ma, uint num_samples,
+           double& sen, double& ppv, double& mcc)
+{
+  int bk_st_back=Vienna::st_back;
+  Vienna::st_back=1;
+
+  sen = ppv = mcc = 0.0;
+  int N = 0;
+
+  uint sz = ma.front().size();
+  std::vector<std::string>::const_iterator x;
+  for (x=ma.begin(); x!=ma.end(); ++x)
+  {
+    std::string seq;
+    std::vector<uint> idxmap(x->size(), static_cast<uint>(-1));
+    uint j=0;
+    for (uint i=0; i!=x->size(); ++i)
+    {
+      if ((*x)[i]!='-')
+      {
+        switch ((*x)[i])
+        {
+          case 't': seq += 'u'; break;
+          case 'T': seq += 'U'; break;
+          default:  seq += (*x)[i];
+        }
+        idxmap[j++] = i;
+      }
+    }
+
+    Vienna::pf_scale = -1;
+    Vienna::init_pf_fold(seq.size());
+    Vienna::pf_fold(const_cast<char*>(seq.c_str()), NULL);
+    EncodeBP encoder;
+
+    // stochastic sampling
+    for (uint n=0; n!=num_samples; ++n) {
+      SCFG::CYKTable<uint> bp_pos(sz, 0);
+      char *str = Vienna::pbacktrack(const_cast<char*>(seq.c_str()));
+      assert(seq.size()==strlen(str));
+      std::stack<uint> st;
+      for (uint i=0; i!=seq.size(); ++i) {
+        if (str[i]=='(') {
+          st.push(i);
+        } else if (str[i]==')') {
+          bp_pos(idxmap[st.top()], idxmap[i])++;
+          st.pop();
+        }
+      }
+      free(str);
+
+      double TP, TN, FP, FN;
+      get_TP_TN_FP_FN (*encoder.execute(bp_pos), *bp, TP, TN, FP, FN);
+      if (TP+FN!=0) sen += (double) TP / (TP+FN);
+      if (TP+FP!=0) {
+        ppv += (double) TP / (TP+FP);
+        mcc += (TP*TN-FP*FN)/std::sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN));
+      }
+      ++N;
+    }
+
+    Vienna::free_pf_arrays();
+  }
+
+  sen /= N;
+  ppv /= N;
+  mcc /= N;
+
+  Vienna::st_back=bk_st_back;
+}
+
+#ifdef HAVE_VIENNA18
+static
+void
+alipf_fold_ea(const BPvecPtr& bp, const std::vector<std::string>& ma, uint num_samples,
+              double& sen, double& ppv, double& mcc)
+{
+  EncodeBP encoder;
+  sen = ppv = mcc = 0.0;
+  int N = 0;
+
+  // prepare an alignment
+  uint length = ma.front().size();
+  char** seqs = new char*[ma.size()+1];
+  seqs[ma.size()]=NULL;
+  std::vector<std::string>::const_iterator x;
+  uint i=0;
+  for (x=ma.begin(); x!=ma.end(); ++x) {
+    assert(x->size()==length);
+    seqs[i] = new char[length+1];
+    strcpy(seqs[i++], x->c_str());
+  }
+
+  char* str2 = new char[length+1];
+  //int bk = Vienna::fold_constrained;
+  //if (!str.empty()) Vienna::fold_constrained=1;
+  // scaling parameters to avoid overflow
+  //strcpy(str2, str.c_str());
+  double min_en = Vienna::alifold(seqs, str2);
+  Vienna::free_alifold_arrays();
+  double kT = (Vienna::temperature+273.15)*1.98717/1000.; /* in Kcal */
+  Vienna::pf_scale = exp(-(1.07*min_en)/kT/length);
+  // build a base pair probablity matrix
+  //strcpy(str2, str.c_str());
+  Vienna::plist* pi;
+  Vienna::alipf_fold(seqs, str2, &pi);
+
+  // stochastic sampling
+  for (uint n=0; n!=num_samples; ++n) {
+    SCFG::CYKTable<uint> bp_pos(length, 0);
+    double prob=1;
+    char *str = Vienna::alipbacktrack(&prob);
+    //std::cout << s << std::endl << str << std::endl;
+    assert(length==strlen(str));
+    std::stack<uint> st;
+    for (uint i=0; i!=length; ++i) {
+      if (str[i]=='(') {
+	st.push(i);
+      } else if (str[i]==')') {
+	bp_pos(st.top(), i)++;
+	st.pop();
+      }
+    }
+    free(str);
+
+    double TP, TN, FP, FN;
+    get_TP_TN_FP_FN (*encoder.execute(bp_pos), *bp, TP, TN, FP, FN);
+    if (TP+FN!=0) sen += (double) TP / (TP+FN);
+    if (TP+FP!=0) {
+      ppv += (double) TP / (TP+FP);
+      mcc += (TP*TN-FP*FN)/std::sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN));
+    }
+    ++N;
+  }
+
+  sen /= N;
+  ppv /= N;
+  mcc /= N;
+
+  Vienna::free_alipf_arrays();
+  free(pi);
+  for (uint i=0; seqs[i]!=NULL; ++i) delete[] seqs[i];
+  //Vienna::fold_constrained = bk;
+  delete[] seqs;
+  delete[] str2;
+}
+#endif
 #endif
 
 template <class U>
 static
 void
-contra_fold_ea (CONTRAfold<U>& cf, BPvecPtr bp, const std::string& seq, int num_samples,
+contra_fold_ea (CONTRAfold<U>& cf, const BPvecPtr& bp, const std::string& seq, int num_samples,
 		double& sen, double& ppv, double& mcc)
 {
   sen = ppv = mcc = 0.0;
@@ -1603,6 +1752,40 @@ contra_fold_ea (CONTRAfold<U>& cf, BPvecPtr bp, const std::string& seq, int num_
   mcc /= N;
 }
 
+template < class U >
+static
+void
+contra_fold_ea(CONTRAfoldM<U>& cf, const BPvecPtr& bp, const std::vector<std::string>& aln, uint num_samples,
+               double& sen, double& ppv, double& mcc)
+{
+  sen = ppv = mcc = 0.0;
+  int N = 0;
+
+  EncodeBP encoder;
+  cf.PrepareStochasticTraceback(aln);
+  for (uint n=0; n!=num_samples; ++n) {
+    SCFG::CYKTable<uint> bp_pos(aln.front().size(), 0);
+    std::vector<int> paren = cf.StochasticTraceback();
+    for (uint i=0; i!=paren.size(); ++i) {
+      if (paren[i]>int(i)) {
+        bp_pos(i-1, paren[i]-1)++;
+      }
+    }
+    double TP, TN, FP, FN;
+    get_TP_TN_FP_FN (*encoder.execute(bp_pos), *bp, TP, TN, FP, FN);
+    if (TP+FN!=0) sen += (double) TP / (TP+FN);
+    if (TP+FP!=0) {
+      ppv += (double) TP / (TP+FP);
+      mcc += (TP*TN-FP*FN)/std::sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN));
+    }
+    ++N;
+  }
+
+  sen /= N;
+  ppv /= N;
+  mcc /= N;
+}
+
 void CentroidFold::compute_expected_accuracy_sampling (const std::string& paren,  
 						       const std::string& seq, 
 						       uint num_samples, 
@@ -1622,7 +1805,6 @@ void CentroidFold::compute_expected_accuracy_sampling (const std::string& paren,
   BPvecPtr bp = encoder.execute(bp_pos);
 
   // stochastic sampling
-  std::list<BPvecPtr> bpvl;
   std::string seq2(seq);
   std::replace(seq2.begin(), seq2.end(), 't', 'u');
   std::replace(seq2.begin(), seq2.end(), 'T', 'U');
@@ -1641,6 +1823,79 @@ void CentroidFold::compute_expected_accuracy_sampling (const std::string& paren,
     throw "not supported yet";
     break;
   }    
+}
+
+void CentroidFold::compute_expected_accuracy_sampling (const std::string& paren,  
+						       const Aln& aln, uint num_samples, 
+						       double& sen, double& ppv, double& mcc) const
+{
+  SCFG::CYKTable<uint> bp_pos(paren.size(), 0);
+  std::stack<uint> st;
+  for (uint i=0; i<paren.size(); ++i) {
+    if (paren[i]=='(') {
+      st.push(i);
+    } else if (paren[i]==')') {
+      bp_pos(st.top(), i)++;
+      st.pop();
+    }
+  }
+  EncodeBP encoder;
+  BPvecPtr bp = encoder.execute(bp_pos);
+
+  // stochastic sampling
+  const std::list<std::string>& seq = aln.seq();
+
+  switch (engine_)
+  {
+#ifdef HAVE_LIBRNA
+    case PFFOLD:
+    {
+      std::vector<std::string> aln(seq.size());
+      std::copy(seq.begin(), seq.end(), aln.begin());
+      for (uint i=0; i!=aln.size(); ++i)
+      {
+        std::replace(aln[i].begin(), aln[i].end(), 't', 'u');
+        std::replace(aln[i].begin(), aln[i].end(), 'T', 'U');
+      }
+      pf_fold_ea(bp, aln, num_samples, sen, ppv, mcc);
+      break;
+    }
+#ifdef HAVE_VIENNA18
+    case ALIPFFOLD:
+    {
+      std::vector<std::string> aln(seq.size());
+      std::copy(seq.begin(), seq.end(), aln.begin());
+      for (uint i=0; i!=aln.size(); ++i)
+      {
+        std::replace(aln[i].begin(), aln[i].end(), 't', 'u');
+        std::replace(aln[i].begin(), aln[i].end(), 'T', 'U');
+      }
+      alipf_fold_ea(bp, aln, num_samples, sen, ppv, mcc);
+      break;
+    }
+#endif
+#endif
+    case CONTRAFOLD:
+    {
+      CONTRAfoldM<float>* cf = new CONTRAfoldM<float>(canonical_only_, max_bp_dist_);
+      if (!model_.empty()) cf->SetParameters(model_);
+      cf->init_rand(seed_);
+      std::vector<std::string> aln(seq.size());
+      std::copy(seq.begin(), seq.end(), aln.begin());
+      for (uint i=0; i!=aln.size(); ++i)
+      {
+        std::replace(aln[i].begin(), aln[i].end(), 't', 'u');
+        std::replace(aln[i].begin(), aln[i].end(), 'T', 'U');
+      }
+      contra_fold_ea(*cf, bp, aln, num_samples, sen, ppv, mcc);
+      delete cf;
+      break;
+    }
+
+    default:
+      throw "not supported yet";
+      break;
+  }
 }
 
 #ifdef HAVE_LIBRNA
@@ -1683,6 +1938,139 @@ pf_fold_max_mcc(uint num_samples,
   out << ">" << name << "\n" << seq << "\n" << PAREN << " [MCC=" << MCC << "]" << std::endl;
   return num_samples;
 }
+
+static
+uint
+pf_fold_max_mcc(uint num_samples, const std::string& name, const std::string& seq,
+                const std::vector<std::string>& ma,
+                const CentroidFold::BPTable& bp, std::ostream& out)
+{
+  int bk_st_back=Vienna::st_back;
+  Vienna::st_back=1;
+
+  double MCC = -10000;
+  double SEN, PPV;
+  std::string PAREN;
+
+  uint sz = seq.size();
+  std::vector<std::string>::const_iterator x;
+  for (x=ma.begin(); x!=ma.end(); ++x)
+  {
+    std::string seq;
+    std::vector<uint> idxmap(x->size(), static_cast<uint>(-1));
+    uint j=0;
+    for (uint i=0; i!=x->size(); ++i)
+    {
+      if ((*x)[i]!='-')
+      {
+        switch ((*x)[i])
+        {
+          case 't': seq += 'u'; break;
+          case 'T': seq += 'U'; break;
+          default:  seq += (*x)[i];
+        }
+        idxmap[j++] = i;
+      }
+    }
+
+    Vienna::pf_scale = -1;
+    Vienna::init_pf_fold(seq.size());
+    Vienna::pf_fold(const_cast<char*>(seq.c_str()), NULL);
+    EncodeBP encoder;
+
+    // stochastic sampling
+    for (uint n=0; n!=num_samples; ++n) {
+      SCFG::CYKTable<uint> bp_pos(sz, 0);
+      char *str = Vienna::pbacktrack(const_cast<char*>(seq.c_str()));
+      assert(seq.size()==strlen(str));
+      std::string paren(sz, '.');
+      for (uint i=0; i!=seq.size(); ++i) paren[idxmap[i]] = str[i];
+      free(str);
+
+      double sen, ppv, mcc;
+      CentroidFold::compute_expected_accuracy (paren, bp, sen, ppv, mcc);
+      if (MCC<mcc) {
+        PAREN = paren;
+        MCC = mcc; SEN = sen; PPV = ppv; 
+      }
+    }
+
+    Vienna::free_pf_arrays();
+  }
+
+  Vienna::st_back=bk_st_back;
+  out << ">" << name << std::endl << seq << std::endl << PAREN << " [MCC=" << MCC << "]" << std::endl;
+
+  return num_samples;
+}
+
+#ifdef HAVE_VIENNA18
+static
+uint
+alipf_fold_max_mcc(uint num_samples, const std::string& name, const std::string& seq,
+                   const std::vector<std::string>& ma,
+                   const CentroidFold::BPTable& bp, std::ostream& out)
+{
+  double MCC = -10000;
+  double SEN, PPV;
+  std::string PAREN;
+
+  // prepare an alignment
+  uint length = seq.size();
+  char** seqs = new char*[ma.size()+1];
+  seqs[ma.size()]=NULL;
+  std::vector<std::string>::const_iterator x;
+  uint i=0;
+  for (x=ma.begin(); x!=ma.end(); ++x) {
+    assert(x->size()==length);
+    seqs[i] = new char[length+1];
+    strcpy(seqs[i++], x->c_str());
+  }
+
+  char* str2 = new char[length+1];
+  //int bk = Vienna::fold_constrained;
+  //if (!str.empty()) Vienna::fold_constrained=1;
+  // scaling parameters to avoid overflow
+  //strcpy(str2, str.c_str());
+  double min_en = Vienna::alifold(seqs, str2);
+  Vienna::free_alifold_arrays();
+  double kT = (Vienna::temperature+273.15)*1.98717/1000.; /* in Kcal */
+  Vienna::pf_scale = exp(-(1.07*min_en)/kT/length);
+  // build a base pair probablity matrix
+  //strcpy(str2, str.c_str());
+  Vienna::plist* pi;
+  Vienna::alipf_fold(seqs, str2, &pi);
+
+  // stochastic sampling
+  for (uint n=0; n!=num_samples; ++n) {
+    SCFG::CYKTable<uint> bp_pos(length, 0);
+    double prob=1;
+    char *str = Vienna::alipbacktrack(&prob);
+    //std::cout << s << std::endl << str << std::endl;
+    assert(length==strlen(str));
+    std::string paren(str);
+    free(str);
+
+    double sen, ppv, mcc;
+    CentroidFold::compute_expected_accuracy (paren, bp, sen, ppv, mcc);
+    if (MCC<mcc) {
+      PAREN = paren;
+      MCC = mcc; SEN = sen; PPV = ppv; 
+    }
+  }
+
+  Vienna::free_alipf_arrays();
+  free(pi);
+  for (uint i=0; seqs[i]!=NULL; ++i) delete[] seqs[i];
+  //Vienna::fold_constrained = bk;
+  delete[] seqs;
+  delete[] str2;
+
+  out << ">" << name << std::endl << seq << std::endl << PAREN << " [MCC=" << MCC << "]" << std::endl;
+
+  return num_samples;
+}
+#endif
 #endif
 
 template < class U >
@@ -1718,6 +2106,40 @@ contra_fold_max_mcc(uint num_samples, CONTRAfold<U>& cf,
   return num_samples;
 }
 
+template < class U >
+static
+uint
+contra_fold_max_mcc(uint num_samples, CONTRAfoldM<U>& cf,
+                    const std::string& name, const std::string& seq,
+                    const std::vector<std::string>& ma,
+                    const CentroidFold::BPTable& bp, std::ostream& out)
+{
+  cf.PrepareStochasticTraceback(ma);
+
+  double MCC = -10000;
+  double SEN, PPV;
+  std::string PAREN;
+  for (uint n=0; n!=num_samples; ++n) {
+    std::string p(seq.size(), '.');
+    std::vector<int> paren = cf.StochasticTraceback();
+    for (uint i=0; i!=paren.size(); ++i) {
+      if (paren[i]>int(i)) {
+        p[i-1] = '(';
+        p[paren[i]-1] = ')';
+      }
+    }
+    double sen, ppv, mcc;
+    CentroidFold::compute_expected_accuracy (p, bp, sen, ppv, mcc);
+    if (MCC<mcc) {
+      PAREN = p;
+      MCC = mcc; SEN = sen; PPV = ppv; 
+    }
+  }
+
+  out << ">" << name << "\n" << seq << "\n" << PAREN << " [MCC=" << MCC << "]" << std::endl;
+  return num_samples;
+}
+
 void 
 CentroidFold::
 max_mcc_fold (const std::string& name, const std::string& seq, uint num_samples, std::ostream& out)
@@ -1738,6 +2160,46 @@ max_mcc_fold (const std::string& name, const std::string& seq, uint num_samples,
   case PFFOLD:
     pf_fold_max_mcc (num_samples, name, seq, bp_, out);
     break;
+#endif
+  default:
+    assert (false);
+  }
+}
+
+void 
+CentroidFold::
+max_mcc_fold (const Aln& aln, uint num_samples, std::ostream& out)
+{
+  std::vector<std::string> ma(aln.seq().size());
+  std::copy(aln.seq().begin(), aln.seq().end(), ma.begin());
+  for (uint i=0; i!=ma.size(); ++i)
+  {
+    std::replace(ma[i].begin(), ma[i].end(), 't', 'u');
+    std::replace(ma[i].begin(), ma[i].end(), 'T', 'U');
+  }
+
+  // calculate base-pairing probabililty matrix
+  calculate_posterior(ma);
+
+  switch (engine_) {
+    case CONTRAFOLD:
+    {
+      CONTRAfoldM<float>* cf = new CONTRAfoldM<float>(canonical_only_, max_bp_dist_);
+      if (!model_.empty()) cf->SetParameters(model_);
+      cf->init_rand(seed_);
+      contra_fold_max_mcc (num_samples, *cf, aln.name().front(), aln.consensus(), ma, bp_, out); 
+      delete cf;
+      break;
+    }
+#ifdef HAVE_LIBRNA
+    case PFFOLD:
+      pf_fold_max_mcc (num_samples, aln.name().front(), aln.consensus(), ma, bp_, out);
+      break;
+#ifdef HAVE_VIENNA18
+    case ALIPFFOLD:
+      alipf_fold_max_mcc(num_samples, aln.name().front(), aln.consensus(), ma, bp_, out);
+      break;
+#endif    
 #endif
   default:
     assert (false);

@@ -306,7 +306,7 @@ centroid_alifold_main(int argc, char* argv[])
   uint seed;
   //
   int num_ea_samples = -1;
-  //int max_mcc = -1;
+  int max_mcc = -1;
   
   // parse command line options
   po::options_description desc("Options");
@@ -318,8 +318,8 @@ centroid_alifold_main(int argc, char* argv[])
     //
     ("ea", po::value<int>(&num_ea_samples), 
      "compute (pseudo-)expected accuracy (pseudo if arg==0, sampling if arg>0; arg: # of sampling)")
-    //("max-mcc", po::value<int>(&max_mcc), 
-    // "predict secondary structure by maximizing pseudo-expected MCC (arg: # of sampling)")
+    ("max-mcc", po::value<int>(&max_mcc), 
+     "predict secondary structure by maximizing pseudo-expected MCC (arg: # of sampling)")
     // added by M. Hamada
     ("mea", "run as an MEA estimator")
     ("noncanonical", "allow non-canonical base-pairs")
@@ -441,7 +441,7 @@ centroid_alifold_main(int argc, char* argv[])
     return 1;
   }
 
-  CentroidFold cf(engine, vm.count("mea"), num_ea_samples>=0 ? 0 : -1, seed);
+  CentroidFold cf(engine, vm.count("mea"), num_ea_samples, seed);
   switch (engine) {
 #ifdef HAVE_LIBRNA
   case CentroidFold::PFFOLD:
@@ -484,6 +484,10 @@ centroid_alifold_main(int argc, char* argv[])
   {
     n++;
 
+    if (max_mcc > 0) {
+      cf.max_mcc_fold (aln, max_mcc, *out);
+      continue;
+    }    
     if (vm.count("sampling"))
     {
       cf.stochastic_fold(aln, num_samples, max_clusters,
