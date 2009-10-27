@@ -98,10 +98,14 @@ public:
 
   // added by M. Hamada
   void max_mcc_fold(const std::string& name, const std::string& seq, uint num_samples, std::ostream& out);
+  void max_mcc_fold(const Aln& aln, uint num_samples, std::ostream& out);
   static void compute_expected_accuracy (const std::string& paren, 
 					 const BPTable& bp,
 					 double& sen, double& ppv, double& mcc);
   void compute_expected_accuracy_sampling (const std::string& paren, const std::string& seq,
+					   uint num_samples,
+					   double& sen, double& ppv, double& mcc) const;
+  void compute_expected_accuracy_sampling (const std::string& paren, const Aln& aln,
 					   uint num_samples,
 					   double& sen, double& ppv, double& mcc) const;
 
