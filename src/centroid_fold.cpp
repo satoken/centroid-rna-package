@@ -1505,17 +1505,11 @@ void CentroidFold::compute_expected_accuracy (const std::string& paren,
   double efp = N - etp;
   double efn = sump - etp;
 
-  sen = etp / (etp + efn);
-  if (etp + efp == 0)
-  {
-    ppv = 0.0;
-    mcc = 0.0;
-  }
-  else
-  {
-    ppv = etp / (etp + efp);
+  sen = ppv = mcc = 0;
+  if (etp+efn!=0) sen = etp / (etp + efn);
+  if (etp+efp!=0) ppv = etp / (etp + efp);
+  if (etp+efp!=0 && etp+efn!=0 && etn+efp!=0 && etn+efn!=0)
     mcc = (etp*etn-efp*efn) / std::sqrt((etp+efp)*(etp+efn)*(etn+efp)*(etn+efn));
-  }
 }
 
 #ifdef HAVE_LIBRNA
@@ -1552,10 +1546,9 @@ pf_fold_ea (const BPvecPtr& bp, const std::string& seq, int num_samples,
     double TP, TN, FP, FN;
     get_TP_TN_FP_FN (*encoder.execute(bp_pos), *bp, TP, TN, FP, FN);
     if (TP+FN!=0) sen += (double) TP / (TP+FN);
-    if (TP+FP!=0) {
-      ppv += (double) TP / (TP+FP);
+    if (TP+FP!=0) ppv += (double) TP / (TP+FP);
+    if (TP+FP!=0 && TP+FN!=0 && TN+FP!=0 && TN+FN!=0)
       mcc += (TP*TN-FP*FN)/std::sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN));
-    }
     ++N;
   }
 
@@ -1623,10 +1616,9 @@ pf_fold_ea(const BPvecPtr& bp, const std::vector<std::string>& ma, uint num_samp
       double TP, TN, FP, FN;
       get_TP_TN_FP_FN (*encoder.execute(bp_pos), *bp, TP, TN, FP, FN);
       if (TP+FN!=0) sen += (double) TP / (TP+FN);
-      if (TP+FP!=0) {
-        ppv += (double) TP / (TP+FP);
+      if (TP+FP!=0) ppv += (double) TP / (TP+FP);
+      if (TP+FP!=0 && TP+FN!=0 && TN+FP!=0 && TN+FN!=0)
         mcc += (TP*TN-FP*FN)/std::sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN));
-      }
       ++N;
     }
 
@@ -1697,10 +1689,9 @@ alipf_fold_ea(const BPvecPtr& bp, const std::vector<std::string>& ma, uint num_s
     double TP, TN, FP, FN;
     get_TP_TN_FP_FN (*encoder.execute(bp_pos), *bp, TP, TN, FP, FN);
     if (TP+FN!=0) sen += (double) TP / (TP+FN);
-    if (TP+FP!=0) {
-      ppv += (double) TP / (TP+FP);
+    if (TP+FP!=0) ppv += (double) TP / (TP+FP);
+    if (TP+FP!=0 && TP+FN!=0 && TN+FP!=0 && TN+FN!=0)
       mcc += (TP*TN-FP*FN)/std::sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN));
-    }
     ++N;
   }
 
@@ -1740,10 +1731,9 @@ contra_fold_ea (CONTRAfold<U>& cf, const BPvecPtr& bp, const std::string& seq, i
     double TP, TN, FP, FN;
     get_TP_TN_FP_FN (*encoder.execute(bp_pos), *bp, TP, TN, FP, FN);
     if (TP+FN!=0) sen += (double) TP / (TP+FN);
-    if (TP+FP!=0) {
-      ppv += (double) TP / (TP+FP);
+    if (TP+FP!=0) ppv += (double) TP / (TP+FP);
+    if (TP+FP!=0 && TP+FN!=0 && TN+FP!=0 && TN+FN!=0)
       mcc += (TP*TN-FP*FN)/std::sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN));
-    }
     ++N;
   }  
 
@@ -1774,10 +1764,9 @@ contra_fold_ea(CONTRAfoldM<U>& cf, const BPvecPtr& bp, const std::vector<std::st
     double TP, TN, FP, FN;
     get_TP_TN_FP_FN (*encoder.execute(bp_pos), *bp, TP, TN, FP, FN);
     if (TP+FN!=0) sen += (double) TP / (TP+FN);
-    if (TP+FP!=0) {
-      ppv += (double) TP / (TP+FP);
+    if (TP+FP!=0) ppv += (double) TP / (TP+FP);
+    if (TP+FP!=0 && TP+FN!=0 && TN+FP!=0 && TN+FN!=0)
       mcc += (TP*TN-FP*FN)/std::sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN));
-    }
     ++N;
   }
 
