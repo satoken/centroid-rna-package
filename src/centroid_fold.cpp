@@ -548,6 +548,28 @@ contra_fold_st(uint num_samples, CONTRAfoldM<U>& cf, const std::vector<std::stri
 template < class U >
 static
 uint
+contra_fold_st(uint num_samples, CONTRAfold<U>& cf, const std::string& seq, std::list<BPvecPtr>& bp,
+               const std::vector<uint>& idxmap, uint sz)
+{
+  EncodeBP encoder;
+  cf.PrepareStochasticTraceback(seq);
+  for (uint n=0; n!=num_samples; ++n) {
+    SCFG::CYKTable<uint> bp_pos(sz, 0);
+    std::vector<int> paren = cf.StochasticTraceback();
+    for (uint i=0; i!=paren.size(); ++i) {
+      if (paren[i]>int(i)) {
+        bp_pos(idxmap[i-1], idxmap[paren[i]-1])++;
+      }
+    }
+    bp.push_back(encoder.execute(bp_pos));
+  }
+
+  return num_samples;
+}
+
+template < class U >
+static
+uint
 contra_fold_st(uint num_samples, CONTRAfold<U>& cf, const std::string& seq, std::ostream& out)
 {
   cf.PrepareStochasticTraceback(seq);
@@ -588,6 +610,29 @@ contra_fold_st(uint num_samples, CONTRAfoldM<U>& cf, const std::vector<std::stri
   return num_samples;
 }
 
+template < class U >
+static
+uint
+contra_fold_st(uint num_samples, CONTRAfold<U>& cf, const std::string& seq, std::ostream& out,
+               const std::vector<uint>& idxmap, uint sz)
+{
+  EncodeBP encoder;
+  cf.PrepareStochasticTraceback(seq);
+  for (uint n=0; n!=num_samples; ++n) {
+    std::string p(sz, '.');
+    std::vector<int> paren = cf.StochasticTraceback();
+    for (uint i=0; i!=paren.size(); ++i) {
+      if (paren[i]>int(i)) {
+        p[idxmap[i-1]] = '(';
+        p[idxmap[paren[i]-1]] = ')';
+      }
+    }
+    out << p << std::endl;
+  }
+
+  return num_samples;
+}
+
 CentroidFold::
 CentroidFold(uint engine,
              bool run_as_mea,
@@ -602,7 +647,8 @@ CentroidFold(uint engine,
     contrafold_(NULL),
     model_(),
     max_bp_dist_(0),
-    seed_(seed)
+    seed_(seed),
+    dist_type_(0)
 {
   if (seed_==0)
   {
@@ -616,14 +662,29 @@ CentroidFold(uint engine,
     seed_ = t.tv_usec * t.tv_sec;
 #endif
   }
-#ifdef HAVE_LIBRNA
-  using namespace Vienna;
-  // copy from ViennaRNA-x.x.x/lib/utils.c
-  xsubi[0] = xsubi[1] = xsubi[2] = (unsigned short) seed_;  /* lower 16 bit */
-  xsubi[1] += (unsigned short) ((unsigned)seed_ >> 6);
-  xsubi[2] += (unsigned short) ((unsigned)seed_ >> 12);
-#endif  // HAVE_LIBRNA
   srand((uint)seed_);
+
+  switch (engine_)
+  {
+#ifdef HAVE_LIBRNA
+    case PFFOLD:
+    case ALIPFFOLD:
+    {
+      using namespace Vienna;
+      // copy from ViennaRNA-x.x.x/lib/utils.c
+      xsubi[0] = xsubi[1] = xsubi[2] = (unsigned short) seed_;  /* lower 16 bit */
+      xsubi[1] += (unsigned short) ((unsigned)seed_ >> 6);
+      xsubi[2] += (unsigned short) ((unsigned)seed_ >> 12);
+      break;
+    }
+#endif  // HAVE_LIBRNA
+    case CONTRAFOLD:
+      contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
+      contrafold_->init_rand(seed_);
+      break;
+    default:
+      break;
+  }
 }
 
 CentroidFold::
@@ -647,11 +708,13 @@ set_options_for_pf_fold(bool canonical_only, uint max_dist)
 
 void
 CentroidFold::
-set_options_for_contrafold(const std::string& model, bool canonical_only, uint max_bp_dist)
+set_options_for_contrafold(const std::string& model, bool canonical_only, uint max_bp_dist, uint dist_type/*=0*/)
 {
   model_ = model;
   canonical_only_ = canonical_only;
   max_bp_dist_ = max_bp_dist;
+  dist_type_ = dist_type;
+  if (!model_.empty()) contrafold_->SetParameters(model_);
 }
 
 void
@@ -674,10 +737,6 @@ calculate_posterior(const std::string& seq)
     break;
 #endif
   case CONTRAFOLD:
-    if (contrafold_==NULL) {
-      contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
-      if (!model_.empty()) contrafold_->SetParameters(model_);
-    }
     contra_fold(bp_, *contrafold_, seq2);
     break;
   default:
@@ -710,10 +769,6 @@ calculate_posterior(const std::string& seq, const std::string& str)
   }
 #endif
   case CONTRAFOLD:
-    if (contrafold_==NULL) {
-      contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
-      if (!model_.empty()) contrafold_->SetParameters(model_);
-    }
     contra_fold(bp_, *contrafold_, seq2, str);
     break;
   default:
@@ -777,10 +832,6 @@ calculate_posterior(const std::list<std::string>& seq)
 	break;
 #endif
       case CONTRAFOLD:
-        if (contrafold_==NULL) {
-          contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
-          if (!model_.empty()) contrafold_->SetParameters(model_);
-        }
         contra_fold(*bpi, *contrafold_, *x);
 	break;
       default:
@@ -874,10 +925,6 @@ calculate_posterior(const std::list<std::string>& seq, const std::string& str)
       }
 #endif
       case CONTRAFOLD:
-        if (contrafold_==NULL) {
-          contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
-          if (!model_.empty()) contrafold_->SetParameters(model_);
-        }
         contra_fold(*bpi, *contrafold_, *x, str2);
 	break;
       default:
@@ -1303,11 +1350,6 @@ stochastic_fold(const std::string& name, const std::string& seq,
     break;
 #endif
   case CONTRAFOLD:
-    if (contrafold_==NULL) {
-      contrafold_ = new CONTRAfold<float>(canonical_only_, max_bp_dist_);
-      if (!model_.empty()) contrafold_->SetParameters(model_);
-      contrafold_->init_rand(seed_);
-    }
     if (max_clusters>0)
       contra_fold_st(num_samples, *contrafold_, seq2, bpvl);
     else
@@ -1388,24 +1430,54 @@ stochastic_fold(const Aln& aln,
 #endif
 #endif
     case CONTRAFOLD:
-    {
-      CONTRAfoldM<float>* cf = new CONTRAfoldM<float>(canonical_only_, max_bp_dist_);
-      if (!model_.empty()) cf->SetParameters(model_);
-      cf->init_rand(seed_);
-      std::vector<std::string> aln(seq.size());
-      std::copy(seq.begin(), seq.end(), aln.begin());
-      for (uint i=0; i!=aln.size(); ++i)
+      if (dist_type_==0)
       {
-        std::replace(aln[i].begin(), aln[i].end(), 't', 'u');
-        std::replace(aln[i].begin(), aln[i].end(), 'T', 'U');
+        CONTRAfoldM<float>* cf = new CONTRAfoldM<float>(canonical_only_, max_bp_dist_);
+        if (!model_.empty()) cf->SetParameters(model_);
+        cf->init_rand(seed_);
+        std::vector<std::string> aln(seq.size());
+        std::copy(seq.begin(), seq.end(), aln.begin());
+        for (uint i=0; i!=aln.size(); ++i)
+        {
+          std::replace(aln[i].begin(), aln[i].end(), 't', 'u');
+          std::replace(aln[i].begin(), aln[i].end(), 'T', 'U');
+        }
+        if (max_clusters>0)
+          contra_fold_st(num_samples, *cf, aln, bpvl);
+        else
+          contra_fold_st(num_samples, *cf, aln, out);
+        delete cf;
       }
-      if (max_clusters>0)
-        contra_fold_st(num_samples, *cf, aln, bpvl);
       else
-        contra_fold_st(num_samples, *cf, aln, out);
-      delete cf;
+      {
+        uint sz = seq.front().size();
+        std::list<std::string>::const_iterator x;
+        for (x=seq.begin(); x!=seq.end(); ++x)
+        {
+          std::string s;
+          std::vector<uint> idxmap(x->size(), static_cast<uint>(-1));
+          uint j=0;
+          for (uint i=0; i!=x->size(); ++i)
+          {
+            if ((*x)[i]!='-')
+            {
+              switch ((*x)[i])
+              {
+                case 't': s += 'u'; break;
+                case 'T': s += 'U'; break;
+                default:  s += (*x)[i];
+              }
+              idxmap[j++] = i;
+            }
+          }
+          idxmap.resize(j);
+          if (max_clusters>0)
+            contra_fold_st(num_samples, *contrafold_, s, bpvl, idxmap, sz);
+          else
+            contra_fold_st(num_samples, *contrafold_, s, out, idxmap, sz);
+        }
+      }
       break;
-    }
 
     default:
       throw "not supported yet";
@@ -1775,6 +1847,61 @@ contra_fold_ea(CONTRAfoldM<U>& cf, const BPvecPtr& bp, const std::vector<std::st
   mcc /= N;
 }
 
+template < class U >
+static
+void
+contra_fold_ea(CONTRAfold<U>& cf, const BPvecPtr& bp, const std::vector<std::string>& ma, uint num_samples,
+               double& sen, double& ppv, double& mcc)
+{
+  sen = ppv = mcc = 0.0;
+  int N = 0;
+
+  uint sz = ma.front().size();
+  std::vector<std::string>::const_iterator x;
+  for (x=ma.begin(); x!=ma.end(); ++x)
+  {
+    std::string seq;
+    std::vector<uint> idxmap(x->size(), static_cast<uint>(-1));
+    uint j=0;
+    for (uint i=0; i!=x->size(); ++i)
+    {
+      if ((*x)[i]!='-')
+      {
+        switch ((*x)[i])
+        {
+          case 't': seq += 'u'; break;
+          case 'T': seq += 'U'; break;
+          default:  seq += (*x)[i];
+        }
+        idxmap[j++] = i;
+      }
+    }
+
+    EncodeBP encoder;
+    // stochastic sampling
+    for (uint n=0; n!=num_samples; ++n) {
+      SCFG::CYKTable<uint> bp_pos(sz, 0);
+      std::vector<int> paren = cf.StochasticTraceback();
+      for (uint i=0; i!=paren.size(); ++i) {
+        if (paren[i]>int(i)) {
+          bp_pos(idxmap[i-1], idxmap[paren[i]-1])++;
+        }
+      }
+      double TP, TN, FP, FN;
+      get_TP_TN_FP_FN (*encoder.execute(bp_pos), *bp, TP, TN, FP, FN);
+      if (TP+FN!=0) sen += (double) TP / (TP+FN);
+      if (TP+FP!=0) ppv += (double) TP / (TP+FP);
+      if (TP+FP!=0 && TP+FN!=0 && TN+FP!=0 && TN+FN!=0)
+        mcc += (TP*TN-FP*FN)/std::sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN));
+      ++N;
+    }
+  }
+
+  sen /= N;
+  ppv /= N;
+  mcc /= N;
+}
+
 void CentroidFold::compute_expected_accuracy_sampling (const std::string& paren,  
 						       const std::string& seq, 
 						       uint num_samples, 
@@ -1805,8 +1932,7 @@ void CentroidFold::compute_expected_accuracy_sampling (const std::string& paren,
     break;
 #endif
   case CONTRAFOLD:
-    contrafold_->init_rand(seed_);
-    contra_fold_ea (*contrafold_,bp, seq2, num_samples, sen , ppv, mcc);
+    contra_fold_ea (*contrafold_, bp, seq2, num_samples, sen , ppv, mcc);
     break;
   default:
     throw "not supported yet";
@@ -1864,22 +1990,35 @@ void CentroidFold::compute_expected_accuracy_sampling (const std::string& paren,
     }
 #endif
 #endif
+
     case CONTRAFOLD:
-    {
-      CONTRAfoldM<float>* cf = new CONTRAfoldM<float>(canonical_only_, max_bp_dist_);
-      if (!model_.empty()) cf->SetParameters(model_);
-      cf->init_rand(seed_);
-      std::vector<std::string> aln(seq.size());
-      std::copy(seq.begin(), seq.end(), aln.begin());
-      for (uint i=0; i!=aln.size(); ++i)
+      if (dist_type_==0)
       {
-        std::replace(aln[i].begin(), aln[i].end(), 't', 'u');
-        std::replace(aln[i].begin(), aln[i].end(), 'T', 'U');
+        CONTRAfoldM<float>* cf = new CONTRAfoldM<float>(canonical_only_, max_bp_dist_);
+        if (!model_.empty()) cf->SetParameters(model_);
+        cf->init_rand(seed_);
+        std::vector<std::string> aln(seq.size());
+        std::copy(seq.begin(), seq.end(), aln.begin());
+        for (uint i=0; i!=aln.size(); ++i)
+        {
+          std::replace(aln[i].begin(), aln[i].end(), 't', 'u');
+          std::replace(aln[i].begin(), aln[i].end(), 'T', 'U');
+        }
+        contra_fold_ea(*cf, bp, aln, num_samples, sen, ppv, mcc);
+        delete cf;
       }
-      contra_fold_ea(*cf, bp, aln, num_samples, sen, ppv, mcc);
-      delete cf;
+      else
+      {
+        std::vector<std::string> aln(seq.size());
+        std::copy(seq.begin(), seq.end(), aln.begin());
+        for (uint i=0; i!=aln.size(); ++i)
+        {
+          std::replace(aln[i].begin(), aln[i].end(), 't', 'u');
+          std::replace(aln[i].begin(), aln[i].end(), 'T', 'U');
+        }
+        contra_fold_ea(*contrafold_, bp, aln, num_samples, sen, ppv, mcc);
+      }
       break;
-    }
 
     default:
       throw "not supported yet";
@@ -2129,6 +2268,65 @@ contra_fold_max_mcc(uint num_samples, CONTRAfoldM<U>& cf,
   return num_samples;
 }
 
+template < class U >
+static
+uint
+contra_fold_max_mcc(uint num_samples, CONTRAfold<U>& cf, const std::string& name, const std::string& seq,
+                    const std::vector<std::string>& ma,
+                    const CentroidFold::BPTable& bp, std::ostream& out)
+{
+  double MCC = -10000;
+  double SEN, PPV;
+  std::string PAREN;
+
+  uint sz = seq.size();
+  std::vector<std::string>::const_iterator x;
+  for (x=ma.begin(); x!=ma.end(); ++x)
+  {
+    std::string seq;
+    std::vector<uint> idxmap(x->size(), static_cast<uint>(-1));
+    uint j=0;
+    for (uint i=0; i!=x->size(); ++i)
+    {
+      if ((*x)[i]!='-')
+      {
+        switch ((*x)[i])
+        {
+          case 't': seq += 'u'; break;
+          case 'T': seq += 'U'; break;
+          default:  seq += (*x)[i];
+        }
+        idxmap[j++] = i;
+      }
+    }
+
+    // stochastic sampling
+    for (uint n=0; n!=num_samples; ++n) {
+      SCFG::CYKTable<uint> bp_pos(sz, 0);
+      std::vector<int> paren_i = cf.StochasticTraceback();
+      std::string paren (sz, '.');
+      
+      for (uint i=0; i!=paren_i.size(); ++i) {
+        if (paren_i[i]>int(i)) {
+          paren[idxmap[i-1]] = '(';
+          paren[idxmap[paren_i[i]-1]] = ')';
+        }
+      }
+
+      double sen, ppv, mcc;
+      CentroidFold::compute_expected_accuracy (paren, bp, sen, ppv, mcc);
+      if (MCC<mcc) {
+        PAREN = paren;
+        MCC = mcc; SEN = sen; PPV = ppv; 
+      }
+    }
+  }
+
+  out << ">" << name << std::endl << seq << std::endl << PAREN << " [MCC=" << MCC << "]" << std::endl;
+
+  return num_samples;
+}
+
 void 
 CentroidFold::
 max_mcc_fold (const std::string& name, const std::string& seq, uint num_samples, std::ostream& out)
@@ -2142,7 +2340,6 @@ max_mcc_fold (const std::string& name, const std::string& seq, uint num_samples,
 
   switch (engine_) {
   case CONTRAFOLD:
-    contrafold_->init_rand(seed_); // 
     contra_fold_max_mcc (num_samples, *contrafold_, name, seq, bp_, out); 
     break;
 #ifdef HAVE_LIBRNA
@@ -2172,14 +2369,19 @@ max_mcc_fold (const Aln& aln, uint num_samples, std::ostream& out)
 
   switch (engine_) {
     case CONTRAFOLD:
-    {
-      CONTRAfoldM<float>* cf = new CONTRAfoldM<float>(canonical_only_, max_bp_dist_);
-      if (!model_.empty()) cf->SetParameters(model_);
-      cf->init_rand(seed_);
-      contra_fold_max_mcc (num_samples, *cf, aln.name().front(), aln.consensus(), ma, bp_, out); 
-      delete cf;
+      if (dist_type_==0)
+      {
+        CONTRAfoldM<float>* cf = new CONTRAfoldM<float>(canonical_only_, max_bp_dist_);
+        if (!model_.empty()) cf->SetParameters(model_);
+        cf->init_rand(seed_);
+        contra_fold_max_mcc (num_samples, *cf, aln.name().front(), aln.consensus(), ma, bp_, out); 
+        delete cf;
+      }
+      else
+      {
+        contra_fold_max_mcc (num_samples, *contrafold_, aln.name().front(), aln.consensus(), ma, bp_, out);
+      }
       break;
-    }
 #ifdef HAVE_LIBRNA
     case PFFOLD:
       pf_fold_max_mcc (num_samples, aln.name().front(), aln.consensus(), ma, bp_, out);
