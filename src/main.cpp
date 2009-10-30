@@ -304,6 +304,7 @@ centroid_alifold_main(int argc, char* argv[])
   uint max_clusters;
   uint num_samples;
   uint seed;
+  uint dist_type;
   //
   int num_ea_samples = -1;
   int max_mcc = -1;
@@ -355,7 +356,10 @@ centroid_alifold_main(int argc, char* argv[])
      "the maximum number of clusters for the stochastic sampling algorithm")
     ("seed",
      po::value<uint>(&seed)->default_value(0),
-     "specify the seed for the random number generator (set this automatically if seed=0)");
+     "specify the seed for the random number generator (set this automatically if seed=0)")
+    ("dist-type",
+     po::value<uint>(&dist_type)->default_value(0),
+      "specify the type of the distribution for sampling");
 
   po::options_description opts("Options");
   opts.add_options()
@@ -450,7 +454,7 @@ centroid_alifold_main(int argc, char* argv[])
     break;
 #endif
   case CentroidFold::CONTRAFOLD:
-    cf.set_options_for_contrafold(param, !vm.count("noncanonical"), max_bp_dist);
+    cf.set_options_for_contrafold(param, !vm.count("noncanonical"), max_bp_dist, dist_type);
     break;
   }
 

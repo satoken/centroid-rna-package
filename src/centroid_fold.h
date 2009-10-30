@@ -60,7 +60,8 @@ public:
                uint seed=0);
   ~CentroidFold();
 
-  void set_options_for_contrafold(const std::string& model, bool canonical_only, uint max_bp_dist);
+  void set_options_for_contrafold(const std::string& model, bool canonical_only, uint max_bp_dist,
+                                  uint dist_type=0);
 
 #ifdef HAVE_LIBRNA
   void set_options_for_pf_fold(bool canonical_only, uint max_dist);
@@ -120,10 +121,11 @@ private:
   int num_ea_samples_; // for computing expected accuracies
   BPTable bp_;
   bool canonical_only_;
-  CONTRAfold<float>* contrafold_;
+  mutable CONTRAfold<float>* contrafold_;
   std::string model_;
   uint max_bp_dist_;
   uint seed_;
+  uint dist_type_;
 };
 
 #endif	// #ifndef __INC_CENTROID_FOLD_H__
