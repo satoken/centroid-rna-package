@@ -1876,8 +1876,10 @@ contra_fold_ea(CONTRAfold<U>& cf, const BPvecPtr& bp, const std::vector<std::str
         idxmap[j++] = i;
       }
     }
+    idxmap.resize(j);
 
     EncodeBP encoder;
+    cf.PrepareStochasticTraceback(seq);
     // stochastic sampling
     for (uint n=0; n!=num_samples; ++n) {
       SCFG::CYKTable<uint> bp_pos(sz, 0);
@@ -2301,6 +2303,7 @@ contra_fold_max_mcc(uint num_samples, CONTRAfold<U>& cf, const std::string& name
     }
 
     // stochastic sampling
+    cf.PrepareStochasticTraceback(seq);
     for (uint n=0; n!=num_samples; ++n) {
       SCFG::CYKTable<uint> bp_pos(sz, 0);
       std::vector<int> paren_i = cf.StochasticTraceback();
