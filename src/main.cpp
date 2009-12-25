@@ -25,6 +25,7 @@
 #include "../config.h"
 #endif
 
+#include <stdexcept>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -484,9 +485,12 @@ centroid_alifold_main(int argc, char* argv[])
 
   Aln aln;
   uint n=0;
-  while (aln.load(fi))
+  uint bytes=0;
+  uint total_bytes=0;
+  while ((bytes=aln.load(fi))>0)
   {
     n++;
+    total_bytes+=bytes;
 
     if (max_mcc > 0) {
       cf.max_mcc_fold (aln, max_mcc, *out);
@@ -542,6 +546,8 @@ centroid_alifold_main(int argc, char* argv[])
       cf.ps_plot(std::string(buf), aln.consensus(), gamma[0], !vm.count("monochrome"));
     }
   }
+  if (fi!=fi.make_end())
+    std::cout << "parse error after " << total_bytes << " bytes were loaded" << std::endl;
 
   if (out != &std::cout) delete out;
   if (p_out != &std::cout) delete p_out;
@@ -552,8 +558,16 @@ centroid_alifold_main(int argc, char* argv[])
 int
 main(int argc, char* argv[])
 {
-  if (strstr(argv[0], "alifold")==NULL)
-    return centroid_fold_main(argc, argv);
-  else
-    return centroid_alifold_main(argc, argv);
+  try
+  {
+    if (strstr(argv[0], "alifold")==NULL)
+      return centroid_fold_main(argc, argv);
+    else
+      return centroid_alifold_main(argc, argv);
+  }
+  catch (std::logic_error e)
+  {
+    std::cerr << e.what() << std::endl;
+  }
+  return 1;
 }

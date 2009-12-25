@@ -63,7 +63,7 @@ public:
   unsigned int
   load(std::list<Aln>& data, const char* file );
 
-  bool 
+  unsigned int
   load(boost::spirit::file_iterator<>& fi);
 
 private:
