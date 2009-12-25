@@ -122,7 +122,7 @@ struct aln_parser : public grammar< aln_parser >
     
     definition(const aln_parser& self)
     {
-      aln = header >> +empty >> body;
+      aln = header >> +empty >> body >> *empty;
       head_word = str_p("CLUSTAL") | str_p("PROBCONS");
       header =  head_word >> +print_p >> eol_p;
       empty = *blank_p >> eol_p;
@@ -141,7 +141,7 @@ struct aln_parser : public grammar< aln_parser >
   };
 };
 
-bool
+unsigned int
 Aln::
 load(boost::spirit::file_iterator<>& fi)
 {
@@ -151,14 +151,14 @@ load(boost::spirit::file_iterator<>& fi)
   parse_info<file_iterator<> > info =  parse(fi, fi.make_end(), parser);
   if (!info.hit) {
     fi = s;
-    return false;
+    return 0;
   } else {
     fi = info.stop;
     std::copy(wa.names.begin(), wa.names.end(),
 	      std::back_insert_iterator<std::list<std::string> >(name_));
     std::copy(wa.seqs.begin(), wa.seqs.end(),
 	      std::back_insert_iterator<std::list<std::string> >(seq_));
-    return true;
+    return info.length;
   }
 }
 
@@ -177,7 +177,7 @@ load(std::list<Aln>& data, const char* filename)
   }
   while (1) {
     Aln aln;
-    if (aln.load(fi)) {
+    if (aln.load(fi)>0) {
       n++;
       data.push_back(aln);
     } else {
