@@ -40,25 +40,23 @@ class CONTRAfold;
 
 typedef unsigned int uint;
 
-class CentroidFold
+class CentroidFoldBase
 {
 public:
   typedef SCFG::BP::Table<float> BPTable;
-
   enum {
     AUX,
     PFFOLD,
     CONTRAFOLD,
     ALIPFFOLD
   };
-  
-public:
-  CentroidFold(uint engine,
-               bool run_as_mea=false,
-	       int num_ea_samples=-1,
-	       uint reserved_size=0,
-               uint seed=0);
-  ~CentroidFold();
+
+  CentroidFoldBase(uint engine,
+                   bool run_as_mea=false,
+                   int num_ea_samples=-1,
+                   uint reserved_size=0,
+                   uint seed=0);
+  ~CentroidFoldBase();
 
   void set_options_for_contrafold(const std::string& model, bool canonical_only, uint max_bp_dist,
                                   uint dist_type=0);
@@ -67,55 +65,22 @@ public:
   void set_options_for_pf_fold(bool canonical_only, uint max_dist);
 #endif
 
-  void calculate_posterior(const std::string& seq);
-  void calculate_posterior(const std::string& seq, const std::string& str);
-  void calculate_posterior(const std::string& seq, const BPTable& bp);
-  void calculate_posterior(const std::list<std::string>& seq);
-  void calculate_posterior(const std::vector<std::string>& seq);
-  void calculate_posterior(const std::list<std::string>& seq, const std::string& str);
-  void calculate_posterior(const std::vector<std::string>& seq, const std::string& str);
-  void calculate_posterior(const std::list<std::string>& seq,
-                           const std::list<boost::shared_ptr<BPTable> >& bps);
-
   float decode_structure(float gamma, std::string& paren) const;
   std::pair<std::string,float> decode_structure(float gamma) const;
 
-  void print(std::ostream& out, const std::string& name, const std::string& seq,
-	     const std::vector<float>& gamma) const;
-  void print(std::ostream& out, const Aln& aln, const std::vector<float>& gamma) const;
-  void print_posterior(std::ostream& out, const std::string& seq, float th) const;
-  std::string posterior(const std::string& seq, float th) const;
-
-  void stochastic_fold(const std::string& name, const std::string& seq,
-                       uint num_samples, uint max_clusters,
-                       const std::vector<float>& gamma, std::ostream& out,
-                       const std::string& p_outname, float th);
-  void stochastic_fold(const Aln& aln,
-                       uint num_samples, uint max_clusters,
-                       const std::vector<float>& gamma, std::ostream& out,
-                       const std::string& p_outname, float th);
-
   const BPTable& get_bp() const { return bp_; }
-
-  // added by M. Hamada
-  void max_mcc_fold(const std::string& name, const std::string& seq, uint num_samples, std::ostream& out);
-  void max_mcc_fold(const Aln& aln, uint num_samples, std::ostream& out);
-  static void compute_expected_accuracy (const std::string& paren, 
-					 const BPTable& bp,
-					 double& sen, double& ppv, double& mcc);
-  void compute_expected_accuracy_sampling (const std::string& paren, const std::string& seq,
-					   uint num_samples,
-					   double& sen, double& ppv, double& mcc) const;
-  void compute_expected_accuracy_sampling (const std::string& paren, const Aln& aln,
-					   uint num_samples,
-					   double& sen, double& ppv, double& mcc) const;
+  void print_posterior(std::ostream& out, const std::string& seq, float th) const
+  {
+    bp_.save(out, seq, th);
+  }
+  std::string posterior(const std::string& seq, float th) const;
 
   void ps_plot(const std::string& name, const std::string& seq, float g, bool color=true) const;
 #ifdef HAVE_LIBRNA
   void svg_plot(const std::string& name, const std::string& seq, float g) const;
 #endif
 
-private:
+protected:
   uint engine_;
   bool mea_;
   int num_ea_samples_; // for computing expected accuracies
@@ -126,6 +91,77 @@ private:
   uint max_bp_dist_;
   uint seed_;
   uint dist_type_;
+};
+
+class CentroidFold : public CentroidFoldBase
+{
+public:
+  typedef CentroidFoldBase::BPTable BPTable;
+  
+  CentroidFold(uint engine,
+               bool run_as_mea=false,
+	       int num_ea_samples=-1,
+	       uint reserved_size=0,
+               uint seed=0)
+    : CentroidFoldBase(engine, run_as_mea, num_ea_samples, reserved_size, seed)
+  {}
+  ~CentroidFold() {}
+
+  void calculate_posterior(const std::string& seq);
+  void calculate_posterior(const std::string& seq, const std::string& str);
+  void calculate_posterior(const std::string& seq, const BPTable& bp);
+
+  void print(std::ostream& out, const std::string& name, const std::string& seq,
+	     const std::vector<float>& gamma) const;
+
+  void stochastic_fold(const std::string& name, const std::string& seq,
+                       uint num_samples, uint max_clusters,
+                       const std::vector<float>& gamma, std::ostream& out,
+                       const std::string& p_outname, float th);
+
+  const BPTable& get_bp() const { return bp_; }
+
+  // added by M. Hamada
+  void max_mcc_fold(const std::string& name, const std::string& seq, uint num_samples, std::ostream& out);
+  void compute_expected_accuracy_sampling (const std::string& paren, const std::string& seq,
+					   uint num_samples,
+					   double& sen, double& ppv, double& mcc) const;
+};
+
+class CentroidAlifold : public CentroidFoldBase
+{
+public:
+  typedef SCFG::BP::Table<float> BPTable;
+  
+public:
+  CentroidAlifold(uint engine,
+                  bool run_as_mea=false,
+                  int num_ea_samples=-1,
+                  uint reserved_size=0,
+                  uint seed=0)
+    : CentroidFoldBase(engine, run_as_mea, num_ea_samples, reserved_size, seed)
+  {}
+  ~CentroidAlifold() {}
+
+  void calculate_posterior(const std::list<std::string>& seq);
+  void calculate_posterior(const std::vector<std::string>& seq);
+  void calculate_posterior(const std::list<std::string>& seq, const std::string& str);
+  void calculate_posterior(const std::vector<std::string>& seq, const std::string& str);
+  void calculate_posterior(const std::list<std::string>& seq,
+                           const std::list<boost::shared_ptr<BPTable> >& bps);
+
+  void print(std::ostream& out, const Aln& aln, const std::vector<float>& gamma) const;
+
+  void stochastic_fold(const Aln& aln,
+                       uint num_samples, uint max_clusters,
+                       const std::vector<float>& gamma, std::ostream& out,
+                       const std::string& p_outname, float th);
+
+  // added by M. Hamada
+  void max_mcc_fold(const Aln& aln, uint num_samples, std::ostream& out);
+  void compute_expected_accuracy_sampling (const std::string& paren, const Aln& aln,
+					   uint num_samples,
+					   double& sen, double& ppv, double& mcc) const;
 };
 
 #endif	// #ifndef __INC_CENTROID_FOLD_H__

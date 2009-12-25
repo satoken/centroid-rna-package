@@ -445,15 +445,15 @@ centroid_alifold_main(int argc, char* argv[])
     return 1;
   }
 
-  CentroidFold cf(engine, vm.count("mea"), num_ea_samples, 0, seed);
+  CentroidAlifold cf(engine, vm.count("mea"), num_ea_samples, 0, seed);
   switch (engine) {
 #ifdef HAVE_LIBRNA
-  case CentroidFold::PFFOLD:
-  case CentroidFold::ALIPFFOLD:
+  case CentroidAlifold::PFFOLD:
+  case CentroidAlifold::ALIPFFOLD:
     cf.set_options_for_pf_fold(!vm.count("noncanonical"), max_bp_dist);
     break;
 #endif
-  case CentroidFold::CONTRAFOLD:
+  case CentroidAlifold::CONTRAFOLD:
     cf.set_options_for_contrafold(param, !vm.count("noncanonical"), max_bp_dist, dist_type);
     break;
   }
