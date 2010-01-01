@@ -45,6 +45,7 @@ namespace po = boost::program_options;
 int
 centroid_fold_main(int argc, char* argv[])
 {
+  enum { CONTRAFOLD, PFFOLD, AUX };
   std::vector<float> gamma;
   std::vector<float> th;
   std::string input;
@@ -56,7 +57,7 @@ centroid_fold_main(int argc, char* argv[])
   uint max_bp_dist;
   std::string param;
   uint max_clusters;
-  uint num_samples;
+  uint num_samples=0;
   uint seed;
   //
   int num_ea_samples = -1;
@@ -151,10 +152,9 @@ centroid_fold_main(int argc, char* argv[])
     return 1;
   }
 
-  unsigned int engine = CentroidFold::CONTRAFOLD;
-  if (vm.count("aux")) engine = CentroidFold::AUX;
-  if (vm.count("pf_fold")) engine = CentroidFold::PFFOLD;
-  if (vm.count("alipf_fold")) engine = CentroidFold::ALIPFFOLD;
+  unsigned int engine = CONTRAFOLD;
+  if (vm.count("aux")) engine = AUX;
+  if (vm.count("pf_fold")) engine = PFFOLD;
 
   if (th.size()>0)
   {
@@ -174,12 +174,8 @@ centroid_fold_main(int argc, char* argv[])
   {
     switch (engine)
     {
-    case CentroidFold::CONTRAFOLD:
+    case CONTRAFOLD:
       gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
-      break;
-    case CentroidFold::PFFOLD:
-    case CentroidFold::ALIPFFOLD:
-      gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
       break;
     default:
       gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
@@ -194,16 +190,21 @@ centroid_fold_main(int argc, char* argv[])
     return 1;
   }
 
-  CentroidFold cf(engine, vm.count("mea"), num_ea_samples, 0, seed);
+  CentroidFold<std::string>* cf=NULL;
   switch (engine) {
 #ifdef HAVE_LIBRNA
-  case CentroidFold::PFFOLD:
-  case CentroidFold::ALIPFFOLD:
-    cf.set_options_for_pf_fold(!vm.count("noncanonical"), max_bp_dist);
+  case PFFOLD:
+    cf = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
     break;
 #endif
-  case CentroidFold::CONTRAFOLD:
-    cf.set_options_for_contrafold(param, !vm.count("noncanonical"), max_bp_dist);
+  case CONTRAFOLD:
+    cf = new CONTRAfoldModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+    break;
+  case AUX:
+    cf = new AuxModel(model, vm.count("mea"));
+    break;
+  default:
+    assert(!"unreachable");
     break;
   }
 
@@ -236,42 +237,45 @@ centroid_fold_main(int argc, char* argv[])
   while (fa.load(fi))
   {
     n++;
-    if (max_mcc > 0) {
-      cf.max_mcc_fold (fa.name(), fa.seq(), max_mcc, *out);
-      continue;
-    }    
-    if (vm.count("sampling"))
+
+    std::replace(fa.seq().begin(), fa.seq().end(), 't', 'u');
+    std::replace(fa.seq().begin(), fa.seq().end(), 'T', 'U');
+
+    if (vm.count("constraints"))
     {
-      cf.stochastic_fold(fa.name(), fa.seq(), num_samples, max_clusters,
-                         gamma, *out, p_outname, p_th);
-      continue;
-    }
-    if (!vm.count("aux"))
-    {
-      if (!vm.count("constraints"))
-      {
-        cf.calculate_posterior(fa.seq());
-      }
-      else if (fa.str().empty())
+      if (!fa.str().empty())
+        cf->set_constraint(fa.str());
+      else
       {
         std::cout << "Input constraints:" << std::endl;
         std::string str;
         std::getline(std::cin, str);
-        cf.calculate_posterior(fa.seq(), str);
-      }
-      else
-      {
-        cf.calculate_posterior(fa.seq(), fa.str());
+        cf->set_constraint(str);
       }
     }
-    else
+
+    if (num_samples>0)
     {
-      CentroidFold::BPTable bp;
-      bp.load(model[0].c_str());
-      cf.calculate_posterior(fa.seq(), bp);
+      if (max_clusters>0)
+        cf->stochastic_fold(fa.name(), fa.seq(), num_samples, gamma, max_clusters, *out, p_outname, p_th);
+      else
+        cf->stochastic_fold(fa.seq(), num_samples, *out);
+      continue;
     }
-    cf.print(*out, fa.name(), fa.seq(), gamma);
-    if (vm.count("posteriors")) cf.print_posterior(*p_out, fa.seq(), p_th);
+
+    if (max_mcc>0)
+    {
+      cf->max_mcc_fold (fa.name(), fa.seq(), *out, max_mcc);
+      continue;
+    }
+
+    if (num_ea_samples>=0)
+      cf->centroid_fold(fa.name(), fa.seq(), gamma, *out, num_ea_samples);
+    else
+      cf->centroid_fold(fa.name(), fa.seq(), gamma, *out);
+
+    if (vm.count("posteriors")) cf->get_bp().save(*p_out, fa.seq(), p_th);
+
     if (!ps_outname.empty())
     {
       char buf[PATH_MAX];
@@ -279,12 +283,13 @@ centroid_fold_main(int argc, char* argv[])
         strncpy(buf, ps_outname.c_str(), sizeof(buf));
       else
         snprintf(buf, sizeof(buf), "%s-%d", ps_outname.c_str(), n-1);
-      cf.ps_plot(std::string(buf), fa.seq(), gamma[0], !vm.count("monochrome"));
+      cf->ps_plot(std::string(buf), fa.seq(), gamma[0], !vm.count("monochrome"));
     }
   }
 
-  if (out != &std::cout) delete out;
-  if (p_out != &std::cout) delete p_out;
+  if (cf) delete cf;
+  if (out!=&std::cout) delete out;
+  if (p_out!=&std::cout) delete p_out;
 
   return 0;
 }
@@ -292,6 +297,7 @@ centroid_fold_main(int argc, char* argv[])
 int
 centroid_alifold_main(int argc, char* argv[])
 {
+  enum { CONTRAFOLD, PFFOLD, ALIPFFOLD, AUX };
   std::vector<float> gamma;
   std::vector<float> th;
   std::string input;
@@ -303,7 +309,7 @@ centroid_alifold_main(int argc, char* argv[])
   uint max_bp_dist;
   std::string param;
   uint max_clusters;
-  uint num_samples;
+  uint num_samples=0;
   uint seed;
   uint dist_type;
   //
@@ -403,10 +409,10 @@ centroid_alifold_main(int argc, char* argv[])
     return 1;
   }
 
-  unsigned int engine = CentroidFold::CONTRAFOLD;
-  if (vm.count("aux")) engine = CentroidFold::AUX;
-  if (vm.count("pf_fold")) engine = CentroidFold::PFFOLD;
-  if (vm.count("alipf_fold")) engine = CentroidFold::ALIPFFOLD;
+  unsigned int engine = CONTRAFOLD;
+  if (vm.count("aux")) engine = AUX;
+  if (vm.count("pf_fold")) engine = PFFOLD;
+  if (vm.count("alipf_fold")) engine = ALIPFFOLD;
 
   if (th.size()>0)
   {
@@ -426,11 +432,11 @@ centroid_alifold_main(int argc, char* argv[])
   {
     switch (engine)
     {
-    case CentroidFold::CONTRAFOLD:
+    case CONTRAFOLD:
       gamma.push_back(vm.count("mea") ? 6.0 : 4.0);
       break;
-    case CentroidFold::PFFOLD:
-    case CentroidFold::ALIPFFOLD:
+    case PFFOLD:
+    case ALIPFFOLD:
       gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
       break;
     default:
@@ -446,16 +452,33 @@ centroid_alifold_main(int argc, char* argv[])
     return 1;
   }
 
-  CentroidAlifold cf(engine, vm.count("mea"), num_ea_samples, 0, seed);
+  CentroidFold<Aln>* cf=NULL;
+  CentroidFold<std::string>* src=NULL;
   switch (engine) {
 #ifdef HAVE_LIBRNA
-  case CentroidAlifold::PFFOLD:
-  case CentroidAlifold::ALIPFFOLD:
-    cf.set_options_for_pf_fold(!vm.count("noncanonical"), max_bp_dist);
+  case PFFOLD:
+    src = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+    cf = new AveragedModel(src, max_bp_dist, vm.count("mea"));
+    break;
+  case ALIPFFOLD:
+    cf = new AliFoldModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
     break;
 #endif
-  case CentroidAlifold::CONTRAFOLD:
-    cf.set_options_for_contrafold(param, !vm.count("noncanonical"), max_bp_dist, dist_type);
+  case CONTRAFOLD:
+    if (dist_type==0)
+    {
+      src = new CONTRAfoldModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+      cf = new AveragedModel(src, max_bp_dist, vm.count("mea"));
+    }
+    else
+      cf = new CONTRAfoldMultiModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+    break;
+  case AUX:
+    src = new AuxModel(model, vm.count("mea"));
+    cf = new AveragedModel(src, 0, vm.count("mea"));
+    break;
+  default:
+    assert(!"unreachable");
     break;
   }
 
@@ -492,50 +515,43 @@ centroid_alifold_main(int argc, char* argv[])
     n++;
     total_bytes+=bytes;
 
-    if (max_mcc > 0) {
-      cf.max_mcc_fold (aln, max_mcc, *out);
-      continue;
-    }    
-    if (vm.count("sampling"))
+    std::list<std::string>::iterator seq;
+    for (seq=aln.seq().begin(); seq!=aln.seq().end(); ++seq)
     {
-      cf.stochastic_fold(aln, num_samples, max_clusters,
-                         gamma, *out, p_outname, p_th);
-      continue;
+      std::replace(seq->begin(), seq->end(), 't', 'u');
+      std::replace(seq->begin(), seq->end(), 'T', 'U');
     }
-    if (vm.count("aux"))
+
+    if (vm.count("constraints"))
     {
-      if (aln.seq().size()!=model.size())
-      {
-        std::cerr << "Given BP matrices and alignments were inconsistent.\n";
-        break;
-      }
-      std::list<boost::shared_ptr<CentroidFold::BPTable> > bps;
-      std::vector<std::string>::const_iterator m;
-      for (m=model.begin(); m!=model.end(); ++m)
-      {
-        boost::shared_ptr<CentroidFold::BPTable> v(new CentroidFold::BPTable);
-        v->load(m->c_str());
-        bps.push_back(v);
-      }
-      cf.calculate_posterior(aln.seq(), bps);
+      std::cout << "Input constraints:" << std::endl;
+      std::string str;
+      std::getline(std::cin, str);
+      cf->set_constraint(str);
     }
-    else
+
+    if (num_samples>0)
     {
-      if (!vm.count("constraints"))
-      {
-        cf.calculate_posterior(aln.seq());
-      }
+      if (max_clusters>0)
+        cf->stochastic_fold(aln.name().front(), aln, num_samples, gamma, max_clusters, *out, p_outname, p_th);
       else
-      {
-        std::cout << "Input constraints:" << std::endl;
-        std::string str;
-        std::getline(std::cin, str);
-        cf.calculate_posterior(aln.seq(), str);
-      }
+        cf->stochastic_fold(aln, num_samples, *out);
+      continue;
     }
-      
-    cf.print(*out, aln, gamma);
-    if (vm.count("posteriors")) cf.print_posterior(*p_out, aln.consensus(), p_th);
+
+    if (max_mcc>0)
+    {
+      cf->max_mcc_fold(aln.name().front(), aln, *out, max_mcc);
+      continue;
+    }
+
+    if (num_ea_samples>=0)
+      cf->centroid_fold(aln.name().front(), aln, gamma, *out, num_ea_samples);
+    else
+      cf->centroid_fold(aln.name().front(), aln, gamma, *out);
+
+    if (vm.count("posteriors")) cf->get_bp().save(*p_out, aln.consensus(), p_th);
+
     if (!ps_outname.empty())
     {
       char buf[PATH_MAX];
@@ -543,12 +559,16 @@ centroid_alifold_main(int argc, char* argv[])
         strncpy(buf, ps_outname.c_str(), sizeof(buf));
       else
         snprintf(buf, sizeof(buf), "%s-%d", ps_outname.c_str(), n-1);
-      cf.ps_plot(std::string(buf), aln.consensus(), gamma[0], !vm.count("monochrome"));
+      cf->ps_plot(std::string(buf), aln, gamma[0], !vm.count("monochrome"));
     }
   }
+#if 1
   if (fi!=fi.make_end())
     std::cout << "parse error after " << total_bytes << " bytes were loaded" << std::endl;
+#endif
 
+  if (cf) delete cf;
+  if (src) delete src;
   if (out != &std::cout) delete out;
   if (p_out != &std::cout) delete p_out;
 

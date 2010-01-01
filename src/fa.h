@@ -54,6 +54,7 @@ public:
 
   const std::string& name() const { return name_; }
   const std::string& seq() const { return seq_; }
+  std::string& seq() { return seq_; }
   const std::string& str() const { return str_; }
   unsigned int size() const { return seq_.size(); }
 

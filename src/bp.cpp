@@ -49,50 +49,6 @@ struct IgnoreAlonePair
   BPTable& bp_;
 };
 
-template < class BPTable, class BPTablePtr >
-struct AverageBP
-{
-  AverageBP(BPTable& bp,
-	    const std::list<BPTablePtr>& bps,
-	    const std::list<std::vector<uint> >& idxmap,
-            uint max_dist)
-    : bp_(bp), bps_(bps), idxmap_(idxmap), max_dist_(max_dist)
-  {
-  }
-
-  void operator()(uint i, uint j)
-  {
-    double v=0.0;
-    uint c=0;
-    typename std::list<BPTablePtr>::const_iterator b = bps_.begin();
-    std::list<std::vector<uint> >::const_iterator idx = idxmap_.begin();
-    while (b!=bps_.end() && idx!=idxmap_.end()) {
-      uint ii=(*idx)[i];
-      uint jj=(*idx)[j];
-      if (ii!=static_cast<uint>(-1) &&
-	  jj!=static_cast<uint>(-1)) {
-	v += (**b)(ii,jj);
-      }
-      ++c; ++b; ++idx;
-    }
-    bp_.update(i, j, v/c);
-  }
-
-  void make()
-  {
-    if (max_dist_==0)
-      SCFG::inside_traverse(0, bp_.size()-1, *this);
-    else
-      SCFG::inside_traverse(0, bp_.size()-1, max_dist_, *this);
-  }
-
-private:
-  BPTable& bp_;
-  const std::list<BPTablePtr>& bps_;
-  const std::list<std::vector<uint> >& idxmap_;
-  uint max_dist_;
-};
-
 namespace SCFG
 {
   namespace BP
@@ -126,41 +82,6 @@ namespace SCFG
       }
       
       return st.empty();
-    }
-
-    template < class V >
-    void
-    Table<V>::
-    convert_to_raw_sequences(const std::list<std::string>& ma,
-			     std::list<std::string>& seqs,
-			     std::list<std::vector<uint> >& idxmaps)
-    {
-      std::list<std::string>::const_iterator x;
-      for (x=ma.begin(); x!=ma.end(); ++x) {
-	std::string s;
-	std::vector<uint> idxmap(x->size(), static_cast<uint>(-1));
-	for (uint i=0, j=0; i!=x->size(); ++i) {
-	  if ((*x)[i]!='-') {
-	    s += (*x)[i];
-	    idxmap[i] = j++;
-	  }
-	}
-	seqs.push_back(s);
-	idxmaps.push_back(idxmap);
-      }
-    }
-
-    template < class V >
-    template <class BPTablePtr>
-    void
-    Table<V>::
-    average(const std::list<BPTablePtr>& bps,
-	    const std::list<std::vector<uint> >& idxmaps,
-            uint max_dist)
-    {
-      resize(idxmaps.front().size(), max_dist);
-      AverageBP<Table<V>, BPTablePtr> avg(*this, bps, idxmaps, max_dist);
-      avg.make();
     }
 
     template < class V >
@@ -250,9 +171,3 @@ template
 bool
 SCFG::BP::Table<uint>::
 parse(const std::string& str, bool ignore_alone_pair, uint min_loop);
-
-template
-void
-SCFG::BP::Table<float>::
-average(const std::list<boost::shared_ptr<SCFG::BP::Table<float> > >& bps,
-	const std::list<std::vector<uint> >& idxmaps, uint max_dist);
