@@ -25,10 +25,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <boost/spirit/core.hpp>
-#include <boost/spirit/utility/chset.hpp>
-#include <boost/spirit/utility/confix.hpp>
-#include <boost/spirit/iterator/file_iterator.hpp>
+#include <boost/spirit.hpp>
 
 using namespace boost::spirit;
 

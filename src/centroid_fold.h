@@ -29,139 +29,184 @@
 #include <vector>
 #include <iosfwd>
 #include <boost/shared_ptr.hpp>
+#include <boost/dynamic_bitset.hpp>
 #include "bp.h"
 #include "aln.h"
 #if 0
 #include <contrafold/contrafold.h>
 #else
-template < class RealT >
-class CONTRAfold;
+template < class RealT > class CONTRAfold;
+template < class RealT > class CONTRAfoldM;
 #endif
 
 typedef unsigned int uint;
+typedef SCFG::BP::Table<float> BPTable;
+typedef boost::shared_ptr<BPTable> BPTablePtr;
+typedef boost::dynamic_bitset<> BPvec;
+typedef boost::shared_ptr<BPvec> BPvecPtr;
 
-class CentroidFoldBase
+
+template < class SEQ >
+class CentroidFold
 {
 public:
-  typedef SCFG::BP::Table<float> BPTable;
-  enum {
-    AUX,
-    PFFOLD,
-    CONTRAFOLD,
-    ALIPFFOLD
-  };
+  CentroidFold(bool run_as_mea=false, uint max_bp_dist=0)
+    : mea_(run_as_mea), bp_(), max_bp_dist_(max_bp_dist) { }
+  virtual ~CentroidFold() { }
 
-  CentroidFoldBase(uint engine,
-                   bool run_as_mea=false,
-                   int num_ea_samples=-1,
-                   uint reserved_size=0,
-                   uint seed=0);
-  ~CentroidFoldBase();
-
-  void set_options_for_contrafold(const std::string& model, bool canonical_only, uint max_bp_dist,
-                                  uint dist_type=0);
-
-#ifdef HAVE_LIBRNA
-  void set_options_for_pf_fold(bool canonical_only, uint max_dist);
-#endif
+  // folding routines
+  void centroid_fold(const std::string& name, const SEQ& seq,
+                     const std::vector<float>& gamma, std::ostream& out);
+  void centroid_fold(const std::string& name, const SEQ& seq,
+                     const std::vector<float>& gamma, std::ostream& out, uint num_ea_samples);
+  virtual void stochastic_fold(const SEQ& seq, uint num_samples, std::ostream& out);
+  virtual void stochastic_fold(const SEQ& seq, uint num_samples, std::vector<BPvecPtr>& bpv);
+  void stochastic_fold(const std::string& name, const SEQ& seq, uint num_samples,
+                       const std::vector<float>& gamma, uint max_clusters, std::ostream& out,
+                       const std::string& p_outname, float th);
+  virtual void max_mcc_fold(const std::string& name, const SEQ& seq, std::ostream& out, uint num_samples);
+  
+  void compute_expected_accuracy(const std::string& paren, double& sen, double& ppv, double& mcc) const;
+  virtual void compute_expected_accuracy_sampling(const std::string& paren, const SEQ& seq,
+                                                  uint num_ea_samples, double& sen, double& ppv, double& mcc);
 
   float decode_structure(float gamma, std::string& paren) const;
-  std::pair<std::string,float> decode_structure(float gamma) const;
-
+  
   const BPTable& get_bp() const { return bp_; }
-  void print_posterior(std::ostream& out, const std::string& seq, float th) const
-  {
-    bp_.save(out, seq, th);
-  }
-  std::string posterior(const std::string& seq, float th) const;
 
-  void ps_plot(const std::string& name, const std::string& seq, float g, bool color=true) const;
+  void ps_plot(const std::string& name, const SEQ& seq, float g, bool color=true) const;
 #ifdef HAVE_LIBRNA
-  void svg_plot(const std::string& name, const std::string& seq, float g) const;
+  void svg_plot(const std::string& name, const SEQ& seq, float g) const;
 #endif
 
+  // interfaces
+  virtual void set_constraint(const std::string& str);
+  virtual void calculate_posterior(const SEQ& seq) = 0;
+  virtual void prepare_stochastic_traceback(const SEQ& seq);
+  virtual std::vector<int> stochastic_traceback(const SEQ& seq);
+  virtual void clean_stochastic_traceback(const SEQ& seq);
+
 protected:
-  uint engine_;
   bool mea_;
-  int num_ea_samples_; // for computing expected accuracies
   BPTable bp_;
-  bool canonical_only_;
-  mutable CONTRAfold<float>* contrafold_;
-  std::string model_;
   uint max_bp_dist_;
-  uint seed_;
-  uint dist_type_;
 };
 
-class CentroidFold : public CentroidFoldBase
+class CONTRAfoldModel : public CentroidFold<std::string>
 {
 public:
-  typedef CentroidFoldBase::BPTable BPTable;
-  
-  CentroidFold(uint engine,
-               bool run_as_mea=false,
-	       int num_ea_samples=-1,
-	       uint reserved_size=0,
-               uint seed=0)
-    : CentroidFoldBase(engine, run_as_mea, num_ea_samples, reserved_size, seed)
-  {}
-  ~CentroidFold() {}
+  CONTRAfoldModel(const std::string& model, bool canonical_only, uint max_bp_dist,
+                  uint seed=0, bool run_as_mea=false);
+  virtual ~CONTRAfoldModel();
 
-  void calculate_posterior(const std::string& seq);
-  void calculate_posterior(const std::string& seq, const std::string& str);
-  void calculate_posterior(const std::string& seq, const BPTable& bp);
+  // interface implementations
+  virtual void set_constraint(const std::string& str);
+  virtual void calculate_posterior(const std::string& seq);
+  virtual void prepare_stochastic_traceback(const std::string& seq);
+  virtual std::vector<int> stochastic_traceback(const std::string& seq);
+  virtual void clean_stochastic_traceback(const std::string& seq) { }
 
-  void print(std::ostream& out, const std::string& name, const std::string& seq,
-	     const std::vector<float>& gamma) const;
-
-  void stochastic_fold(const std::string& name, const std::string& seq,
-                       uint num_samples, uint max_clusters,
-                       const std::vector<float>& gamma, std::ostream& out,
-                       const std::string& p_outname, float th);
-
-  const BPTable& get_bp() const { return bp_; }
-
-  // added by M. Hamada
-  void max_mcc_fold(const std::string& name, const std::string& seq, uint num_samples, std::ostream& out);
-  void compute_expected_accuracy_sampling (const std::string& paren, const std::string& seq,
-					   uint num_samples,
-					   double& sen, double& ppv, double& mcc) const;
+private:
+  CONTRAfold<float>* contrafold_;
 };
 
-class CentroidAlifold : public CentroidFoldBase
+#ifdef HAVE_LIBRNA
+class McCaskillModel : public CentroidFold<std::string>
 {
 public:
-  typedef SCFG::BP::Table<float> BPTable;
-  
+  McCaskillModel(bool canonical_only, uint max_bp_dist,
+                 uint seed=0, bool run_as_mea=false);
+  virtual ~McCaskillModel() { }
+
+  // interface implementations
+  virtual void set_constraint(const std::string& str);
+  virtual void calculate_posterior(const std::string& seq);
+  virtual void prepare_stochastic_traceback(const std::string& seq);
+  virtual std::vector<int> stochastic_traceback(const std::string& seq);
+  virtual void clean_stochastic_traceback(const std::string& seq);
+
+private:
+  bool canonical_only_;
+  int bk_st_back_;
+  std::string str_;
+};
+#endif
+
+class AveragedModel : public CentroidFold<Aln>
+{
 public:
-  CentroidAlifold(uint engine,
-                  bool run_as_mea=false,
-                  int num_ea_samples=-1,
-                  uint reserved_size=0,
-                  uint seed=0)
-    : CentroidFoldBase(engine, run_as_mea, num_ea_samples, reserved_size, seed)
-  {}
-  ~CentroidAlifold() {}
+  AveragedModel(CentroidFold<std::string>* cf, uint max_bp_dist, bool run_as_mea=false);
+  virtual ~AveragedModel() {}
 
-  void calculate_posterior(const std::list<std::string>& seq);
-  void calculate_posterior(const std::vector<std::string>& seq);
-  void calculate_posterior(const std::list<std::string>& seq, const std::string& str);
-  void calculate_posterior(const std::vector<std::string>& seq, const std::string& str);
-  void calculate_posterior(const std::list<std::string>& seq,
-                           const std::list<boost::shared_ptr<BPTable> >& bps);
+  virtual void stochastic_fold(const Aln& aln, uint num_samples, std::ostream& out);
+  virtual void stochastic_fold(const Aln& aln, uint num_samples, std::vector<BPvecPtr>& bpv);
+  virtual void max_mcc_fold(const std::string& name, const Aln& aln, std::ostream& out, uint num_samples);
+  
+  virtual void compute_expected_accuracy_sampling(const std::string& paren, const Aln& aln,
+                                                  uint num_ea_samples, double& sen, double& ppv, double& mcc);
 
-  void print(std::ostream& out, const Aln& aln, const std::vector<float>& gamma) const;
+  // interface implementations
+  virtual void set_constraint(const std::string& str);
+  virtual void calculate_posterior(const Aln& aln);
 
-  void stochastic_fold(const Aln& aln,
-                       uint num_samples, uint max_clusters,
-                       const std::vector<float>& gamma, std::ostream& out,
-                       const std::string& p_outname, float th);
+private:
+  CentroidFold<std::string>* cf_;
+  std::vector<uint> paren_;
+};
 
-  // added by M. Hamada
-  void max_mcc_fold(const Aln& aln, uint num_samples, std::ostream& out);
-  void compute_expected_accuracy_sampling (const std::string& paren, const Aln& aln,
-					   uint num_samples,
-					   double& sen, double& ppv, double& mcc) const;
+#ifdef HAVE_LIBRNA
+class AliFoldModel : public CentroidFold<Aln>
+{
+public:
+  AliFoldModel(bool canonical_only, uint max_bp_dist, uint seed=0, bool run_as_mea=false);
+  virtual ~AliFoldModel() { }
+
+  // interface implementations
+  virtual void set_constraint(const std::string& str);
+  virtual void calculate_posterior(const Aln& aln);
+  virtual void prepare_stochastic_traceback(const Aln& aln);
+  virtual std::vector<int> stochastic_traceback(const Aln& aln);
+  virtual void clean_stochastic_traceback(const Aln& aln);
+
+private:
+  bool canonical_only_;
+  int bk_st_back_;
+  std::string str_;
+};
+#endif
+
+class CONTRAfoldMultiModel : public CentroidFold<Aln>
+{
+public:
+  CONTRAfoldMultiModel(const std::string& model, bool canonical_only, uint max_bp_dist,
+                       uint seed=0, bool run_as_mea=false);
+  virtual ~CONTRAfoldMultiModel();
+
+  // interface implementations
+  //void set_constraint(const std::string& str);
+  virtual void calculate_posterior(const Aln& aln);
+  virtual void prepare_stochastic_traceback(const Aln& aln);
+  virtual std::vector<int> stochastic_traceback(const Aln& aln);
+  virtual void clean_stochastic_traceback(const Aln& aln) { }
+
+private:
+  CONTRAfoldModel* contrafold_;
+  CONTRAfoldM<float>* contrafoldm_;
+  AveragedModel* avg_;
+};
+
+class AuxModel : public CentroidFold<std::string>
+{
+public:
+  AuxModel(const std::vector<std::string>& bpfiles, bool run_as_mea=false);
+  virtual ~AuxModel() { }
+
+  // interface implementations
+  virtual void calculate_posterior(const std::string& seq);
+
+private:
+  std::vector<std::string> bpfiles_;
+  uint pos_;
 };
 
 #endif	// #ifndef __INC_CENTROID_FOLD_H__

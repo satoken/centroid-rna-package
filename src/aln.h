@@ -52,6 +52,7 @@ public:
     
   const std::list<std::string>& name() const { return name_; }
   const std::list<std::string>& seq() const { return seq_; }
+  std::list<std::string>& seq() { return seq_; }
   unsigned int size() const { return seq_.begin()->size(); }
   unsigned int num_aln() const { return name_.size(); }
   std::string consensus() const;

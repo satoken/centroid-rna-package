@@ -92,18 +92,6 @@ namespace SCFG
 
       bool parse(const std::string& str, bool ignore_alone_pair=false, uint minloop=3);
 
-      static
-      void
-      convert_to_raw_sequences(const std::list<std::string>& ma,
-			       std::list<std::string>& seqs,
-			       std::list<std::vector<uint> >& idxmaps);
-      
-      template <class BPTablePtr>
-      void
-      average(const std::list<BPTablePtr>& bps,
-	      const std::list<std::vector<uint> >& idxmaps,
-              uint max_dist=0);
-
       bool load(const char* filename);
       bool save(const char* filename, const std::string& seq, float th) const;
       bool save(std::ostream& out, const std::string& seq, float th) const;
