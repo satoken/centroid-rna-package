@@ -21,27 +21,30 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef __INC_CENTROID_H__
-#define __INC_CENTROID_H__
+#ifndef __INC_ENGINE_ALIFOLD_H__
+#define __INC_ENGINE_ALIFOLD_H__
 
-#include <string>
+#include "../centroid_fold.h"
 
-namespace SCFG
+#ifdef HAVE_LIBRNA
+class AliFoldModel : public CentroidFold<Aln>
 {
-  namespace Centroid
-  {
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, float gamma);
+public:
+  AliFoldModel(bool canonical_only, uint max_bp_dist, uint seed=0, bool run_as_mea=false);
+  virtual ~AliFoldModel() { }
 
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, unsigned int max_dist, float gamma);
-  };
+  // interface implementations
+  virtual void set_constraint(const std::string& str);
+  virtual void calculate_posterior(const Aln& aln);
+  virtual void prepare_stochastic_traceback(const Aln& aln);
+  virtual std::vector<int> stochastic_traceback(const Aln& aln);
+  virtual void clean_stochastic_traceback(const Aln& aln);
+
+private:
+  bool canonical_only_;
+  int bk_st_back_;
+  std::string str_;
 };
+#endif
 
-#endif	//  __INC_CENTROID_H__
-
-// Local Variables:
-// mode: C++
-// End:
+#endif  //  __INC_ENGINE_ALIFOLD_H__

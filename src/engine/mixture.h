@@ -21,27 +21,25 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef __INC_CENTROID_H__
-#define __INC_CENTROID_H__
+#ifndef __INC_ENGINE_MIXTURE_H__
+#define __INC_ENGINE_MIXTURE_H__
 
-#include <string>
+#include "../centroid_fold.h"
 
-namespace SCFG
+template < class SEQ >
+class MixtureModel : public CentroidFold<SEQ>
 {
-  namespace Centroid
-  {
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, float gamma);
+public:
+  MixtureModel(const std::vector<std::pair<CentroidFold<SEQ>*,float> >& models, bool run_as_mea=false);
+  virtual ~MixtureModel() { }
 
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, unsigned int max_dist, float gamma);
-  };
+  // interface implementations
+  virtual void calculate_posterior(const SEQ& seq);
+
+private:
+  std::vector<std::pair<CentroidFold<SEQ>*,float> > models_;
+
+  using CentroidFold<SEQ>::bp_;
 };
 
-#endif	//  __INC_CENTROID_H__
-
-// Local Variables:
-// mode: C++
-// End:
+#endif  //  __INC_ENGINE_MIXTURE_H__

@@ -4,7 +4,7 @@
  * CentroidFold: A generalized centroid estimator for predicting RNA
  *               secondary structures
  *
- * Copyright (C) 2008 Kengo Sato
+ * Copyright (C) 2008-2010 Kengo Sato
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,11 +34,18 @@
 #include <boost/range.hpp>
 #include <boost/algorithm/string.hpp>
 #include "centroid_fold.h"
-#include "iupac.h"
 #include "mea.h"
 #include "centroid.h"
 #include "fa.h"
 #include "aln.h"
+
+#include "engine/contrafold.h"
+#include "engine/contrafoldm.h"
+#include "engine/mccaskill.h"
+#include "engine/alifold.h"
+#include "engine/averaged.h"
+#include "engine/mixture.h"
+#include "engine/aux.h"
 
 namespace po = boost::program_options;
 

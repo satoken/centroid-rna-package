@@ -20,28 +20,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
+#ifdef HAVE_CONFIG_H
+#include "../config.h"
+#endif
 
-#ifndef __INC_CENTROID_H__
-#define __INC_CENTROID_H__
+#include "engine/aux.h"
 
-#include <string>
-
-namespace SCFG
+AuxModel::
+AuxModel(const std::vector<std::string>& bpfiles, bool run_as_mea /*=false*/)
+  : CentroidFold<std::string>(run_as_mea, 0), bpfiles_(bpfiles), pos_(0)
 {
-  namespace Centroid
-  {
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, float gamma);
+}
 
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, unsigned int max_dist, float gamma);
-  };
-};
-
-#endif	//  __INC_CENTROID_H__
-
-// Local Variables:
-// mode: C++
-// End:
+void
+AuxModel::
+calculate_posterior(const std::string& seq)
+{
+  if (bpfiles_.size()<=pos_) throw "More BP files are needed.";
+  bp_.load(bpfiles_[pos_++].c_str());
+}

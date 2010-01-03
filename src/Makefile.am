@@ -6,13 +6,17 @@ CLEANFILES = centroid_alifold$(EXEEXT)
 all: centroid_alifold$(EXEEXT)
 
 centroid_fold_SOURCES = \
-	main.cpp fa.cpp aln.cpp iupac.cpp fa.h aln.h
+	main.cpp fa.cpp aln.cpp fa.h aln.h
 centroid_fold_LDADD = libcentroid.a contrafold/libcontrafold.a ${BOOST_LIBS}
 
 libcentroid_a_SOURCES = \
-	centroid_fold.cpp centroid.cpp mea.cpp bp.cpp iupac.cpp \
-	centroid_fold.h centroid.h mea.h bp.h iupac.h cyktable.h rule.h contrafold/contrafold.h \
-        diana.cpp diana.h ps_plot.cpp ps_plot.h naview.c
+	centroid_fold.cpp centroid.cpp mea.cpp bp.cpp \
+	engine/aux.cpp engine/alifold.cpp engine/contrafold.cpp engine/mccaskill.cpp \
+	engine/averaged.cpp engine/contrafoldm.cpp engine/mixture.cpp \
+	centroid_fold.h centroid.h mea.h bp.h cyktable.h rule.h contrafold/contrafold.h \
+	engine/aux.h engine/alifold.h engine/contrafold.h engine/mccaskill.h \
+	engine/averaged.h engine/contrafoldm.h engine/mixture.h \
+        diana.cpp diana.h ps_plot.cpp ps_plot.h naview.c 
 
 install-exec-hook:
 	$(LN_S) $(DESTDIR)$(bindir)/centroid_fold$(EXEEXT) \

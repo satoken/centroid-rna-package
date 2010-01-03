@@ -14,16 +14,18 @@ AC_LANG(C++)
 AC_CXX_HAVE_STL
 AC_PROG_RANLIB
 AC_PROG_LN_S
+AC_PROG_AWK
+AC_PROG_SED
 
 # Memory Resevation
-AC_ARG_WITH([reserve], AS_HELP_STRING([--with-reserve],[the length of seqeunces for reserved memory (default: 500)]),
-    [
-      AC_DEFINE_UNQUOTED([RESERVED_LENGTH], $withval, [the length of seqeunces for reserved memory])
-    ],
-    [
-      AC_DEFINE_UNQUOTED([RESERVED_LENGTH], 500, [the length of seqeunces for reserved memory])
-    ]
-)
+dnl AC_ARG_WITH([reserve], AS_HELP_STRING([--with-reserve],[the length of seqeunces for reserved memory (default: 500)]),
+dnl     [
+dnl       AC_DEFINE_UNQUOTED([RESERVED_LENGTH], $withval, [the length of seqeunces for reserved memory])
+dnl     ],
+dnl     [
+dnl       AC_DEFINE_UNQUOTED([RESERVED_LENGTH], 500, [the length of seqeunces for reserved memory])
+dnl     ]
+dnl )
 
 # debug option
 AC_ARG_ENABLE([debug], AS_HELP_STRING([--enable-debug], [turn on debugging (default: off)]))

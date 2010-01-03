@@ -4,7 +4,7 @@
  * CentroidFold: A generalized centroid estimator for predicting RNA
  *               secondary structures
  *
- * Copyright (C) 2008 Kengo Sato
+ * Copyright (C) 2008-2010 Kengo Sato
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

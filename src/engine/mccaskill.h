@@ -21,27 +21,31 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef __INC_CENTROID_H__
-#define __INC_CENTROID_H__
+#ifndef __INC_ENGINE_MCCASKILL_H__
+#define __INC_ENGINE_MCCASKILL_H__
 
-#include <string>
+#include "../centroid_fold.h"
 
-namespace SCFG
+#ifdef HAVE_LIBRNA
+class McCaskillModel : public CentroidFold<std::string>
 {
-  namespace Centroid
-  {
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, float gamma);
+public:
+  McCaskillModel(bool canonical_only, uint max_bp_dist,
+                 uint seed=0, bool run_as_mea=false);
+  virtual ~McCaskillModel() { }
 
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, unsigned int max_dist, float gamma);
-  };
+  // interface implementations
+  virtual void set_constraint(const std::string& str);
+  virtual void calculate_posterior(const std::string& seq);
+  virtual void prepare_stochastic_traceback(const std::string& seq);
+  virtual std::vector<int> stochastic_traceback(const std::string& seq);
+  virtual void clean_stochastic_traceback(const std::string& seq);
+
+private:
+  bool canonical_only_;
+  int bk_st_back_;
+  std::string str_;
 };
+#endif
 
-#endif	//  __INC_CENTROID_H__
-
-// Local Variables:
-// mode: C++
-// End:
+#endif  //  __INC_ENGINE_MCCASKILL_H__
