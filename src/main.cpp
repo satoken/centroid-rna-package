@@ -45,9 +45,9 @@ namespace po = boost::program_options;
 int
 centroid_fold_main(int argc, char* argv[])
 {
-  enum { CONTRAFOLD, PFFOLD, AUX };
   std::vector<float> gamma;
   std::vector<float> th;
+  std::string engine("CONTRAfold");
   std::string input;
   std::vector<std::string> model;
   float p_th=0.0;
@@ -67,6 +67,8 @@ centroid_fold_main(int argc, char* argv[])
   po::options_description desc("Options");
   desc.add_options()
     ("help,h", "show this message")
+    ("engine", po::value<std::string>(&engine),
+     "specify the inference engine (default: \"CONTRAfold\")")
     ("gamma,g", po::value<std::vector<float> >(&gamma), "weight of base pairs")
     ("threshold,t", po::value<std::vector<float> >(&th),
      "thereshold of base pairs (this option overwrites 'gamma')")
@@ -152,9 +154,12 @@ centroid_fold_main(int argc, char* argv[])
     return 1;
   }
 
-  unsigned int engine = CONTRAFOLD;
-  if (vm.count("aux")) engine = AUX;
-  if (vm.count("pf_fold")) engine = PFFOLD;
+  boost::spirit::file_iterator<> fi(input.c_str());
+  if (!fi)
+  {
+    perror(input.c_str());
+    return 1;
+  }
 
   if (th.size()>0)
   {
@@ -170,42 +175,28 @@ centroid_fold_main(int argc, char* argv[])
     gamma.resize(boost::size(g));
     std::copy(boost::begin(g), boost::end(g), gamma.begin());
   }
-  if (gamma.empty())
-  {
-    switch (engine)
-    {
-    case CONTRAFOLD:
-      gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
-      break;
-    default:
-      gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
-      break;
-    }
-  }
-
-  boost::spirit::file_iterator<> fi(input.c_str());
-  if (!fi)
-  {
-    perror(input.c_str());
-    return 1;
-  }
 
   CentroidFold<std::string>* cf=NULL;
-  switch (engine) {
-#ifdef HAVE_LIBRNA
-  case PFFOLD:
-    cf = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
-    break;
-#endif
-  case CONTRAFOLD:
+  if (engine=="CONTRAfold")
+  {
+    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
     cf = new CONTRAfoldModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
-    break;
-  case AUX:
+  }
+#ifdef HAVE_LIBRNA
+  else if (engine=="McCaskill" || vm.count("pf_fold"))
+  {
+    cf = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+  }
+#endif
+  else if (engine=="AUX" || vm.count("aux"))
+  {
     cf = new AuxModel(model, vm.count("mea"));
-    break;
-  default:
-    assert(!"unreachable");
-    break;
+    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+  }
+  else
+  {
+    throw std::logic_error("unsupported inference engine");
   }
 
   std::ostream* out = &std::cout;
@@ -297,9 +288,9 @@ centroid_fold_main(int argc, char* argv[])
 int
 centroid_alifold_main(int argc, char* argv[])
 {
-  enum { CONTRAFOLD, PFFOLD, ALIPFFOLD, AUX };
   std::vector<float> gamma;
   std::vector<float> th;
+  std::string engine("CONTRAfold");
   std::string input;
   std::vector<std::string> model;
   float p_th=0.0;
@@ -321,6 +312,8 @@ centroid_alifold_main(int argc, char* argv[])
   desc.add_options()
     ("help,h", "show this message")
     ("gamma,g", po::value<std::vector<float> >(&gamma), "weight of base pairs")
+    ("engine", po::value<std::string>(&engine),
+     "specify the inference engine (default: \"CONTRAfold\")")
     ("threshold,t", po::value<std::vector<float> >(&th),
      "thereshold of base pairs (this option overwrites 'gamma')")
     //
@@ -409,10 +402,12 @@ centroid_alifold_main(int argc, char* argv[])
     return 1;
   }
 
-  unsigned int engine = CONTRAFOLD;
-  if (vm.count("aux")) engine = AUX;
-  if (vm.count("pf_fold")) engine = PFFOLD;
-  if (vm.count("alipf_fold")) engine = ALIPFFOLD;
+  boost::spirit::file_iterator<> fi(input.c_str());
+  if (!fi)
+  {
+    perror(input.c_str());
+    return 1;
+  }
 
   if (th.size()>0)
   {
@@ -428,60 +423,44 @@ centroid_alifold_main(int argc, char* argv[])
     gamma.resize(boost::size(g));
     std::copy(boost::begin(g), boost::end(g), gamma.begin());
   }
-  if (gamma.empty())
-  {
-    switch (engine)
-    {
-    case CONTRAFOLD:
-      gamma.push_back(vm.count("mea") ? 6.0 : 4.0);
-      break;
-    case PFFOLD:
-    case ALIPFFOLD:
-      gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
-      break;
-    default:
-      gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
-      break;
-    }
-  }
-
-  boost::spirit::file_iterator<> fi(input.c_str());
-  if (!fi)
-  {
-    perror(input.c_str());
-    return 1;
-  }
 
   CentroidFold<Aln>* cf=NULL;
   CentroidFold<std::string>* src=NULL;
-  switch (engine) {
+  if (engine=="CONTRAfold")
+  {
+    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 4.0);
+    src = new CONTRAfoldModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+    cf = new AveragedModel(src, max_bp_dist, vm.count("mea"));
+  }
+  else if (engine=="CONTRAfoldM")
+  {
+    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 4.0);
+    cf = new CONTRAfoldMultiModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+  }
 #ifdef HAVE_LIBRNA
-  case PFFOLD:
+  else if (engine=="McCaskill" || vm.count("pf_fold"))
+  {
+    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
     src = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
     cf = new AveragedModel(src, max_bp_dist, vm.count("mea"));
-    break;
-  case ALIPFFOLD:
+  }
+  else if (engine=="Alifold" || vm.count("alipf_fold"))
+  {
+    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
     cf = new AliFoldModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
-    break;
+  }
 #endif
-  case CONTRAFOLD:
-    if (dist_type==0)
-    {
-      src = new CONTRAfoldModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
-      cf = new AveragedModel(src, max_bp_dist, vm.count("mea"));
-    }
-    else
-      cf = new CONTRAfoldMultiModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
-    break;
-  case AUX:
+  else if (engine=="AUX" || vm.count("aux"))
+  {
+    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
     src = new AuxModel(model, vm.count("mea"));
     cf = new AveragedModel(src, 0, vm.count("mea"));
-    break;
-  default:
-    assert(!"unreachable");
-    break;
   }
-
+  else
+  {
+    throw std::logic_error("unsupported engine");
+  }
+  
   std::ostream* out = &std::cout;
   if (vm.count("output"))
   {
@@ -562,10 +541,8 @@ centroid_alifold_main(int argc, char* argv[])
       cf->ps_plot(std::string(buf), aln, gamma[0], !vm.count("monochrome"));
     }
   }
-#if 1
   if (fi!=fi.make_end())
     std::cout << "parse error after " << total_bytes << " bytes were loaded" << std::endl;
-#endif
 
   if (cf) delete cf;
   if (src) delete src;

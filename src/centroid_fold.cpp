@@ -1373,3 +1373,53 @@ calculate_posterior(const std::string& seq)
   if (bpfiles_.size()<=pos_) throw "More BP files are needed.";
   bp_.load(bpfiles_[pos_++].c_str());
 }
+
+//////////////////////////////////////////////////////////////////////////////////
+
+template <class SEQ>
+MixtureModel<SEQ>::
+MixtureModel(const std::vector<std::pair<CentroidFold<SEQ>*,float> >& models,
+             bool run_as_mea /*=false*/)
+  : CentroidFold<SEQ>(run_as_mea, 0), models_(models)
+{
+}
+
+struct MulAdd
+{
+  MulAdd(BPTable& bp, float w, const BPTable& t) : bp_(bp), w_(w), t_(t) {}
+  void operator()(uint i, uint j) { bp_.update(i, j, bp_(i,j)+w_*t_(i,j)); }
+  
+  BPTable& bp_;
+  float w_;
+  const BPTable& t_;
+};
+
+struct Div
+{
+  Div(BPTable& bp, float d) : bp_(bp), d_(d) {}
+  void operator()(uint i, uint j) { bp_.update(i, j, bp_(i,j)/d_); }
+
+  BPTable& bp_;
+  float d_;
+};
+
+template <class SEQ>
+void
+MixtureModel<SEQ>::
+calculate_posterior(const SEQ& seq)
+{
+  float sum_w=0.0;
+  bp_.resize(seq.size());
+  typename std::vector<std::pair<CentroidFold<SEQ>*,float> >::iterator x;
+  for (x=models_.begin(); x!=models_.end(); ++x)
+  {
+    MulAdd ma(bp_, x->second, x->first->get_bp());
+    SCFG::inside_traverse(0, bp_.size(), ma);
+    sum_w+=x->second;
+  }
+  Div div(bp_, sum_w);
+  SCFG::inside_traverse(0, bp_.size(), div);
+}
+
+// instantiation
+template class MixtureModel<Aln>;
