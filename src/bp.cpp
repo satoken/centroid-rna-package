@@ -138,34 +138,40 @@ namespace SCFG
       }
       return true;
     }
+
+    template <class V>
+    struct Updater
+    {
+      Updater(const CYKTable<V>& bp, uint sz) : bp_(bp), q(sz, 1.0) { }
+
+      void operator()(uint i, uint j)
+      {
+        if (i<j && bp_(i,j)>0.0)
+        {
+          q[i]-=bp_(i,j);
+          q[j]-=bp_(i,j);
+        }
+      }
+      CYKTable<V> bp_;
+      std::vector<V> q;
+    };
+
+    template < class V >
+    std::vector<V>
+    Table<V>::
+    calc_nonbp_prob() const
+    {
+      Updater<V> updater(bp_, size_);
+      SCFG::inside_traverse(0, bp_.size(), updater);
+      return updater.q;
+    }
   };
 };
 
 
 // instantiate
-#include <boost/shared_ptr.hpp>
-//#include "rna.h"
-#include "iupac.h"
-//#include "log_value.h"
-
 template
 class SCFG::BP::Table<float>;
-
-#if 0
-template
-void
-SCFG::BP::Table<float>::
-parse(const RNASequence& seq,
-      const Rule::Set<LogValue<float> >& rules);
-#endif
-
-#if 0
-template
-void
-SCFG::BP::Table<float>::
-parse(const IUPACsequence& seq,
-      const Rule::Set<LogValue<float> >& rules);
-#endif
 
 template
 bool

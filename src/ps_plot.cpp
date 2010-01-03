@@ -254,6 +254,8 @@ int ps_plot(const char *string, const char *structure, const char* ssfile)
 template < class BPTable >
 int ps_color_plot(const char *string, const char *structure, const BPTable& bp, const char* ssfile)
 {
+  std::vector<typename BPTable::value_type> q(bp.calc_nonbp_prob());
+  
   float  xmin, xmax, ymin, ymax, size;
   int    i, length;
   float *X, *Y;
@@ -352,7 +354,7 @@ int ps_color_plot(const char *string, const char *structure, const BPTable& bp, 
         sp[i] = sp[pair_table[i]] = bp(i-1, pair_table[i]-1);
     for (i = 1; i <= length; i++)
     {
-      if (sp[i]<0.0) sp[i] = bp[i-1];
+      if (sp[i]<0.0) sp[i] = q[i-1];
       fprintf(xyplot, "  %7.5f\n", sp[i]);
     }
   }

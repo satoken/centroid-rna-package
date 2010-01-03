@@ -209,4 +209,20 @@ private:
   uint pos_;
 };
 
+template < class SEQ >
+class MixtureModel : public CentroidFold<SEQ>
+{
+public:
+  MixtureModel(const std::vector<std::pair<CentroidFold<SEQ>*,float> >& models, bool run_as_mea=false);
+  virtual ~MixtureModel() { }
+
+  // interface implementations
+  virtual void calculate_posterior(const SEQ& seq);
+
+private:
+  std::vector<std::pair<CentroidFold<SEQ>*,float> > models_;
+
+  using CentroidFold<SEQ>::bp_;
+};
+
 #endif	// #ifndef __INC_CENTROID_FOLD_H__

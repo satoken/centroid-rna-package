@@ -71,7 +71,7 @@ namespace SCFG
 
       Updater(const BPTable& bp, DPTable& dp,
 	      value_type gamma=1.0, uint min_loop=3)
-	: bp_(bp), dp_(dp), gamma_(gamma), min_loop_(min_loop)
+	: bp_(bp), q_(bp_.calc_nonbp_prob()), dp_(dp), gamma_(gamma), min_loop_(min_loop)
       {
       }
 
@@ -84,12 +84,12 @@ namespace SCFG
 	} else {
 	  // rule type L: X -> a Y
 	  if (i+1<=j) {
-	    value_type v = dp_(i+1,j).val + bp_[i];
+	    value_type v = dp_(i+1,j).val + q_[i];
 	    dp_(i,j).update(v, Rule::L);
 	  }
 	  // rule type R: X -> Y a
 	  if (i<=j-1) {
-	    value_type v = dp_(i,j-1).val + bp_[j-1];
+	    value_type v = dp_(i,j-1).val + q_[j-1];
 	    dp_(i,j).update(v, Rule::R);
 	  }
 	  // rule type P: X -> a Y b
@@ -107,6 +107,7 @@ namespace SCFG
       }
 
       const BPTable& bp_;
+      const std::vector<value_type> q_;
       DPTable& dp_;
       value_type gamma_;
       uint min_loop_;
