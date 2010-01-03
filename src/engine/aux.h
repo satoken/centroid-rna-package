@@ -21,27 +21,23 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef __INC_CENTROID_H__
-#define __INC_CENTROID_H__
+#ifndef __INC_ENGINE_AUX_H__
+#define __INC_ENGINE_AUX_H__
 
-#include <string>
+#include "../centroid_fold.h"
 
-namespace SCFG
+class AuxModel : public CentroidFold<std::string>
 {
-  namespace Centroid
-  {
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, float gamma);
+public:
+  AuxModel(const std::vector<std::string>& bpfiles, bool run_as_mea=false);
+  virtual ~AuxModel() { }
 
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, unsigned int max_dist, float gamma);
-  };
+  // interface implementations
+  virtual void calculate_posterior(const std::string& seq);
+
+private:
+  std::vector<std::string> bpfiles_;
+  uint pos_;
 };
 
-#endif	//  __INC_CENTROID_H__
-
-// Local Variables:
-// mode: C++
-// End:
+#endif  //  __INC_ENGINE_AUX_H__

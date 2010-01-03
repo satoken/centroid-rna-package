@@ -21,27 +21,31 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef __INC_CENTROID_H__
-#define __INC_CENTROID_H__
+#ifndef __INC_ENGINE_CONTRAFOLDM_H__
+#define __INC_ENGINE_CONTRAFOLDM_H__
 
-#include <string>
+#include "../centroid_fold.h"
+#include "engine/contrafold.h"
+#include "engine/averaged.h"
 
-namespace SCFG
+class CONTRAfoldMultiModel : public CentroidFold<Aln>
 {
-  namespace Centroid
-  {
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, float gamma);
+public:
+  CONTRAfoldMultiModel(const std::string& model, bool canonical_only, uint max_bp_dist,
+                       uint seed=0, bool run_as_mea=false);
+  virtual ~CONTRAfoldMultiModel();
 
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, unsigned int max_dist, float gamma);
-  };
+  // interface implementations
+  //void set_constraint(const std::string& str);
+  virtual void calculate_posterior(const Aln& aln);
+  virtual void prepare_stochastic_traceback(const Aln& aln);
+  virtual std::vector<int> stochastic_traceback(const Aln& aln);
+  virtual void clean_stochastic_traceback(const Aln& aln) { }
+
+private:
+  CONTRAfoldModel* contrafold_;
+  CONTRAfoldM<float>* contrafoldm_;
+  AveragedModel* avg_;
 };
 
-#endif	//  __INC_CENTROID_H__
-
-// Local Variables:
-// mode: C++
-// End:
+#endif  //  __INC_ENGINE_CONTRAFOLDM_H__
