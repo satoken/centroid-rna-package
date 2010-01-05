@@ -12,10 +12,10 @@ centroid_fold_LDADD = libcentroid.a contrafold/libcontrafold.a ${BOOST_LIBS}
 libcentroid_a_SOURCES = \
 	centroid_fold.cpp centroid.cpp mea.cpp bp.cpp \
 	engine/aux.cpp engine/alifold.cpp engine/contrafold.cpp engine/mccaskill.cpp \
-	engine/averaged.cpp engine/contrafoldm.cpp engine/mixture.cpp \
+	engine/averaged.cpp engine/contrafoldm.cpp engine/mixture.cpp engine/pfold.cpp \
 	centroid_fold.h centroid.h mea.h bp.h cyktable.h rule.h contrafold/contrafold.h \
 	engine/aux.h engine/alifold.h engine/contrafold.h engine/mccaskill.h \
-	engine/averaged.h engine/contrafoldm.h engine/mixture.h \
+	engine/averaged.h engine/contrafoldm.h engine/mixture.h engine/pfold.h \
         diana.cpp diana.h ps_plot.cpp ps_plot.h naview.c 
 
 install-exec-hook:

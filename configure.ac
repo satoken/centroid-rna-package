@@ -17,7 +17,7 @@ AC_PROG_LN_S
 AC_PROG_AWK
 AC_PROG_SED
 
-# Memory Resevation
+dnl # Memory Resevation
 dnl AC_ARG_WITH([reserve], AS_HELP_STRING([--with-reserve],[the length of seqeunces for reserved memory (default: 500)]),
 dnl     [
 dnl       AC_DEFINE_UNQUOTED([RESERVED_LENGTH], $withval, [the length of seqeunces for reserved memory])
@@ -37,6 +37,7 @@ else
   CXXFLAGS="-DNDEBUG $CXXFLAGS"
 fi
 
+# random number generator
 AC_ARG_ENABLE([mersenne-twister], AS_HELP_STRING([--enable-mersenne-twister], [use Mersenne Twister as a random number generator (default: on)]))
 if test "$enable_mersenne_twister" == "no"; then
    AC_DEFINE([STD_RAND], [1], [use the standard random number generator instead of Mersenne Twister])

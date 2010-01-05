@@ -29,6 +29,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cstdlib>
 #include <cassert>
 #include <boost/program_options.hpp>
 #include <boost/range.hpp>
@@ -43,6 +44,7 @@
 #include "engine/contrafoldm.h"
 #include "engine/mccaskill.h"
 #include "engine/alifold.h"
+#include "engine/pfold.h"
 #include "engine/averaged.h"
 #include "engine/mixture.h"
 #include "engine/aux.h"
@@ -196,6 +198,14 @@ centroid_fold_main(int argc, char* argv[])
     if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
   }
 #endif
+  else if (engine=="pfold")
+  {
+    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+    std::string pfold_bin_dir=getenv("PFOLD_BIN_DIR");// || ".";
+    std::string awk_bin=getenv("AWK_BIN");// || "mawk";
+    std::string sed_bin=getenv("SED_BIN");// || "sed";
+    cf = new PfoldModel<std::string>(pfold_bin_dir, awk_bin, sed_bin, vm.count("mea"));
+  }
   else if (engine=="AUX" || vm.count("aux"))
   {
     cf = new AuxModel(model, vm.count("mea"));
@@ -309,7 +319,6 @@ centroid_alifold_main(int argc, char* argv[])
   uint max_clusters;
   uint num_samples=0;
   uint seed;
-  uint dist_type;
   //
   int num_ea_samples = -1;
   int max_mcc = -1;
@@ -363,10 +372,7 @@ centroid_alifold_main(int argc, char* argv[])
      "the maximum number of clusters for the stochastic sampling algorithm")
     ("seed",
      po::value<uint>(&seed)->default_value(0),
-     "specify the seed for the random number generator (set this automatically if seed=0)")
-    ("dist-type",
-     po::value<uint>(&dist_type)->default_value(0),
-      "specify the type of the distribution for sampling");
+     "specify the seed for the random number generator (set this automatically if seed=0)");
 
   po::options_description opts("Options");
   opts.add_options()
@@ -457,6 +463,14 @@ centroid_alifold_main(int argc, char* argv[])
     cf = new AliFoldModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
   }
 #endif
+  else if (engine=="pfold")
+  {
+    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+    std::string pfold_bin_dir(getenv("PFOLD_BIN_DIR") ? getenv("PFOLD_BIN_DIR") : ".");
+    std::string awk_bin(getenv("AWK_BIN") ? getenv("AWK_BIN") : "mawk");
+    std::string sed_bin(getenv("SED_BIN") ? getenv("SED_BIN") : "sed");
+    cf = new PfoldModel<Aln>(pfold_bin_dir, awk_bin, sed_bin, vm.count("mea"));
+  }
   else if (engine=="AUX" || vm.count("aux"))
   {
     if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
@@ -570,6 +584,10 @@ main(int argc, char* argv[])
       return centroid_alifold_main(argc, argv);
   }
   catch (std::logic_error e)
+  {
+    std::cerr << e.what() << std::endl;
+  }
+  catch (std::runtime_error e)
   {
     std::cerr << e.what() << std::endl;
   }
