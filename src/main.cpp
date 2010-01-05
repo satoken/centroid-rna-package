@@ -56,7 +56,8 @@ centroid_fold_main(int argc, char* argv[])
 {
   std::vector<float> gamma;
   std::vector<float> th;
-  std::string engine("CONTRAfold");
+  std::vector<std::string> engine;
+  std::vector<float> mix_w;
   std::string input;
   std::vector<std::string> model;
   float p_th=0.0;
@@ -76,8 +77,9 @@ centroid_fold_main(int argc, char* argv[])
   po::options_description desc("Options");
   desc.add_options()
     ("help,h", "show this message")
-    ("engine", po::value<std::string>(&engine),
+    ("engine", po::value<std::vector<std::string> >(&engine),
      "specify the inference engine (default: \"CONTRAfold\")")
+    ("mixture-weight,w", po::value<std::vector<float> >(&mix_w), "mixture weights of inference engines")
     ("gamma,g", po::value<std::vector<float> >(&gamma), "weight of base pairs")
     ("threshold,t", po::value<std::vector<float> >(&th),
      "thereshold of base pairs (this option overwrites 'gamma')")
@@ -185,35 +187,59 @@ centroid_fold_main(int argc, char* argv[])
     std::copy(boost::begin(g), boost::end(g), gamma.begin());
   }
 
+  if (engine.empty()) engine.push_back("CONTRAfold");
+  if (vm.count("pf_fold")) { engine.resize(1); engine[0]="McCaskill"; }
+  if (vm.count("aux")) { engine.resize(1); engine[0]="AUX"; }
+
   CentroidFold<std::string>* cf=NULL;
-  if (engine=="CONTRAfold")
+  std::vector<CentroidFold<std::string>*> cf_list(engine.size(), NULL);
+  for (uint i=0; i!=engine.size(); ++i)
   {
-    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
-    cf = new CONTRAfoldModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
-  }
+    if (engine[i]=="CONTRAfold")
+    {
+      if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
+      cf_list[i] = new CONTRAfoldModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+    }
 #ifdef HAVE_LIBRNA
-  else if (engine=="McCaskill" || vm.count("pf_fold"))
-  {
-    cf = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
-    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
-  }
+    else if (engine[i]=="McCaskill")
+    {
+      if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+      cf_list[i] = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+    }
 #endif
-  else if (engine=="pfold")
-  {
-    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
-    std::string pfold_bin_dir=getenv("PFOLD_BIN_DIR");// || ".";
-    std::string awk_bin=getenv("AWK_BIN");// || "mawk";
-    std::string sed_bin=getenv("SED_BIN");// || "sed";
-    cf = new PfoldModel<std::string>(pfold_bin_dir, awk_bin, sed_bin, vm.count("mea"));
+    else if (engine[i]=="pfold")
+    {
+      if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+      std::string pfold_bin_dir(getenv("PFOLD_BIN_DIR") ? getenv("PFOLD_BIN_DIR") : ".");
+      std::string awk_bin(getenv("AWK_BIN") ? getenv("AWK_BIN") : "mawk");
+      std::string sed_bin(getenv("SED_BIN") ? getenv("SED_BIN") : "sed");
+      cf_list[i] = new PfoldModel<std::string>(pfold_bin_dir, awk_bin, sed_bin, vm.count("mea"));
+    }
+    else if (engine[i]=="AUX")
+    {
+      if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+      cf_list[i] = new AuxModel(model, vm.count("mea"));
+    }
+    else
+    {
+      throw std::logic_error("unsupported inference engine");
+    }
   }
-  else if (engine=="AUX" || vm.count("aux"))
-  {
-    cf = new AuxModel(model, vm.count("mea"));
-    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
-  }
+
+  if (engine.size()==1)
+    cf=cf_list[0];
   else
   {
-    throw std::logic_error("unsupported inference engine");
+    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+    std::vector<std::pair<CentroidFold<std::string>*,float> > models;
+    for (uint i=0; i!=engine.size(); ++i)
+    {
+      if (engine.size()!=mix_w.size())
+        models.push_back(std::make_pair(cf_list[i], 1.0));
+      else
+        models.push_back(std::make_pair(cf_list[i], mix_w[i]));
+    }
+    cf = new MixtureModel<std::string>(models, vm.count("mea"));
   }
 
   std::ostream* out = &std::cout;
@@ -295,7 +321,8 @@ centroid_fold_main(int argc, char* argv[])
     }
   }
 
-  if (cf) delete cf;
+  if (engine.size()!=1 && cf) delete cf;
+  for (uint i=0; i!=cf_list.size(); ++i) if (cf_list[i]) delete cf_list[i];
   if (out!=&std::cout) delete out;
   if (p_out!=&std::cout) delete p_out;
 
@@ -307,7 +334,8 @@ centroid_alifold_main(int argc, char* argv[])
 {
   std::vector<float> gamma;
   std::vector<float> th;
-  std::string engine("CONTRAfold");
+  std::vector<std::string> engine;
+  std::vector<float> mix_w;
   std::string input;
   std::vector<std::string> model;
   float p_th=0.0;
@@ -328,8 +356,9 @@ centroid_alifold_main(int argc, char* argv[])
   desc.add_options()
     ("help,h", "show this message")
     ("gamma,g", po::value<std::vector<float> >(&gamma), "weight of base pairs")
-    ("engine", po::value<std::string>(&engine),
+    ("engine", po::value<std::vector<std::string> >(&engine),
      "specify the inference engine (default: \"CONTRAfold\")")
+    ("mixture-weight,w", po::value<std::vector<float> >(&mix_w), "mixture weights of inference engines")
     ("threshold,t", po::value<std::vector<float> >(&th),
      "thereshold of base pairs (this option overwrites 'gamma')")
     //
@@ -437,49 +466,74 @@ centroid_alifold_main(int argc, char* argv[])
     std::copy(boost::begin(g), boost::end(g), gamma.begin());
   }
 
+  if (engine.empty()) engine.push_back("CONTRAfold");
+  if (vm.count("pf_fold")) { engine.resize(1); engine[0]="McCaskill"; }
+  if (vm.count("alipf_fold")) { engine.resize(1); engine[0]="Alifold"; }
+  if (vm.count("aux")) { engine.resize(1); engine[0]="AUX"; }
+
   CentroidFold<Aln>* cf=NULL;
-  CentroidFold<std::string>* src=NULL;
-  if (engine=="CONTRAfold")
+  std::vector<CentroidFold<Aln>*> cf_list(engine.size(), NULL);
+  std::vector<CentroidFold<std::string>*> src_list(engine.size(), NULL);
+  for (uint i=0; i!=engine.size(); ++i)
   {
-    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 4.0);
-    src = new CONTRAfoldModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
-    cf = new AveragedModel(src, max_bp_dist, vm.count("mea"));
-  }
-  else if (engine=="CONTRAfoldM")
-  {
-    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 4.0);
-    cf = new CONTRAfoldMultiModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
-  }
+    if (engine[i]=="CONTRAfold")
+    {
+      if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 4.0);
+      src_list[i] = new CONTRAfoldModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+      cf_list[i] = new AveragedModel(src_list[i], max_bp_dist, vm.count("mea"));
+    }
+    else if (engine[i]=="CONTRAfoldM")
+    {
+      if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 4.0);
+      cf_list[i] = new CONTRAfoldMultiModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+    }
 #ifdef HAVE_LIBRNA
-  else if (engine=="McCaskill" || vm.count("pf_fold"))
-  {
-    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
-    src = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
-    cf = new AveragedModel(src, max_bp_dist, vm.count("mea"));
-  }
-  else if (engine=="Alifold" || vm.count("alipf_fold"))
-  {
-    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
-    cf = new AliFoldModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
-  }
+    else if (engine[i]=="McCaskill")
+    {
+      if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
+      src_list[i] = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+      cf_list[i] = new AveragedModel(src_list[i], max_bp_dist, vm.count("mea"));
+    }
+    else if (engine[i]=="Alifold")
+    {
+      if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
+      cf_list[i] = new AliFoldModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+    }
 #endif
-  else if (engine=="pfold")
-  {
-    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
-    std::string pfold_bin_dir(getenv("PFOLD_BIN_DIR") ? getenv("PFOLD_BIN_DIR") : ".");
-    std::string awk_bin(getenv("AWK_BIN") ? getenv("AWK_BIN") : "mawk");
-    std::string sed_bin(getenv("SED_BIN") ? getenv("SED_BIN") : "sed");
-    cf = new PfoldModel<Aln>(pfold_bin_dir, awk_bin, sed_bin, vm.count("mea"));
+    else if (engine[i]=="pfold")
+    {
+      if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+      std::string pfold_bin_dir(getenv("PFOLD_BIN_DIR") ? getenv("PFOLD_BIN_DIR") : ".");
+      std::string awk_bin(getenv("AWK_BIN") ? getenv("AWK_BIN") : "mawk");
+      std::string sed_bin(getenv("SED_BIN") ? getenv("SED_BIN") : "sed");
+      cf_list[i] = new PfoldModel<Aln>(pfold_bin_dir, awk_bin, sed_bin, vm.count("mea"));
+    }
+    else if (engine[i]=="AUX")
+    {
+      if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+      src_list[i] = new AuxModel(model, vm.count("mea"));
+      cf_list[i] = new AveragedModel(src_list[i], 0, vm.count("mea"));
+    }
+    else
+    {
+      throw std::logic_error("unsupported engine");
+    }
   }
-  else if (engine=="AUX" || vm.count("aux"))
-  {
-    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
-    src = new AuxModel(model, vm.count("mea"));
-    cf = new AveragedModel(src, 0, vm.count("mea"));
-  }
+
+  if (engine.size()==1)
+    cf=cf_list[0];
   else
   {
-    throw std::logic_error("unsupported engine");
+    if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
+    std::vector<std::pair<CentroidFold<Aln>*,float> > models;
+    for (uint i=0; i!=engine.size(); ++i)
+    {
+      if (engine.size()!=mix_w.size())
+        models.push_back(std::make_pair(cf_list[i], 1.0));
+      else
+        models.push_back(std::make_pair(cf_list[i], mix_w[i]));
+    }
+    cf = new MixtureModel<Aln>(models, vm.count("mea"));
   }
   
   std::ostream* out = &std::cout;
@@ -565,8 +619,9 @@ centroid_alifold_main(int argc, char* argv[])
   if (fi!=fi.make_end())
     std::cout << "parse error after " << total_bytes << " bytes were loaded" << std::endl;
 
-  if (cf) delete cf;
-  if (src) delete src;
+  if (engine.size()!=1 && cf) delete cf;
+  for (uint i=0; i!=cf_list.size(); ++i) if (cf_list[i]) delete cf_list[i];
+  for (uint i=0; i!=src_list.size(); ++i) if (src_list[i]) delete src_list[i];
   if (out != &std::cout) delete out;
   if (p_out != &std::cout) delete p_out;
 

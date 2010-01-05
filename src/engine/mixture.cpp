@@ -63,13 +63,15 @@ calculate_posterior(const SEQ& seq)
   typename std::vector<std::pair<CentroidFold<SEQ>*,float> >::iterator x;
   for (x=models_.begin(); x!=models_.end(); ++x)
   {
+    x->first->calculate_posterior(seq);
     MulAdd ma(bp_, x->second, x->first->get_bp());
-    SCFG::inside_traverse(0, bp_.size(), ma);
+    SCFG::inside_traverse(0, bp_.size()-1, ma);
     sum_w+=x->second;
   }
   Div div(bp_, sum_w);
-  SCFG::inside_traverse(0, bp_.size(), div);
+  SCFG::inside_traverse(0, bp_.size()-1, div);
 }
 
 // instantiation
+template class MixtureModel<std::string>;
 template class MixtureModel<Aln>;
