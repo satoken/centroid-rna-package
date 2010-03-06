@@ -5,6 +5,14 @@
 #include "Utilities.hpp"
 #include <climits>
 
+#ifndef HUGE_VALF
+#define HUGE_VALF 1e50f
+#endif
+
+#ifndef HUGE_VAL
+#define HUGE_VAL 1e500
+#endif
+
 bool toggle_error = false;
 
 //////////////////////////////////////////////////////////////////////
@@ -151,7 +159,7 @@ bool ConvertToNumber(const std::string &s, float &val)
     char *end_ptr;
     errno = 0;
     val = strtof(s.c_str(), &end_ptr);
-    if (errno == ERANGE && (val == HUGE_VALF || val == HUGE_VALF)) return false;
+    if (errno == ERANGE && (val == HUGE_VALF || val == -HUGE_VALF)) return false;
     if (val == 0 && errno != 0) return false;
     if (s.c_str() == end_ptr) return false;
     return true;
@@ -335,6 +343,7 @@ void MakeDirectory(const std::string &directory)
 // once the program is complete.
 //////////////////////////////////////////////////////////////////////
 
+#if 0 // we don't need this
 std::string MakeTempDirectory()
 {
     char *temp_dir_name = new char[10000];
@@ -357,6 +366,7 @@ std::string MakeTempDirectory()
     delete [] temp_dir_name;
     return res;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // GetSequencePositions()

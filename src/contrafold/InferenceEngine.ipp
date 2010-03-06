@@ -4992,7 +4992,7 @@ public:
         return u.back().first;
     }
 
-    uint size() const { return t_.size(); }
+    unsigned int size() const { return t_.size(); }
 
 private:
     std::list<std::pair<T,RealT> > t_;
@@ -5247,7 +5247,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTraceback() co
 // stochastic traceback algorithm for multiple alignments
 template<class RealT>
 std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
-    const std::vector< std::vector<uint> >& idx,
+    const std::vector< std::vector<unsigned int> >& idx,
     const std::vector< std::vector<int> >& rev,
     const std::vector< InferenceEngine<RealT>* >& en ) const
 {
@@ -5281,10 +5281,10 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
 #else
             case ST_FC:
             {
-                Roulette<std::pair<int,uint>,RealT> roulette(*die);
-                for (uint r=0; r!=en.size(); ++r)
+                Roulette<std::pair<int,unsigned int>,RealT> roulette(*die);
+                for (unsigned int r=0; r!=en.size(); ++r)
                 {
-                    if (idx[r][i]==static_cast<uint>(-1) || idx[r][j]==static_cast<uint>(-1)) continue;
+                    if (idx[r][i]==-1u || idx[r][j]==-1u) continue;
                     int ii=idx[r][i], jj=idx[r][j];
                     RealT outside = en[r]->FCo[en[r]->offset[ii]+jj];
                     RealT Z = en[r]->ComputeLogPartitionCoefficient();
@@ -5300,13 +5300,13 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
                         // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                         for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                         {
-                            if (idx[r][p]==static_cast<uint>(-1)) continue;
+                            if (idx[r][p]==-1u) continue;
                             int pp = idx[r][p];
                             if (pp > ii && !en[r]->allow_unpaired_position[pp]) break;
                             int q_min = std::max(p+2,p-i+j-C_MAX_SINGLE_LENGTH);
                             for (int q = j; q >= q_min; q--)
                             {
-                                if (idx[r][q]==static_cast<uint>(-1)) continue;
+                                if (idx[r][q]==-1u) continue;
                                 int qq = idx[r][q];
                                 if (qq < jj && !en[r]->allow_unpaired_position[qq+1]) break;
                                 if (!en[r]->allow_paired[en[r]->offset[pp+1]+qq]) continue;
@@ -5334,8 +5334,8 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
                         // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                         for (int k=i+1; k < j; k++)
                         {
-                            if (idx[r][k]==static_cast<uint>(-1)) continue;
-                            uint kk = idx[r][k];
+                            if (idx[r][k]==-1u) continue;
+                            unsigned int kk = idx[r][k];
                             if (en[r]->FM1i[en[r]->offset[ii]+kk]>NEG_INF && en[r]->FMi[en[r]->offset[kk]+jj]>NEG_INF)
                             {
                                 RealT FM2i = en[r]->FM1i[en[r]->offset[ii]+kk] + en[r]->FMi[en[r]->offset[kk]+jj];
@@ -5350,7 +5350,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
                 }
                     
                 // choose
-                std::pair<int,uint> r = roulette.choose();
+                std::pair<int,unsigned int> r = roulette.choose();
                 std::pair<int,int> traceback = DecodeTraceback(r.first);
                 switch (traceback.first)
                 {
@@ -5380,11 +5380,11 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
 
             case ST_FM:
             {
-                Roulette<std::pair<int,uint>,RealT> roulette(*die);
+                Roulette<std::pair<int,unsigned int>,RealT> roulette(*die);
 
-                for (uint r=0; r!=en.size(); ++r)
+                for (unsigned int r=0; r!=en.size(); ++r)
                 {
-                    if (idx[r][i]==static_cast<uint>(-1) || idx[r][j]==static_cast<uint>(-1)) continue;
+                    if (idx[r][i]==-1u || idx[r][j]==-1u) continue;
                     int ii=idx[r][i], jj=idx[r][j];
                     RealT outside = en[r]->FMo[en[r]->offset[ii]+jj];
                     RealT Z = en[r]->ComputeLogPartitionCoefficient();
@@ -5395,7 +5395,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
                         // compute SUM (i<k<j : FM1[i,k] + FM[k,j]) 
                         for (int k=i+1; k < j; k++)
                         {
-                            if (idx[r][k]==static_cast<uint>(-1)) continue;
+                            if (idx[r][k]==-1u) continue;
                             int kk=idx[r][k];
                             if (en[r]->FM1i[en[r]->offset[ii]+kk]>NEG_INF && en[r]->FMi[en[r]->offset[kk]+jj]>NEG_INF)
                             {
@@ -5422,7 +5422,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
                 }
                 
                 // choose
-                std::pair<int,uint> r=roulette.choose();
+                std::pair<int,unsigned int> r=roulette.choose();
                 std::pair<int,int> traceback = DecodeTraceback(r.first);
                 switch (traceback.first)
                 {
@@ -5451,11 +5451,11 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
 
             case ST_FM1:
             {
-                Roulette<std::pair<int,uint>,RealT> roulette(*die);
+                Roulette<std::pair<int,unsigned int>,RealT> roulette(*die);
                 
-                for (uint r=0; r!=en.size(); ++r)
+                for (unsigned int r=0; r!=en.size(); ++r)
                 {
-                    if (idx[r][i]==static_cast<uint>(-1) || idx[r][j]==static_cast<uint>(-1)) continue;
+                    if (idx[r][i]==-1u || idx[r][j]==-1u) continue;
                     int ii=idx[r][i], jj=idx[r][j];
                     RealT outside = en[r]->FM1o[en[r]->offset[ii]+jj];
                     RealT Z = en[r]->ComputeLogPartitionCoefficient();
@@ -5486,7 +5486,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
                 }
                     
                 // choose
-                std::pair<int,uint> r = roulette.choose();
+                std::pair<int,unsigned int> r = roulette.choose();
                 std::pair<int,int> traceback = DecodeTraceback(r.first);
                 switch (traceback.first)
                 {
@@ -5510,11 +5510,11 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
 
             case ST_F5:
             {
-                Roulette<std::pair<int,uint>,RealT> roulette(*die);
+                Roulette<std::pair<int,unsigned int>,RealT> roulette(*die);
 
-                for (uint r=0; r!=en.size(); ++r)
+                for (unsigned int r=0; r!=en.size(); ++r)
                 {
-                    if (idx[r][j]==static_cast<uint>(-1)) continue;
+                    if (idx[r][j]==-1u) continue;
                     int jj=idx[r][j];
                     if (jj==0) continue;
                     RealT outside = en[r]->F5o[jj];
@@ -5533,8 +5533,8 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
                     int l = max_bp_dist==0 ? 0 : std::max(0,j-max_bp_dist);
                     for (int k = l; k < j; k++)
                     {
-                        if (idx[r][k]==static_cast<uint>(-1)) continue;
-                        uint kk=idx[r][k];
+                        if (idx[r][k]==-1u) continue;
+                        unsigned int kk=idx[r][k];
                         if (en[r]->allow_paired[en[r]->offset[kk+1]+jj] &&
                             en[r]->F5i[kk]>NEG_INF && en[r]->FCi[en[r]->offset[kk+1]+jj-1]>NEG_INF)
                         {
@@ -5552,7 +5552,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsStochasticTracebackM(
                 // choose
                 if (roulette.size()>0)
                 {
-                    std::pair<int,uint> r = roulette.choose();
+                    std::pair<int,unsigned int> r = roulette.choose();
                     std::pair<int,int> traceback = DecodeTraceback(r.first);
                     switch (traceback.first)
                     {

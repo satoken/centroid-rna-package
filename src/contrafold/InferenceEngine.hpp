@@ -313,7 +313,7 @@ public:
 
     void InitRand(unsigned int seed);
     std::vector<int> PredictPairingsStochasticTraceback() const;
-    std::vector<int> PredictPairingsStochasticTracebackM(const std::vector< std::vector<uint> >& idx,
+    std::vector<int> PredictPairingsStochasticTracebackM(const std::vector< std::vector<unsigned int> >& idx,
                                                          const std::vector< std::vector<int> >& rev,
                                                          const std::vector< InferenceEngine<RealT>* >& en ) const;
     RealT *GetPosterior(const RealT posterior_cutoff) const;

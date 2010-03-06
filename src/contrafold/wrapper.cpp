@@ -276,7 +276,7 @@ struct CONTRAfoldM<T>::Impl
   Impl(bool canonical_only, int max_bp_dist);
   ~Impl()
   {
-    for (uint i=0; i!=en_.size(); ++i) if (en_[i]) delete en_[i];
+    for (unsigned int i=0; i!=en_.size(); ++i) if (en_[i]) delete en_[i];
   };
 
   void SetParameters(const std::string& params);
@@ -298,7 +298,7 @@ struct CONTRAfoldM<T>::Impl
   std::string paren_;
   int max_bp_dist_;
   bool canonical_only_;
-  std::vector< std::vector<uint> > idx_;
+  std::vector< std::vector<unsigned int> > idx_;
   std::vector< std::vector<int> > rev_;
   std::vector<InferenceEngine<T>*> en_;  
 };
@@ -376,21 +376,21 @@ void
 CONTRAfoldM<T>::Impl::
 PrepareStochasticTraceback(const std::vector<std::string>& aln)
 {
-  for (uint i=0; i!=en_.size(); ++i) if (en_[i]) delete en_[i];
+  for (unsigned int i=0; i!=en_.size(); ++i) if (en_[i]) delete en_[i];
   en_.resize(aln.size(), NULL);
   idx_.clear(); idx_.resize(aln.size());
   rev_.clear(); rev_.resize(aln.size());
-  for (uint i=0; i!=aln.size(); ++i)
+  for (unsigned int i=0; i!=aln.size(); ++i)
   {
     std::string seq;
     idx_[i].resize(aln[i].size()+1);
-    idx_[i][0] = static_cast<uint>(-1);
+    idx_[i][0] = -1u;
     rev_[i].resize(aln[i].size()+1);
-    for (uint j=0, k=0; j!=aln[i].size(); ++j)
+    for (unsigned int j=0, k=0; j!=aln[i].size(); ++j)
     {
       if (aln[i][j]=='-')
       {
-        idx_[i][j+1] =  static_cast<uint>(-1);
+        idx_[i][j+1] =  -1u;
       }
       else
       {
