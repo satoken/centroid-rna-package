@@ -11,9 +11,10 @@ multiple alignments of RNA sequences by using an averaged
 gamma-centroid estimator (Hamada et al., 2009).
 
 CentroidFold can employ various probability distributions. Currently,
+* the CONTRAfold model,
 * the McCaskill model implemented in the Vienna RNA package,
-* the CONTRAfold model, and
-* the CG optimized model implemented in the MultiRNAFold package
+* the RNAalifold model implemented in the Vienna RNA package, and
+* the pfold model
 are supported. 
 
 According to our benchmark, CentroidFold with the CONTRAfold model
@@ -25,12 +26,10 @@ currently available prediction tools at this time.
 
 * Boost C++ Library (>= 1.34.1)
   ((<URL:http://www.boost.org/>))
-* Vienna RNA package (>= 1.7.2)
+* Vienna RNA package (>= 1.8)
   ((<URL:http://www.tbi.univie.ac.at/~ivo/RNA/>))
-* ruby (>= 1.8) (optional)
-  ((<URL:http://www.ruby-lang.org>))
-* MultiRNAFold package (>= 1.10) (optional)
-  ((<URL:http://www.rnasoft.ca/>))
+* pfold (optional)
+  ((<URL:http://www.daimi.au.dk/~compbio/pfold/>))
 
 
 == Install
@@ -50,29 +49,29 @@ aligment, the predict its common secondary structure.
 === Secondary structure prediction for single sequences
 
 (({centroid_fold})) is the main program of this package. It calculates
-a base-pairing probability matrix for a given sequence with the
-McCaskill algorithm using (({pf_fold})) routine in Vienna RNA package
-(If you configure CentroidFold (({--with-contrafold})), the CONTRAfold
-model are used instead of the McCaskill model).
-Then, (({centroid_fold})) estimates a gamma-centroid estimator for the
+a base-pairing probability matrix for a given sequence with one of
+several algorithms including the CONTRAfold model and the McCaskill
+algorithm using (({pf_fold})) routine in Vienna RNA package. Then,
+(({centroid_fold})) estimates a gamma-centroid estimator for the
 base-pairing probability matrix. 
 
  centroid_fold [options] seq
 
  Options:
-  -g [ --gamma ] arg              weight of base pairs
-  --mea                           run as an MEA estimator
-  --pf_fold                       use pf_fold base-pairing probabilities
-  --sampling arg                  use the stochastic sampling algorithm. Specif
-                                  y the number of samples to be generated for
-                                  each sequence
-  -c [ --max-clusters ] arg (=10) the maximum number of clusters for the stocha
-                                  stic sampling algorithm
-  --noncanonical                  allow non-canonical base-pairs
-  --params arg                    use the parameter file (for CONTRAfold model)
-  -d [ --max-dist ] arg (=0)      the maximum distance of base-pairs
-  --aux                           use auxiliary base-pairing probabilities
-  -C [ --constraints ]            use structure constraints
+  -e [ --engine ] arg     specify the inference engine (default: "CONTRAfold")
+  -g [ --gamma ] arg      weight of base pairs
+  --noncanonical          allow non-canonical base-pairs
+  -C [ --constraints ]    use structure constraints
+  --postscript arg        draw predicted secondary structures with the 
+                          postscript (PS) format
+
+By '-e' or '--engine' option, you can select the inference engine for
+calculating base-pairing probabilities from the CONTRAfold model
+("CONTRAfold"), the McCaskill model ("McCaskill" if available) and
+the pfold model ("pfold" if available). If you use the pfold model,
+several environment variables should be set: "PFOLD_BIN_DIR" to the
+directory which contains pfold binaries, and "AWK_BIN" and "SED_BIN"
+to awk and sed program available on your system, respectively.
 
 If a negative value is given for the option '--gamma',
 (({centroid_fold})) calculates secondary structures for several values
@@ -82,26 +81,24 @@ For long sequences, you can use '-d' options to restrict the maximum
 distance of base-pairs. This can reduce the computation time and the
 memory requirement: O(L^3) to O(LW^2), and O(L^2) to O(LW),
 respectively, where L is length of a sequence and W is the specified
-maximum distance of base-pairs.
+maximum distance of base-pairs. This option is available only for the
+CONTRAfold model.
 
 If a part of secondary structure for a given sequence is known, you
-can specify it by a modified FASTA format, and run (({centroid_fold}))
-with '-C' options. 
+can specify it by a modified FASTA format like:
  > RF00008_B
  CAAAAGUCUGGGCUAAGCCCACUGAUGAGCCGCUGAAAUGCGGCGAAACUUUUG
  .(((((........???????????????????????...........))))).
-The positions at '(' and ')' are restricted to base-pairs,
-the position at '.' is restricted to unpaired bases, and
-the position at '?' is unrestricted.
+and run (({centroid_fold})) with '-C' options. The positions at '('
+and ')' are restricted to base-pairs, the position at '.' is
+restricted to unpaired bases, and the position at '?' is
+unrestricted.
 
 If '--sampling' option is given, (({centroid_fold})) uses the
 stochastic traceback algorithm instead of the McCaskill's base-pairing
 probability matrix. Like Sfold (Ding et al., 2005), build clusters of
 secondary structures, and then compute their centroids. The number of
 clusters can be specified by '--max-clusters' option.
-
-Using the option '--aux', (({centroid_fold})) can take an auxiliary
-base-pairing probability matrix instead of the McCaskill model.
 
 Example:
  % centroid_fold -g -1 RF00008_B.fa
@@ -131,6 +128,31 @@ Example:
 For the CLUSTAL format, (({centroid_alifold})) predicts common
 secondary structures for the given multiple alignments.
 
+ centroid_alifold [options] seq
+
+ Options:
+  -h [ --help ]           show this message
+  -e [ --engine ] arg     specify the inference engine (default: "McCaskill & 
+                          Alifold")
+  -w [ --mixture ] arg    mixture weights of inference engines
+  -g [ --gamma ] arg      weight of base pairs
+  --noncanonical          allow non-canonical base-pairs
+  -C [ --constraints ]    use structure constraints
+  --postscript arg        draw predicted secondary structures with the 
+                          postscript (PS) format
+
+By '-e' or '--engine' option, you can select the inference engine for
+calculating base-pairing probabilities from the CONTRAfold model
+("CONTRAfold"), the McCaskill model ("McCaskill" if available),
+the RNAalifold model ("Alifold" if available) and the pfold model
+("pfold" if avilable).
+
+If you specify the inference engines multiply, (({centroid_alifold}))
+employs a mixtured baes-pairing probability matrix. The mixture
+weight can be set by '-w' or '--mixture' option. The default
+setting of (({centroid_alifold})) is '-e McCaskill -w 1.0 -e Alifold
+-w 1.0'. See more detail in (Hamada et al., 2010).
+
 Example:
  % centroid_alifold -g -1 RF00436.aln
  >AB029447-1/1210-1265
@@ -158,44 +180,6 @@ in the given alignment. The second is the "most informative sequence"
 (Freyhult et al., 2005), which is similar to IUPAC ambiguity
 characters, produced by a library routine of the Vienna Package.
 
-=== CentroidFold with the CG optimized model
-
-(({simfold.rb})) is also a wrapper script which executes
-(({simfold_pf})) instead of (({contrafold})).
-
- Usage: simfold.rb [options] seq
-    -g, --gamma gamma                weight of base-pairs
-        --mea                        MEA estimators
-        --viterbi                    viterbi estimators
-    -t, --threshold th               threshold of posteriors
-        --centroid_fold path         exec path of centroid_fold
-        --simfold path               exec path of simfold
-        --simfold_pf path            exec path of simfold_pf
-        --params params              specify a parameter file for simfold
-
-Example:
- simfold.rb -g -1 --simfold_pf ~/MultiRNAFold-1.10/simfold_pf --params ~/MultiRNAFold-1.10/params/CG_best_parameters_ISMB2007.txt RF00008_B.fa
- > RF00008_B
- CAAAAGUCUGGGCUAAGCCCACUGAUGAGCCGCUGAAAUGCGGCGAAACUUUUG
- .........(((.....))).........((((......))))........... (g=0.03125,th=0.969697)
- .........(((.....)))........(((((......))))).......... (g=0.0625,th=0.941176)
- .........(((.....)))........(((((......))))).......... (g=0.125,th=0.888889)
- .........((((...))))........(((((......))))).......... (g=0.25,th=0.8)
- ....(...(((((...))))).......(((((......))))).....).... (g=0.5,th=0.666667)
- ((((((..(((((...))))).......(((((......)))))....)))))) (g=1,th=0.5)
- (((((((.(((((...))))).......(((((......)))))...))))))) (g=2,th=0.333333)
- (((((((.(((((...))))).......(((((......)))))...))))))) (g=4,th=0.2)
- (((((((((((((...)))))..).(..(((((......)))))..)))))))) (g=6,th=0.142857)
- (((((((((((((...)))))..).(..(((((......)))))..)))))))) (g=8,th=0.111111)
- (((((((((((((...)))))..).(..(((((......)))))..)))))))) (g=16,th=0.0588235)
- (((((((((((((...)))))..).(..(((((......)))))..)))))))) (g=32,th=0.030303)
- (((((((((((((...)))))..).(..(((((......)))))..)))))))) (g=64,th=0.0153846)
- (((((((((((((...)))))..).(..(((((......)))))..)))))))) (g=128,th=0.00775194)
- (((((((((((((...)))))..).(..((((((...).)))))..)))))))) (g=256,th=0.00389105)
- (((((((((((((...)))))..).(..((((((...).)))))..)))))))) (g=512,th=0.00194932)
- (((((((((((((...)))))..).(..((((((...).)))))..)))))))) (g=1024,th=0.00097561)
-
-
 == References
 
 * Centroid estimators
@@ -208,6 +192,9 @@ Example:
   * Hamada, M., Kiryu, H., Sato, K., Mituyama, T. and Asai, K.:
     Predictions of RNA secondary structure using generalized centroid
     estimators, Bioinformatics, 25:465-473, 2009
+  * Hamada, M., Sato, K., Asai, K.: CentroidAlifold: secondary
+    structure prediction for aligned RNA sequences by maximizing 
+    expected accuracy, submitted, 2010.
 * The CONTRAfold model and MEA estimators
   * Do, C. B., Woods, D. A. and Batzoglou, S.: CONTRAfold: RNA
     secondary structure prediction without physics-based
@@ -217,11 +204,18 @@ Example:
     binding probabilities for RNA secondary structure. Biopolymers,
     29, 1105-1119, 1990.
   * Hofacker, I. L.: Vienna RNA secondary structure server. Nucleic
-    Acids Res, 31:3429-3431, 2003
-* The CG optimized model
-  * Andronescu, M., Condon, A., Hoos, H. H., Mathews, D. H. and
-    Murphy, K. P.: Efficient parameter estimation for RNA secondary 
-    structure prediction. Bioinformatics, 23:i19-i28, 2007
+    Acids Res, 31:3429-3431, 2003.
+* The RNAalifold model
+  * Bernahart, S., Hofacker, I.L., Will, S., Gruber, A.R., Stadler,
+    P.F.: RNAalifold: improved consensus structure prediction for RNA
+    alignments, BMC Bioinformatics, 9:474, 2008.
+* The pfold model
+  * Knudsen, B., Hein, J.: Using stochastic context free grammars and
+    molecular evolution to predict RNA secondary
+    structure. Bioinformatics, 15, 446-454, 1999.
+  * Knudsen, B., Hein, J.: Pfold: RNA secondary structure prediction
+    using stochastic context-free grammars. Nucleic Acids Research,
+    31, 3423-3428, 2003.
 * Others
   * Freyhult, E., Moulton, V., and Gardner, PP.: Predicting RNA
     structure using mutual information. Appl Bioinformatics. 4:53-59,

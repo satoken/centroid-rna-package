@@ -248,9 +248,9 @@ energy_of_struct(const std::string& paren) const
   float e=0.0;
   std::list<std::string>::const_iterator seq;
   for (seq=seq_.begin(); seq!=seq_.end(); ++seq) {
-    std::vector<uint> ppos(paren.size(), static_cast<uint>(-1));
-    std::stack<uint> st;
-    for (uint i=0; i!=paren.size(); ++i)
+    std::vector<unsigned int> ppos(paren.size(), -1u);
+    std::stack<unsigned int> st;
+    for (unsigned int i=0; i!=paren.size(); ++i)
     {
       switch (paren[i])
       {
@@ -268,12 +268,12 @@ energy_of_struct(const std::string& paren) const
     }
     std::string s(*seq);
     std::string p(paren);
-    for (uint i=0; i!=s.size(); ++i)
+    for (unsigned int i=0; i!=s.size(); ++i)
     {
       if (s[i]=='-')
       {
         p[i]='-';
-        if (ppos[i]!=static_cast<uint>(-1)) {
+        if (ppos[i]!=-1u) {
           if (ppos[i]>i || p[ppos[i]]!='-') p[ppos[i]]=' ';
         }
       }

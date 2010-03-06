@@ -32,6 +32,24 @@
 #include <unistd.h>
 #include "engine/pfold.h"
 
+/* Add mkstemp function for MinGW */
+#ifdef __MINGW32__
+#include <windows.h>
+static int mkstemp(char* temp)
+{
+  char temppath[512];
+  if(GetTempPath(512,temppath)!=0){
+    if(GetTempFileName(temppath,"pad",0,temp)!=0){
+      FILE *pFile;
+      pFile=fopen(temp,"w+");
+      if(pFile!=NULL)
+        return (int)pFile;
+    }
+  }
+  return -1;
+}
+#endif
+
 static
 std::string
 mk_tempname(const char* base)

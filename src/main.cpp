@@ -77,9 +77,9 @@ centroid_fold_main(int argc, char* argv[])
   po::options_description desc("Options");
   desc.add_options()
     ("help,h", "show this message")
-    ("engine", po::value<std::vector<std::string> >(&engine),
+    ("engine,e", po::value<std::vector<std::string> >(&engine),
      "specify the inference engine (default: \"CONTRAfold\")")
-    ("mixture-weight,w", po::value<std::vector<float> >(&mix_w), "mixture weights of inference engines")
+    ("mixture,w", po::value<std::vector<float> >(&mix_w), "mixture weights of inference engines")
     ("gamma,g", po::value<std::vector<float> >(&gamma), "weight of base pairs")
     ("threshold,t", po::value<std::vector<float> >(&th),
      "thereshold of base pairs (this option overwrites 'gamma')")
@@ -91,7 +91,6 @@ centroid_fold_main(int argc, char* argv[])
     // added by M. Hamada
     ("mea", "run as an MEA estimator")
     ("noncanonical", "allow non-canonical base-pairs")
-    ("aux", "use auxiliary base-pairing probabilities")
     ("constraints,C", "use structure constraints")
     ("output,o", po::value<std::string>(&outname),
      "specify filename to output predicted secondary structures. If empty, use the standard output.")
@@ -101,11 +100,11 @@ centroid_fold_main(int argc, char* argv[])
      "specify filename to output base-pairing probability matrices. If empty, use the standard output.")
     ("postscript", po::value<std::string>(&ps_outname),
      "draw predicted secondary structures with the postscript (PS) format")
-    ("monochrome", "draw the postscript with monochrome");
+    /*("monochrome", "draw the postscript with monochrome")*/;
 
   po::options_description opts_contrafold("Options for CONTRAfold model");
   opts_contrafold.add_options()
-#ifdef HAVE_LIBRNA
+#if 0 // HAVE_LIBRNA // move to hidden options
     ("pf_fold", "use pf_fold base-pairing probabilities rather than those of CONTRAfold model")
 #endif
     ("params", po::value<std::string>(&param), "use the parameter file")
@@ -114,7 +113,7 @@ centroid_fold_main(int argc, char* argv[])
 
   po::options_description opts_sampling("Options for sampling");
   opts_sampling.add_options()
-    ("sampling", 
+    ("sampling,s", 
      po::value<uint>(&num_samples),
      "specify the number of samples to be generated for each sequence")
     ("max-clusters,c",
@@ -126,6 +125,11 @@ centroid_fold_main(int argc, char* argv[])
   
   po::options_description opts("Options");
   opts.add_options()
+#ifdef HAVE_LIBRNA
+    ("pf_fold", "use pf_fold base-pairing probabilities rather than those of CONTRAfold model")
+#endif
+    ("aux", "use auxiliary base-pairing probabilities")
+    ("monochrome", "draw the postscript with monochrome")
     ("seq-file", po::value<std::string>(&input), "training sequence filename")
     ("model-file", po::value<std::vector<std::string> >(&model), "model filename");
 
@@ -148,14 +152,16 @@ centroid_fold_main(int argc, char* argv[])
   if (usage || vm.count("help") || !vm.count("seq-file") ||
       (vm.count("aux") && model.empty()))
   {
-    std::string features("aux files");
-    features += ", CONTRAfold model";
+    std::string features("CONTRAfold");
 #ifdef HAVE_LIBRNA
-    features += ", McCaskill model";
+    features += ", McCaskill";
 #endif
+    features += ", pfold";
+    features += ", AUX";
+
     std::cout << "CentroidFold v" << VERSION 
 	      << " for predicting RNA secondary structures" << std::endl
-	      << "  (enabled features: " << features << ")" << std::endl
+	      << "  (available engines: " << features << ")" << std::endl
 	      << "Usage:" << std::endl
 	      << " " << argv[0]
 	      << " [options] seq [bp_matrix ...]\n\n"
@@ -355,10 +361,10 @@ centroid_alifold_main(int argc, char* argv[])
   po::options_description desc("Options");
   desc.add_options()
     ("help,h", "show this message")
+    ("engine,e", po::value<std::vector<std::string> >(&engine),
+     "specify the inference engine (default: \"McCaskill & Alifold\")")
+    ("mixture,w", po::value<std::vector<float> >(&mix_w), "mixture weights of inference engines")
     ("gamma,g", po::value<std::vector<float> >(&gamma), "weight of base pairs")
-    ("engine", po::value<std::vector<std::string> >(&engine),
-     "specify the inference engine (default: \"CONTRAfold\")")
-    ("mixture-weight,w", po::value<std::vector<float> >(&mix_w), "mixture weights of inference engines")
     ("threshold,t", po::value<std::vector<float> >(&th),
      "thereshold of base pairs (this option overwrites 'gamma')")
     //
@@ -369,7 +375,6 @@ centroid_alifold_main(int argc, char* argv[])
     // added by M. Hamada
     ("mea", "run as an MEA estimator")
     ("noncanonical", "allow non-canonical base-pairs")
-    ("aux", "use auxiliary base-pairing probabilities")
     ("constraints,C", "use structure constraints")
     ("output,o", po::value<std::string>(&outname),
      "specify filename to output predicted secondary structures. If empty, use the standard output.")
@@ -379,11 +384,11 @@ centroid_alifold_main(int argc, char* argv[])
      "specify filename to output base-pairing probability matrices. If empty, use the standard output.")
     ("postscript", po::value<std::string>(&ps_outname),
      "draw predicted secondary structures with the postscript (PS) format")
-    ("monochrome", "draw the postscript with monochrome");
+    /*("monochrome", "draw the postscript with monochrome")*/;
 
   po::options_description opts_contrafold("Options for CONTRAfold model");
   opts_contrafold.add_options()
-#ifdef HAVE_LIBRNA
+#if 0 // HAVE_LIBRNA // move to hidden options
     ("alipf_fold", "use alipf_fold base-pairing probabilities rather than those of CONTRAfold model")
     ("pf_fold", "use pf_fold base-pairing probabilities rather than those of CONTRAfold model")
 #endif
@@ -393,7 +398,7 @@ centroid_alifold_main(int argc, char* argv[])
 
   po::options_description opts_sampling("Options for sampling");
   opts_sampling.add_options()
-    ("sampling", 
+    ("sampling,s", 
      po::value<uint>(&num_samples),
      "specify the number of samples to be generated for each sequence")
     ("max-clusters,c",
@@ -405,6 +410,12 @@ centroid_alifold_main(int argc, char* argv[])
 
   po::options_description opts("Options");
   opts.add_options()
+#ifdef HAVE_LIBRNA
+    ("alipf_fold", "use alipf_fold base-pairing probabilities rather than those of CONTRAfold model")
+    ("pf_fold", "use pf_fold base-pairing probabilities rather than those of CONTRAfold model")
+#endif
+    ("aux", "use auxiliary base-pairing probabilities")
+    ("monochrome", "draw the postscript with monochrome")
     ("seq-file", po::value<std::string>(&input), "training sequence filename")
     ("model-file", po::value<std::vector<std::string> >(&model), "model filename");
 
@@ -427,14 +438,17 @@ centroid_alifold_main(int argc, char* argv[])
   if (usage || vm.count("help") || !vm.count("seq-file") ||
       (vm.count("aux") && model.empty()))
   {
-    std::string features("aux files");
-    features += ", CONTRAfold model";
+    std::string features("CONTRAfold");
 #ifdef HAVE_LIBRNA
-    features += ", McCaskill model";
+    features += ", McCaskill";
+    features += ", Alifold";
 #endif
+    features += ", pfold";
+    features += ", AUX";
+
     std::cout << "CentroidAlifold v" << VERSION 
-	      << " for predicting RNA secondary structures" << std::endl
-	      << "  (enabled features: " << features << ")" << std::endl
+	      << " for predicting common RNA secondary structures" << std::endl
+	      << "  (available engines: " << features << ")" << std::endl
 	      << "Usage:" << std::endl
 	      << " " << argv[0]
 	      << " [options] seq [bp_matrix ...]\n\n"
@@ -466,7 +480,11 @@ centroid_alifold_main(int argc, char* argv[])
     std::copy(boost::begin(g), boost::end(g), gamma.begin());
   }
 
-  if (engine.empty()) engine.push_back("CONTRAfold");
+  if (engine.empty())
+  {
+    engine.push_back("McCaskill");
+    engine.push_back("Alifold");
+  }
   if (vm.count("pf_fold")) { engine.resize(1); engine[0]="McCaskill"; }
   if (vm.count("alipf_fold")) { engine.resize(1); engine[0]="Alifold"; }
   if (vm.count("aux")) { engine.resize(1); engine[0]="AUX"; }
