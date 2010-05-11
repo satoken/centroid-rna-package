@@ -161,7 +161,7 @@ namespace SCFG
     calc_nonbp_prob() const
     {
       Updater<V> updater(bp_, size_);
-      SCFG::inside_traverse(0, bp_.size(), updater);
+      SCFG::inside_traverse(0, size(), updater);
       return updater.q;
     }
   };
