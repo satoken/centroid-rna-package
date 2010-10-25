@@ -30,7 +30,8 @@
 class AliFoldModel : public CentroidFold<Aln>
 {
 public:
-  AliFoldModel(bool canonical_only, uint max_bp_dist, uint seed=0, bool run_as_mea=false);
+  AliFoldModel(bool canonical_only, uint max_bp_dist,
+               const char* param=NULL, uint seed=0, bool run_as_mea=false);
   virtual ~AliFoldModel() { }
 
   // interface implementations

@@ -44,11 +44,13 @@ extern "C" {
 #include <ViennaRNA/utils.h>
   extern int eos_debug;
   extern int   st_back;
+  extern void read_parameter_file(const char fname[]);
 };
 };
 
 AliFoldModel::
-AliFoldModel(bool canonical_only, uint max_bp_dist, uint seed /*=0*/, bool run_as_mea /*=false*/)
+AliFoldModel(bool canonical_only, uint max_bp_dist,
+             const char* param /*=NULL*/, uint seed /*=0*/, bool run_as_mea /*=false*/)
   : CentroidFold<Aln>(run_as_mea, max_bp_dist), canonical_only_(canonical_only)
 {
   if (!canonical_only_)
@@ -69,6 +71,8 @@ AliFoldModel(bool canonical_only, uint max_bp_dist, uint seed /*=0*/, bool run_a
     xsubi[1] += (unsigned short) ((unsigned)seed >> 6);
     xsubi[2] += (unsigned short) ((unsigned)seed >> 12);
   }
+
+  if (param) Vienna::read_parameter_file(param);
 }
 
 void
