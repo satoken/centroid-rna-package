@@ -31,7 +31,7 @@ class McCaskillModel : public CentroidFold<std::string>
 {
 public:
   McCaskillModel(bool canonical_only, uint max_bp_dist,
-                 uint seed=0, bool run_as_mea=false);
+                 const char* param=NULL, uint seed=0, bool run_as_mea=false);
   virtual ~McCaskillModel() { }
 
   // interface implementations

@@ -44,12 +44,13 @@ extern "C" {
 #include <ViennaRNA/utils.h>
   extern int eos_debug;
   extern int   st_back;
+  extern void read_parameter_file(const char fname[]);
 };
 };
 
 McCaskillModel::
 McCaskillModel(bool canonical_only, uint max_bp_dist,
-               uint seed /*=0*/, bool run_as_mea /*=false*/)
+               const char* param /*=NULL*/, uint seed /*=0*/, bool run_as_mea /*=false*/)
   : CentroidFold<std::string>(run_as_mea, max_bp_dist),
     canonical_only_(canonical_only), bk_st_back_(Vienna::st_back), str_()
 {
@@ -71,6 +72,8 @@ McCaskillModel(bool canonical_only, uint max_bp_dist,
     xsubi[1] += (unsigned short) ((unsigned)seed >> 6);
     xsubi[2] += (unsigned short) ((unsigned)seed >> 12);
   }
+
+  if (param) Vienna::read_parameter_file(param);
 }
 
 void

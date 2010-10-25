@@ -100,14 +100,14 @@ centroid_fold_main(int argc, char* argv[])
      "specify filename to output base-pairing probability matrices. If empty, use the standard output.")
     ("postscript", po::value<std::string>(&ps_outname),
      "draw predicted secondary structures with the postscript (PS) format")
-    /*("monochrome", "draw the postscript with monochrome")*/;
+    /*("monochrome", "draw the postscript with monochrome")*/
+    ("params", po::value<std::string>(&param), "use the parameter file");
 
   po::options_description opts_contrafold("Options for CONTRAfold model");
   opts_contrafold.add_options()
 #if 0 // HAVE_LIBRNA // move to hidden options
     ("pf_fold", "use pf_fold base-pairing probabilities rather than those of CONTRAfold model")
 #endif
-    ("params", po::value<std::string>(&param), "use the parameter file")
     ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
      "the maximum distance of base-pairs");
 
@@ -210,7 +210,8 @@ centroid_fold_main(int argc, char* argv[])
     else if (engine[i]=="McCaskill")
     {
       if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
-      cf_list[i] = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+      cf_list[i] = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist,
+                                      param.c_str(), seed, vm.count("mea"));
     }
 #endif
     else if (engine[i]=="pfold")
@@ -384,7 +385,8 @@ centroid_alifold_main(int argc, char* argv[])
      "specify filename to output base-pairing probability matrices. If empty, use the standard output.")
     ("postscript", po::value<std::string>(&ps_outname),
      "draw predicted secondary structures with the postscript (PS) format")
-    /*("monochrome", "draw the postscript with monochrome")*/;
+    /*("monochrome", "draw the postscript with monochrome")*/
+    ("params", po::value<std::string>(&param), "use the parameter file");
 
   po::options_description opts_contrafold("Options for CONTRAfold model");
   opts_contrafold.add_options()
@@ -392,7 +394,6 @@ centroid_alifold_main(int argc, char* argv[])
     ("alipf_fold", "use alipf_fold base-pairing probabilities rather than those of CONTRAfold model")
     ("pf_fold", "use pf_fold base-pairing probabilities rather than those of CONTRAfold model")
 #endif
-    ("params", po::value<std::string>(&param), "use the parameter file")
     ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
      "the maximum distance of base-pairs");
 
@@ -509,13 +510,15 @@ centroid_alifold_main(int argc, char* argv[])
     else if (engine[i]=="McCaskill")
     {
       if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
-      src_list[i] = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+      src_list[i] = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist,
+                                       param.c_str(), seed, vm.count("mea"));
       cf_list[i] = new AveragedModel(src_list[i], max_bp_dist, vm.count("mea"));
     }
     else if (engine[i]=="Alifold")
     {
       if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
-      cf_list[i] = new AliFoldModel(!vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+      cf_list[i] = new AliFoldModel(!vm.count("noncanonical"), max_bp_dist,
+                                    param.c_str(), seed, vm.count("mea"));
     }
 #endif
     else if (engine[i]=="pfold")
