@@ -48,6 +48,10 @@ extern "C" {
 };
 };
 
+extern "C" {
+#include "engine/new_param.h"
+};
+
 AliFoldModel::
 AliFoldModel(bool canonical_only, uint max_bp_dist,
              const char* param /*=NULL*/, uint seed /*=0*/, bool run_as_mea /*=false*/)
@@ -72,6 +76,7 @@ AliFoldModel(bool canonical_only, uint max_bp_dist,
     xsubi[2] += (unsigned short) ((unsigned)seed >> 12);
   }
 
+  copy_new_parameters();
   if (param) Vienna::read_parameter_file(param);
 }
 

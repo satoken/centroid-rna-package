@@ -68,6 +68,12 @@ dnl fi
 AC_SUBST(BOOST_LIBS)
 
 # Checks for libraries.
+AC_ARG_WITH([vienna-rna], AS_HELP_STRING([--with-vienna-rna], [support Vienna RNA package]),
+  if test "$with_vienna_rna" != "yes" && test "$with_vienna_rna" != "no" ; then
+     CPPFLAGS="-I${with_vienna_rna}/include $CPPFLAGS"
+     LDFLAGS="-L${with_vienna_rna}/lib $LDFLAGS"
+  fi
+)
 AC_CHECK_LIB(RNA, init_pf_fold)
 
 # Checks for header files.

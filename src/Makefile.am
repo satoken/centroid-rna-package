@@ -16,7 +16,8 @@ libcentroid_a_SOURCES = \
 	centroid_fold.h centroid.h mea.h bp.h cyktable.h rule.h contrafold/contrafold.h \
 	engine/aux.h engine/alifold.h engine/contrafold.h engine/mccaskill.h \
 	engine/averaged.h engine/contrafoldm.h engine/mixture.h engine/pfold.h \
-        diana.cpp diana.h ps_plot.cpp ps_plot.h naview.c 
+        diana.cpp diana.h ps_plot.cpp ps_plot.h naview.c \
+	engine/new_param.h engine/new_param.c
 
 install-exec-hook:
 	$(LN_S) $(DESTDIR)$(bindir)/centroid_fold$(EXEEXT) \
