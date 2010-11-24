@@ -21,9 +21,18 @@
 #ifndef __INC_ALN_H__
 #define __INC_ALN_H__
 
-#include <boost/spirit/iterator/file_iterator.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 103800
+#include <boost/spirit/include/classic.hpp>
+#else
+#include <boost/spirit.hpp>
+#endif
 #include <string>
 #include <list>
+
+#ifndef BOOST_SPIRIT_CLASSIC_NS
+#define BOOST_SPIRIT_CLASSIC_NS boost::spirit
+#endif
 
 class Aln
 {
@@ -65,7 +74,7 @@ public:
   load(std::list<Aln>& data, const char* file );
 
   unsigned int
-  load(boost::spirit::file_iterator<>& fi);
+  load(BOOST_SPIRIT_CLASSIC_NS::file_iterator<>& fi);
 
 private:
   std::list<std::string> name_;
