@@ -171,7 +171,7 @@ centroid_fold_main(int argc, char* argv[])
     return 1;
   }
 
-  boost::spirit::file_iterator<> fi(input.c_str());
+  BOOST_SPIRIT_CLASSIC_NS::file_iterator<> fi(input.c_str());
   if (!fi)
   {
     perror(input.c_str());
@@ -459,7 +459,7 @@ centroid_alifold_main(int argc, char* argv[])
     return 1;
   }
 
-  boost::spirit::file_iterator<> fi(input.c_str());
+  BOOST_SPIRIT_CLASSIC_NS::file_iterator<> fi(input.c_str());
   if (!fi)
   {
     perror(input.c_str());

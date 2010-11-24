@@ -29,7 +29,6 @@
 #include <map>
 #include <stack>
 #include <stdexcept>
-#include <boost/spirit.hpp>
 #include <boost/algorithm/string.hpp>
 #include <cstring>
 
@@ -44,7 +43,7 @@ extern "C" {
 };
 #endif
 
-using namespace boost::spirit;
+using namespace BOOST_SPIRIT_CLASSIC_NS;
 
 struct aln_parser : public grammar< aln_parser >
 {
@@ -141,7 +140,7 @@ struct aln_parser : public grammar< aln_parser >
 
 unsigned int
 Aln::
-load(boost::spirit::file_iterator<>& fi)
+load(file_iterator<>& fi)
 {
   file_iterator<> s = fi;
   aln_parser::WA wa;
