@@ -38,6 +38,18 @@ typedef boost::shared_ptr<BPTable> BPTablePtr;
 typedef boost::dynamic_bitset<> BPvec;
 typedef boost::shared_ptr<BPvec> BPvecPtr;
 
+// target sequence and its homologous sequences (for CentroidHomfold)
+class TH : public std::pair<std::string, std::vector<std::string> >
+{
+ public:
+  TH (const std::string& seq, const std::vector<std::string>& hom) 
+    {
+      this->first = seq;
+      this->second = hom;
+    }
+  uint size () const { return this->first.size(); }
+};
+
 template < class SEQ >
 class CentroidFold
 {

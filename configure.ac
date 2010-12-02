@@ -88,5 +88,5 @@ AC_C_INLINE
 # Checks for library functions.
 AC_HEADER_STDC
 
-AC_CONFIG_FILES([Makefile src/Makefile src/contrafold/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/contrafold/Makefile src/probconsRNA/Makefile src/contralign/Makefile])
 AC_OUTPUT

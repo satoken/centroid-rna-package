@@ -38,6 +38,8 @@
 #include "ps_plot.h"
 
 #ifdef HAVE_LIBRNA
+#ifndef __INC_LIBRNA_H
+#define __INC_LIBRNA_H
 namespace Vienna {
 extern "C" {
 #include <ViennaRNA/fold.h>
@@ -46,6 +48,7 @@ extern "C" {
   extern int eos_debug;
 };
 };
+#endif
 #endif
 
 static
@@ -63,6 +66,9 @@ float calc_energy(const std::string& t, const std::string& s)
 static
 std::string get_seq(const Aln& aln) { return aln.consensus(); }
 
+static
+std::string get_seq (const TH& th) { return th.first; }
+
 #ifdef HAVE_LIBRNA
 static
 float calc_energy(const Aln& aln, const std::string& s)
@@ -71,6 +77,16 @@ float calc_energy(const Aln& aln, const std::string& s)
   return aln.energy_of_struct(s);
 }
 #endif
+
+#ifdef HAVE_LIBRNA
+static
+float calc_energy(const TH& t, const std::string& s)
+{
+  Vienna::eos_debug = -1;
+  return Vienna::energy_of_struct(t.first.c_str(), s.c_str());
+}
+#endif
+
 
 template < class L >
 struct CountBP
@@ -609,3 +625,4 @@ clean_stochastic_traceback(const SEQ& seq)
 // instantiation
 template class CentroidFold<std::string>;
 template class CentroidFold<Aln>;
+template class CentroidFold<TH>;

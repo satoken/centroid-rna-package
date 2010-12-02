@@ -32,6 +32,8 @@
 #include "engine/mccaskill.h"
 
 #ifdef HAVE_LIBRNA
+#ifndef __INC_LIBRNA_H
+#define __INC_LIBRNA_H
 namespace Vienna {
 extern "C" {
 #include <ViennaRNA/fold.h>
@@ -47,6 +49,7 @@ extern "C" {
   extern void read_parameter_file(const char fname[]);
 };
 };
+#endif
 
 extern "C" {
 #include "engine/new_param.h"
