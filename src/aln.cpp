@@ -33,6 +33,8 @@
 #include <cstring>
 
 #ifdef HAVE_LIBRNA
+#ifndef __INC_LIBRNA_H
+#define __INC_LIBRNA_H
 namespace Vienna {
 extern "C" {
 #include <ViennaRNA/fold.h>
@@ -41,6 +43,7 @@ extern "C" {
   extern int eos_debug;
 };
 };
+#endif
 #endif
 
 using namespace BOOST_SPIRIT_CLASSIC_NS;
