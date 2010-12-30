@@ -44,6 +44,13 @@ if test "$enable_mersenne_twister" == "no"; then
 fi
 
 # boost libraries
+AX_BOOST_BASE(1.40, , AC_MSG_ERROR("the boost library is unavailable"))
+if test "x$BOOST_CPPFLAGS" != x; then
+  CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
+fi
+if test "x$BOOST_LDFLAGS" != x; then
+  LDFLAGS="$LDFLAGS $BOOST_LDFLAGS"
+fi
 dnl AC_CHECK_HEADER(boost/lambda/lambda.hpp, ,
 dnl                 AC_MSG_ERROR("boost/lambda/lambda.hpp is unavailable"))
 AC_CHECK_HEADER(boost/multi_array.hpp, ,
@@ -53,19 +60,10 @@ AC_CHECK_HEADER(boost/random.hpp, ,
 
 AX_BOOST_PROGRAM_OPTIONS
 if test "x$BOOST_PROGRAM_OPTIONS_LIB" != x; then
-  BOOST_LIBS="$BOOST_LIBS $BOOST_PROGRAM_OPTIONS_LIB"
+  LIBS="$LIBS $BOOST_PROGRAM_OPTIONS_LIB"
 else
   AC_MSG_ERROR("the Boost::Program_Options library is unavailable")  
 fi
-dnl AX_BOOST_THREAD
-dnl if test "x$BOOST_THREAD_LIB" != "x"; then
-dnl   BOOST_LIBS="$BOOST_LIBS $BOOST_THREAD_LIB"
-dnl fi
-dnl AX_BOOST_IOSTREAMS
-dnl if test "x$BOOST_IOSTREAMS_LIB" != "x"; then
-dnl   BOOST_LIBS="$BOOST_LIBS $BOOST_IOSTREAMS_LIB"
-dnl fi
-AC_SUBST(BOOST_LIBS)
 
 # Checks for libraries.
 AC_ARG_WITH([vienna-rna], AS_HELP_STRING([--with-vienna-rna], [support Vienna RNA package]),

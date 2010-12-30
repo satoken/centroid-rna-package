@@ -4,13 +4,13 @@ noinst_LIBRARIES = libcentroid.a
 dist_bin_SCRIPTS = contrafold.rb simfold.rb
 
 centroid_fold_SOURCES = centroid_fold.cpp 
-centroid_fold_LDADD = libcentroid.a contrafold/libcontrafold.a ${BOOST_LIBS}
+centroid_fold_LDADD = libcentroid.a contrafold/libcontrafold.a
 
 centroid_alifold_SOURCES = centroid_alifold.cpp
-centroid_alifold_LDADD = libcentroid.a contrafold/libcontrafold.a ${BOOST_LIBS}
+centroid_alifold_LDADD = libcentroid.a contrafold/libcontrafold.a
 
 centroid_homfold_SOURCES = centroid_homfold.cpp
-centroid_homfold_LDADD = libcentroid.a contrafold/libcontrafold.a contralign/libcontralign.a probconsRNA/libprobcons.a ${BOOST_LIBS}
+centroid_homfold_LDADD = libcentroid.a contrafold/libcontrafold.a contralign/libcontralign.a probconsRNA/libprobcons.a
 
 libcentroid_a_SOURCES = \
 	folding_engine.cpp folding_engine.h centroid.cpp centroid.h \
