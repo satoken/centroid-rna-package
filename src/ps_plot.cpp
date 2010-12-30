@@ -444,4 +444,4 @@ static void nrerror(const char message[])       /* output message upon error */
 
 #include "bp.h"
 template
-int ps_color_plot(const char *string, const char *structure, const SCFG::BP::Table<float>& bp, const char* ssfile);
+int ps_color_plot(const char *string, const char *structure, const BPTableTmpl<float>& bp, const char* ssfile);

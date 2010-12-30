@@ -3,12 +3,12 @@
 #ifndef __INC_ENGINE_CONTRAFOLDHOM_H__
 #define __INC_ENGINE_CONTRAFOLDHOM_H__
 
-#include "../centroid_fold.h"
+#include "../folding_engine.h"
 
 template < class RealT > class CONTRAfold;
 
 // CentroidHomfold based on CONTRAfold model
-class CONTRAfoldHomModel : public CentroidFold<TH>
+class CONTRAfoldHomModel : public FoldingEngine<TH>
 {
 public:
   CONTRAfoldHomModel(const std::string& model, const std::string& engine_a, bool canonical_only, uint max_bp_dist,

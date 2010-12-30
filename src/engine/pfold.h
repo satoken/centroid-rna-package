@@ -24,15 +24,15 @@
 #ifndef __INC_ENGINE_PFOLD_H__
 #define __INC_ENGINE_PFOLD_H__
 
-#include "../centroid_fold.h"
+#include "../folding_engine.h"
 
 template <class SEQ>
-class PfoldModel : public CentroidFold<SEQ>
+class PfoldModel : public FoldingEngine<SEQ>
 {
 public:
   PfoldModel(const std::string& pfold_bin_dir,
              const std::string& awk_bin, const std::string& sed_bin, bool run_as_mea=false)
-    : CentroidFold<SEQ>(0, run_as_mea),
+    : FoldingEngine<SEQ>(0, run_as_mea),
       pfold_bin_dir_(pfold_bin_dir), awk_bin_(awk_bin), sed_bin_(sed_bin)
   { }
   virtual ~PfoldModel() { }
@@ -41,7 +41,7 @@ public:
   virtual void calculate_posterior(const SEQ& seq);
 
 private:
-  using CentroidFold<SEQ>::bp_;
+  using FoldingEngine<SEQ>::bp_;
   std::string pfold_bin_dir_;
   std::string awk_bin_;
   std::string sed_bin_;

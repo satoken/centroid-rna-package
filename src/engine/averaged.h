@@ -24,12 +24,12 @@
 #ifndef __INC_ENGINE_AVERAGED_H__
 #define __INC_ENGINE_AVERAGED_H__
 
-#include "../centroid_fold.h"
+#include "../folding_engine.h"
 
-class AveragedModel : public CentroidFold<Aln>
+class AveragedModel : public FoldingEngine<Aln>
 {
 public:
-  AveragedModel(CentroidFold<std::string>* cf, uint max_bp_dist, bool run_as_mea=false);
+  AveragedModel(FoldingEngine<std::string>* cf, uint max_bp_dist, bool run_as_mea=false);
   virtual ~AveragedModel() {}
 
   virtual void stochastic_fold(const Aln& aln, uint num_samples, std::ostream& out);
@@ -44,7 +44,7 @@ public:
   virtual void calculate_posterior(const Aln& aln);
 
 private:
-  CentroidFold<std::string>* cf_;
+  FoldingEngine<std::string>* cf_;
   std::vector<uint> paren_;
 };
 

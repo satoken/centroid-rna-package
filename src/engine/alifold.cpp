@@ -55,7 +55,7 @@ extern "C" {
 AliFoldModel::
 AliFoldModel(bool canonical_only, uint max_bp_dist,
              const char* param /*=NULL*/, uint seed /*=0*/, bool run_as_mea /*=false*/)
-  : CentroidFold<Aln>(run_as_mea, max_bp_dist), canonical_only_(canonical_only)
+  : FoldingEngine<Aln>(run_as_mea, max_bp_dist), canonical_only_(canonical_only)
 {
   if (!canonical_only_)
     Vienna::nonstandards = const_cast<char*>("AAACAGCACCCUGAGGUCUU");

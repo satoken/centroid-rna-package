@@ -34,7 +34,7 @@ extern "C" {
 McCaskillHomModel::
 McCaskillHomModel(const std::string& engine_a, bool canonical_only, uint max_bp_dist,
                const char* param /*=NULL*/, uint seed /*=0*/, bool run_as_mea /*=false*/)
-  : CentroidFold<TH>(run_as_mea, max_bp_dist),
+  : FoldingEngine<TH>(run_as_mea, max_bp_dist),
     canonical_only_(canonical_only), bk_st_back_(Vienna::st_back), str_()
 {
   if (!canonical_only_)
@@ -120,7 +120,7 @@ calculate_posterior(const TH& th)
 	  for (cIter itr3 = apt.GetRowBegin (l); itr3 != apt.GetRowEnd(l); ++itr3) {
 	    const int j= itr3->column;
 	    const float plj = itr3->value;
-	    if (i<j) tmp[i][j] += pik*pkl*plj; 
+	    if ((int)i<j) tmp[i][j] += pik*pkl*plj; 
 	  }
 	}
       } // i

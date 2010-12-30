@@ -94,9 +94,9 @@ struct AverageBP
   void make()
   {
     if (max_dist_==0)
-      SCFG::inside_traverse(0, bp_.size()-1, *this);
+      inside_traverse(0, bp_.size()-1, *this);
     else
-      SCFG::inside_traverse(0, bp_.size()-1, max_dist_, *this);
+      inside_traverse(0, bp_.size()-1, max_dist_, *this);
   }
 
 private:
@@ -107,8 +107,8 @@ private:
 };
 
 AveragedModel::
-AveragedModel(CentroidFold<std::string>* cf, uint max_bp_dist, bool run_as_mea /*=false*/)
-  : CentroidFold<Aln>(run_as_mea, max_bp_dist), cf_(cf), paren_()
+AveragedModel(FoldingEngine<std::string>* cf, uint max_bp_dist, bool run_as_mea /*=false*/)
+  : FoldingEngine<Aln>(run_as_mea, max_bp_dist), cf_(cf), paren_()
 {
 }
 
@@ -169,7 +169,7 @@ stochastic_fold(const Aln& aln, uint num_samples, std::vector<BPvecPtr>& bpv)
     cf_->prepare_stochastic_traceback(seq);
     for (uint n=0; n!=num_samples/aln.num_aln(); ++n)
     {
-      SCFG::CYKTable<uint> bp_pos(aln.size(), 0);
+      CYKTable<uint> bp_pos(aln.size(), 0);
       std::vector<int> paren = cf_->stochastic_traceback(seq);
       for (uint i=0; i!=paren.size(); ++i)
       {
@@ -236,7 +236,7 @@ AveragedModel::
 compute_expected_accuracy_sampling(const std::string& paren, const Aln& aln,
                                    uint num_ea_samples, double& sen, double& ppv, double& mcc)
 {
-  SCFG::CYKTable<uint> bp_pos(paren.size(), 0);
+  CYKTable<uint> bp_pos(paren.size(), 0);
   std::stack<uint> st;
   for (uint i=0; i<paren.size(); ++i) {
     if (paren[i]=='(') {
@@ -267,7 +267,7 @@ compute_expected_accuracy_sampling(const std::string& paren, const Aln& aln,
 
     cf_->prepare_stochastic_traceback(seq);
     for (int n=0; n!=int(num_ea_samples/aln.num_aln()); ++n) {
-      SCFG::CYKTable<uint> bp_pos(aln.size(), 0);
+      CYKTable<uint> bp_pos(aln.size(), 0);
       std::vector<int> paren = cf_->stochastic_traceback(seq);
       for (uint i=0; i!=paren.size(); ++i) {
         if (paren[i]>int(i))

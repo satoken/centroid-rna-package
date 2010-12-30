@@ -28,9 +28,9 @@
 
 template <class SEQ>
 MixtureModel<SEQ>::
-MixtureModel(const std::vector<std::pair<CentroidFold<SEQ>*,float> >& models,
+MixtureModel(const std::vector<std::pair<FoldingEngine<SEQ>*,float> >& models,
              bool run_as_mea /*=false*/)
-  : CentroidFold<SEQ>(run_as_mea, 0), models_(models)
+  : FoldingEngine<SEQ>(run_as_mea, 0), models_(models)
 {
 }
 
@@ -60,16 +60,16 @@ calculate_posterior(const SEQ& seq)
 {
   float sum_w=0.0;
   bp_.resize(seq.size());
-  typename std::vector<std::pair<CentroidFold<SEQ>*,float> >::iterator x;
+  typename std::vector<std::pair<FoldingEngine<SEQ>*,float> >::iterator x;
   for (x=models_.begin(); x!=models_.end(); ++x)
   {
     x->first->calculate_posterior(seq);
     MulAdd ma(bp_, x->second, x->first->get_bp());
-    SCFG::inside_traverse(0, bp_.size()-1, ma);
+    inside_traverse(0, bp_.size()-1, ma);
     sum_w+=x->second;
   }
   Div div(bp_, sum_w);
-  SCFG::inside_traverse(0, bp_.size()-1, div);
+  inside_traverse(0, bp_.size()-1, div);
 }
 
 // instantiation

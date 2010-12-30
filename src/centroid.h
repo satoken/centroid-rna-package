@@ -26,19 +26,17 @@
 
 #include <string>
 
-namespace SCFG
+namespace Centroid
 {
-  namespace Centroid
-  {
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, float gamma);
+  template < class T >
+  float
+  execute(const T& table, std::string& paren, float gamma);
 
-    template < class T >
-    float
-    execute(const T& table, std::string& paren, unsigned int max_dist, float gamma);
-  };
+  template < class T >
+  float
+  execute(const T& table, std::string& paren, unsigned int max_dist, float gamma);
 };
+
 
 #endif	//  __INC_CENTROID_H__
 

@@ -24,10 +24,10 @@
 #ifndef __INC_ENGINE_ALIFOLD_H__
 #define __INC_ENGINE_ALIFOLD_H__
 
-#include "../centroid_fold.h"
+#include "../folding_engine.h"
 
 #ifdef HAVE_LIBRNA
-class AliFoldModel : public CentroidFold<Aln>
+class AliFoldModel : public FoldingEngine<Aln>
 {
 public:
   AliFoldModel(bool canonical_only, uint max_bp_dist,

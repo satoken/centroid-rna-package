@@ -24,22 +24,22 @@
 #ifndef __INC_ENGINE_MIXTURE_H__
 #define __INC_ENGINE_MIXTURE_H__
 
-#include "../centroid_fold.h"
+#include "../folding_engine.h"
 
 template < class SEQ >
-class MixtureModel : public CentroidFold<SEQ>
+class MixtureModel : public FoldingEngine<SEQ>
 {
 public:
-  MixtureModel(const std::vector<std::pair<CentroidFold<SEQ>*,float> >& models, bool run_as_mea=false);
+  MixtureModel(const std::vector<std::pair<FoldingEngine<SEQ>*,float> >& models, bool run_as_mea=false);
   virtual ~MixtureModel() { }
 
   // interface implementations
   virtual void calculate_posterior(const SEQ& seq);
 
 private:
-  std::vector<std::pair<CentroidFold<SEQ>*,float> > models_;
+  std::vector<std::pair<FoldingEngine<SEQ>*,float> > models_;
 
-  using CentroidFold<SEQ>::bp_;
+  using FoldingEngine<SEQ>::bp_;
 };
 
 #endif  //  __INC_ENGINE_MIXTURE_H__

@@ -32,7 +32,7 @@
 CONTRAfoldMultiModel::
 CONTRAfoldMultiModel(const std::string& model, bool canonical_only, uint max_bp_dist,
                      uint seed /*=0*/, bool run_as_mea /*=false*/)
-  : CentroidFold<Aln>(run_as_mea, max_bp_dist),
+  : FoldingEngine<Aln>(run_as_mea, max_bp_dist),
     contrafold_(NULL), contrafoldm_(NULL), avg_(NULL)
 {
   contrafold_ = new CONTRAfoldModel(model, canonical_only, max_bp_dist, seed, run_as_mea);

@@ -24,11 +24,11 @@
 #ifndef __INC_ENGINE_CONTRAFOLDM_H__
 #define __INC_ENGINE_CONTRAFOLDM_H__
 
-#include "../centroid_fold.h"
+#include "../folding_engine.h"
 #include "engine/contrafold.h"
 #include "engine/averaged.h"
 
-class CONTRAfoldMultiModel : public CentroidFold<Aln>
+class CONTRAfoldMultiModel : public FoldingEngine<Aln>
 {
 public:
   CONTRAfoldMultiModel(const std::string& model, bool canonical_only, uint max_bp_dist,

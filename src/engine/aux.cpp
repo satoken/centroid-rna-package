@@ -28,7 +28,7 @@
 
 AuxModel::
 AuxModel(const std::vector<std::string>& bpfiles, bool run_as_mea /*=false*/)
-  : CentroidFold<std::string>(run_as_mea, 0), bpfiles_(bpfiles), pos_(0)
+  : FoldingEngine<std::string>(run_as_mea, 0), bpfiles_(bpfiles), pos_(0)
 {
 }
 

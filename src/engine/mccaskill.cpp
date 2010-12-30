@@ -58,7 +58,7 @@ extern "C" {
 McCaskillModel::
 McCaskillModel(bool canonical_only, uint max_bp_dist,
                const char* param /*=NULL*/, uint seed /*=0*/, bool run_as_mea /*=false*/)
-  : CentroidFold<std::string>(run_as_mea, max_bp_dist),
+  : FoldingEngine<std::string>(run_as_mea, max_bp_dist),
     canonical_only_(canonical_only), bk_st_back_(Vienna::st_back), str_()
 {
   if (!canonical_only_)

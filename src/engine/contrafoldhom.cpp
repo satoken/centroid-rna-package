@@ -13,7 +13,7 @@
 CONTRAfoldHomModel::
 CONTRAfoldHomModel(const std::string& model, const std::string& engine_a, bool canonical_only, uint max_bp_dist,
 		   uint seed /*=0*/, bool run_as_mea /*=false*/)
-  : CentroidFold<TH>(run_as_mea, max_bp_dist),
+  : FoldingEngine<TH>(run_as_mea, max_bp_dist),
     contrafold_(NULL)
 {
   contrafold_ = new CONTRAfold<float>(canonical_only, max_bp_dist);
@@ -90,7 +90,7 @@ calculate_posterior(const TH& th)
 	  for (cIter itr3 = apt.GetRowBegin (l); itr3 != apt.GetRowEnd(l); ++itr3) {
 	    const int j= itr3->column;
 	    const float plj = itr3->value;
-	    if (i<j) tmp[i][j] += pik*pkl*plj; 
+	    if ((int)i<j) tmp[i][j] += pik*pkl*plj; 
 	  }
 	}
       } // i
