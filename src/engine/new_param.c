@@ -1,4 +1,5 @@
 /*
+  $Id$
   Set the new parameters estimated by Andronescu et al (RNA 2010).
   http://www.cs.ubc.ca/labs/beta/Projects/RNA-Params/data/parameters_BLstar_Vienna.txt
  */
