@@ -24,7 +24,7 @@
 #ifndef __INC_ENGINE_CONTRAFOLD_H__
 #define __INC_ENGINE_CONTRAFOLD_H__
 
-#include "../centroid_fold.h"
+#include "../folding_engine.h"
 
 #if 0
 #include <contrafold/contrafold.h>
@@ -33,7 +33,7 @@ template < class RealT > class CONTRAfold;
 template < class RealT > class CONTRAfoldM;
 #endif
 
-class CONTRAfoldModel : public CentroidFold<std::string>
+class CONTRAfoldModel : public FoldingEngine<std::string>
 {
 public:
   CONTRAfoldModel(const std::string& model, bool canonical_only, uint max_bp_dist,

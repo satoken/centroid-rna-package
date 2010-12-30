@@ -32,7 +32,7 @@
 CONTRAfoldModel::
 CONTRAfoldModel(const std::string& model, bool canonical_only, uint max_bp_dist,
                 uint seed /*=0*/, bool run_as_mea /*=false*/)
-  : CentroidFold<std::string>(run_as_mea, max_bp_dist),
+  : FoldingEngine<std::string>(run_as_mea, max_bp_dist),
     contrafold_(NULL)
 {
   contrafold_ = new CONTRAfold<float>(canonical_only, max_bp_dist);

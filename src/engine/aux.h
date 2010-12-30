@@ -24,9 +24,9 @@
 #ifndef __INC_ENGINE_AUX_H__
 #define __INC_ENGINE_AUX_H__
 
-#include "../centroid_fold.h"
+#include "../folding_engine.h"
 
-class AuxModel : public CentroidFold<std::string>
+class AuxModel : public FoldingEngine<std::string>
 {
 public:
   AuxModel(const std::vector<std::string>& bpfiles, bool run_as_mea=false);

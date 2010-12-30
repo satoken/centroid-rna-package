@@ -3,10 +3,10 @@
 #ifndef __INC_ENGINE_MCCASKILLHOM_H__
 #define __INC_ENGINE_MCCASKILLHOM_H__
 
-#include "../centroid_fold.h"
+#include "../folding_engine.h"
 
 #ifdef HAVE_LIBRNA
-class McCaskillHomModel : public CentroidFold<TH>
+class McCaskillHomModel : public FoldingEngine<TH>
 {
 public:
   McCaskillHomModel(const std::string& engine_a, bool canonical_only, uint max_bp_dist,

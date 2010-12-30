@@ -20,8 +20,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-#ifndef __INC_CENTROID_FOLD_H__
-#define __INC_CENTROID_FOLD_H__
+#ifndef __INC_FOLDING_ENGINE_H__
+#define __INC_FOLDING_ENGINE_H__
 
 #include <string>
 #include <list>
@@ -33,7 +33,7 @@
 #include "aln.h"
 
 typedef unsigned int uint;
-typedef SCFG::BP::Table<float> BPTable;
+typedef BPTableTmpl<float> BPTable;
 typedef boost::shared_ptr<BPTable> BPTablePtr;
 typedef boost::dynamic_bitset<> BPvec;
 typedef boost::shared_ptr<BPvec> BPvecPtr;
@@ -51,12 +51,12 @@ class TH : public std::pair<std::string, std::vector<std::string> >
 };
 
 template < class SEQ >
-class CentroidFold
+class FoldingEngine
 {
 public:
-  CentroidFold(bool run_as_mea=false, uint max_bp_dist=0)
+  FoldingEngine(bool run_as_mea=false, uint max_bp_dist=0)
     : mea_(run_as_mea), bp_(), max_bp_dist_(max_bp_dist) { }
-  virtual ~CentroidFold() { }
+  virtual ~FoldingEngine() { }
 
   // folding routines
   void centroid_fold(const std::string& name, const SEQ& seq,
@@ -102,12 +102,12 @@ protected:
       : t_(NULL), vec_(), p_(0)
     {}
 
-    BPvecPtr execute(const SCFG::CYKTable<uint>& t)
+    BPvecPtr execute(const CYKTable<uint>& t)
     {
       t_ = &t;
       p_ = 0;
       vec_ = BPvecPtr(new BPvec(t_->table_size(), false));
-      SCFG::inside_traverse(0, t_->size()-1, *this);
+      inside_traverse(0, t_->size()-1, *this);
       t_ = NULL;
       return vec_;
     }
@@ -119,7 +119,7 @@ protected:
     }
 
   private:
-    const SCFG::CYKTable<uint>* t_;
+    const CYKTable<uint>* t_;
     BPvecPtr vec_;
     uint p_;
   };
@@ -128,4 +128,4 @@ protected:
   void get_TP_TN_FP_FN (const BPvec& ref, const BPvec& pre, 
                         double& TP, double& TN, double& FP, double& FN);
 };
-#endif	// #ifndef __INC_CENTROID_FOLD_H__
+#endif	// #ifndef FOLDING_ENGINE_H__

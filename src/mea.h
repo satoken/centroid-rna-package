@@ -30,25 +30,22 @@
 //#include "outside.h"
 #include "bp.h"
 
-namespace SCFG
+namespace MEA
 {
-  namespace MEA
+  template < class V >
+  V execute(const BPTableTmpl<V>& bp, std::string& paren, float gamma);
+
+  template < class V >
+  V execute(const BPTableTmpl<V>& bp, std::string& paren, uint max_dist, float gamma);
+
+  template < class V, class Seq, class RuleSet >
+  V execute(const Seq& seq, const RuleSet& rules, std::string& paren, float gamma)
   {
-    template < class V >
-    V execute(const SCFG::BP::Table<V>& bp, std::string& paren, float gamma);
-
-    template < class V >
-    V execute(const SCFG::BP::Table<V>& bp, std::string& paren, uint max_dist, float gamma);
-
-    template < class V, class Seq, class RuleSet >
-    V execute(const Seq& seq, const RuleSet& rules, std::string& paren, float gamma)
-    {
-      SCFG::BP::Table<double> bp;
-      bp.parse(seq, rules);
-      return SCFG::MEA::execute(bp, paren, gamma);
-    }
+    BPTableTmpl<double> bp;
+    bp.parse(seq, rules);
+    return MEA::execute(bp, paren, gamma);
   }
-};
+}
 
 #endif	// __INC_CYK_H__
 

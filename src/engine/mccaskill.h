@@ -24,10 +24,10 @@
 #ifndef __INC_ENGINE_MCCASKILL_H__
 #define __INC_ENGINE_MCCASKILL_H__
 
-#include "../centroid_fold.h"
+#include "../folding_engine.h"
 
 #ifdef HAVE_LIBRNA
-class McCaskillModel : public CentroidFold<std::string>
+class McCaskillModel : public FoldingEngine<std::string>
 {
 public:
   McCaskillModel(bool canonical_only, uint max_bp_dist,
