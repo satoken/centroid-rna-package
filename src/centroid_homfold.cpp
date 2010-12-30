@@ -68,14 +68,9 @@ centroid_homfold(int argc, char* argv[])
   std::string p_outname;
   std::string outname;
   std::string ps_outname;
-  uint max_bp_dist;
+  uint max_bp_dist=0;
   std::string param;
-  //uint max_clusters;
-  //uint num_samples=0;
   uint seed;
-  //
-  int num_ea_samples = -1;
-  //int max_mcc = -1;
 
   // parse command line options
   po::options_description desc("Options");
@@ -91,13 +86,12 @@ centroid_homfold(int argc, char* argv[])
     ("threshold,t", po::value<std::vector<float> >(&th),
      "thereshold of base pairs (this option overwrites 'gamma')")
     //
-    ("ea", po::value<int>(&num_ea_samples), 
-    "compute (pseudo-)expected accuracy (pseudo if arg==0, sampling if arg>0; arg: # of sampling)")
+    ("ea", "compute (pseudo-)expected accuracy")
     //("max-mcc", po::value<int>(&max_mcc), 
     // "predict secondary structure by maximizing pseudo-expected MCC (arg: # of sampling)")
     //("mea", "run as an MEA estimator")
     //("noncanonical", "allow non-canonical base-pairs")
-    ("constraints,C", "use structure constraints")
+    //("constraints,C", "use structure constraints")
     ("output,o", po::value<std::string>(&outname),
      "specify filename to output predicted secondary structures. If empty, use the standard output.")
     ("posteriors", po::value<float>(&p_th),
@@ -106,16 +100,15 @@ centroid_homfold(int argc, char* argv[])
      "specify filename to output base-pairing probability matrices. If empty, use the standard output.")
     ("postscript", po::value<std::string>(&ps_outname),
      "draw predicted secondary structures with the postscript (PS) format")
-    ("monochrome", "draw the postscript with monochrome")
     ("params", po::value<std::string>(&param), "use the parameter file");
 
   po::options_description opts_contrafold("Options for CONTRAfold model");
-  opts_contrafold.add_options()
-#if 0 // HAVE_LIBRNA // move to hidden options
-    ("pf_fold", "use pf_fold base-pairing probabilities rather than those of CONTRAfold model")
-#endif
-    ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
-     "the maximum distance of base-pairs");
+//   opts_contrafold.add_options()
+// #if 0 // HAVE_LIBRNA // move to hidden options
+//     ("pf_fold", "use pf_fold base-pairing probabilities rather than those of CONTRAfold model")
+// #endif
+//     ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
+//      "the maximum distance of base-pairs");
 
 //   po::options_description opts_sampling("Options for sampling");
 //   opts_sampling.add_options()
@@ -137,12 +130,12 @@ centroid_homfold(int argc, char* argv[])
     ("pf_fold", "use pf_fold base-pairing probabilities rather than those of CONTRAfold model")
 #endif
     ("aux", "use auxiliary base-pairing probabilities")
-    //    ("monochrome", "draw the postscript with monochrome")
+    ("monochrome", "draw the postscript with monochrome")
     ("seq-file", po::value<std::string>(&input), "training sequence filename")
     ("model-file", po::value<std::vector<std::string> >(&model), "model filename");
 
   opts.add(desc);
-  opts.add(opts_contrafold);
+  //  opts.add(opts_contrafold);
   //  opts.add(opts_sampling);
   po::positional_options_description pd;
   pd.add("seq-file", 1); pd.add("model-file", -1);
@@ -164,8 +157,8 @@ centroid_homfold(int argc, char* argv[])
 #ifdef HAVE_LIBRNA
     features += ", McCaskill";
 #endif
-    features += ", pfold";
-    features += ", AUX";
+    //features += ", pfold";
+    //features += ", AUX";
 
     std::cout << "CentroidHomfold v" << VERSION 
 	      << " for predicting RNA secondary structures" << std::endl
@@ -173,8 +166,8 @@ centroid_homfold(int argc, char* argv[])
 	      << "Usage:" << std::endl
 	      << " " << argv[0]
 	      << " [options] seq [bp_matrix ...]\n\n"
-	      << desc << std::endl
-              << opts_contrafold << std::endl;
+	      << desc << std::endl;
+      //<< opts_contrafold << std::endl;
       //<< opts_sampling << std::endl;
     return 1;
   }
@@ -337,11 +330,8 @@ centroid_homfold(int argc, char* argv[])
     }
     */
 
-    if (num_ea_samples==0)
-      cf->centroid_fold(fa.name(), TH (fa.seq(), homs), gamma, *out, num_ea_samples);
-    else if (num_ea_samples > 0) {
-      std::cerr << "Currently not supported." << std::endl; return -1; 
-    }
+    if (vm.count("ea"))
+      cf->centroid_fold(fa.name(), TH (fa.seq(), homs), gamma, *out, 0);
     else
       cf->centroid_fold(fa.name(), TH (fa.seq(), homs), gamma, *out);
 

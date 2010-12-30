@@ -24,7 +24,7 @@ currently available prediction tools at this time.
 
 == Requirements
 
-* Boost C++ Library (>= 1.34.1)
+* Boost C++ Library (>= 1.40.0)
   ((<URL:http://www.boost.org/>))
 * Vienna RNA package (>= 1.8)
   ((<URL:http://www.tbi.univie.ac.at/~ivo/RNA/>))
