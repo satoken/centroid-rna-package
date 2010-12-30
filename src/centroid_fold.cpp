@@ -1,5 +1,5 @@
 /*
- * $Id:$
+ * $Id$
  *
  * CentroidFold: A generalized centroid estimator for predicting RNA
  *               secondary structures
