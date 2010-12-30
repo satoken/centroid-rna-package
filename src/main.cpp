@@ -668,12 +668,12 @@ centroid_homfold_main(int argc, char* argv[])
   std::string ps_outname;
   uint max_bp_dist;
   std::string param;
-  uint max_clusters;
-  uint num_samples=0;
+  //uint max_clusters;
+  //uint num_samples=0;
   uint seed;
   //
   int num_ea_samples = -1;
-  int max_mcc = -1;
+  //int max_mcc = -1;
 
   // parse command line options
   po::options_description desc("Options");
@@ -765,7 +765,7 @@ centroid_homfold_main(int argc, char* argv[])
     features += ", pfold";
     features += ", AUX";
 
-    std::cout << "CentroidFold v" << VERSION 
+    std::cout << "CentroidHomfold v" << VERSION 
 	      << " for predicting RNA secondary structures" << std::endl
 	      << "  (available engines: " << features << ")" << std::endl
 	      << "Usage:" << std::endl
@@ -777,7 +777,7 @@ centroid_homfold_main(int argc, char* argv[])
     return 1;
   }
 
-  boost::spirit::file_iterator<> fi(input.c_str());
+  BOOST_SPIRIT_CLASSIC_NS::file_iterator<> fi(input.c_str());
   if (!fi)
   {
     perror(input.c_str());
@@ -807,7 +807,7 @@ centroid_homfold_main(int argc, char* argv[])
 
   std::vector<std::string> homs;
   if (hom_seqs != "") {
-    boost::spirit::file_iterator<> fi2(hom_seqs.c_str());
+    BOOST_SPIRIT_CLASSIC_NS::file_iterator<> fi2(hom_seqs.c_str());
     if (!fi2) {
       perror(hom_seqs.c_str());
       return 1;
