@@ -3,6 +3,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "Utilities.hpp"
+#include <climits>
 
 namespace CONTRALIGN {
 bool toggle_error = false;
@@ -335,6 +336,7 @@ void MakeDirectory(const std::string &directory)
 // once the program is complete.
 //////////////////////////////////////////////////////////////////////
 
+#if 0
 std::string MakeTempDirectory()
 {
     char *temp_dir_name = new char[10000];
@@ -357,6 +359,7 @@ std::string MakeTempDirectory()
     delete [] temp_dir_name;
     return res;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // GetSequencePositions()
