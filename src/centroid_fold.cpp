@@ -74,8 +74,13 @@ centroid_fold(int argc, char* argv[])
   po::options_description desc("Options");
   desc.add_options()
     ("help,h", "show this message")
+#ifdef HAVE_LIBRNA
+    ("engine,e", po::value<std::vector<std::string> >(&engine),
+     "specify the inference engine (default: \"McCaskill\")")
+#else
     ("engine,e", po::value<std::vector<std::string> >(&engine),
      "specify the inference engine (default: \"CONTRAfold\")")
+#endif
     ("mixture,w", po::value<std::vector<float> >(&mix_w), "mixture weights of inference engines")
     ("gamma,g", po::value<std::vector<float> >(&gamma), "weight of base pairs")
     ("threshold,t", po::value<std::vector<float> >(&th),

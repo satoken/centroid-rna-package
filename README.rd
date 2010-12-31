@@ -6,9 +6,9 @@ secondary structures. It is based on the gamma-centroid estimator
 a gamma-centroid estimator is ((*slightly*)) more accurate than an MEA
 estimator (Do et.al., 2005) under the same probability distribution. 
 
-Furthermore, CentroidFold can predict common secondary structures for
-multiple alignments of RNA sequences by using an averaged
-gamma-centroid estimator (Hamada et al., 2009).
+CentroidAlifold can predict common secondary structures for multiple
+alignments of RNA sequences by using an averaged gamma-centroid
+estimator (Hamada et al., 2010).
 
 CentroidFold can employ various probability distributions. Currently,
 * the CONTRAfold model,
@@ -17,7 +17,8 @@ CentroidFold can employ various probability distributions. Currently,
 * the pfold model
 are supported. 
 
-According to our benchmark, CentroidFold with the CONTRAfold model
+According to our benchmark, CentroidFold with the McCaskill model
+using Boltzmann likelihood parameters (Andronescue et al., 2010)
 will predict the most accurate RNA secondary structures among
 currently available prediction tools at this time.
 
@@ -35,9 +36,11 @@ currently available prediction tools at this time.
 == Install
 
  ./configure && make && make install
- 
-Now, we imported a part of the code of CONTRAfold version 2.02. So, we
-no longer need a patch for CONTRAfold.
+
+If the Vienna RNA package has been installed at the non-standard
+directory, specify the location like:
+
+ ./configure --with-vienna-rna=/somewhere/to/vienna-rna
 
 == Usage
 
@@ -58,7 +61,7 @@ base-pairing probability matrix.
  centroid_fold [options] seq
 
  Options:
-  -e [ --engine ] arg     specify the inference engine (default: "CONTRAfold")
+  -e [ --engine ] arg     specify the inference engine (default: "McCaskill")
   -g [ --gamma ] arg      weight of base pairs
   --noncanonical          allow non-canonical base-pairs
   -C [ --constraints ]    use structure constraints
@@ -180,42 +183,96 @@ in the given alignment. The second is the "most informative sequence"
 (Freyhult et al., 2005), which is similar to IUPAC ambiguity
 characters, produced by a library routine of the Vienna Package.
 
+
+=== Secondary structure prediction using homologous sequence information 
+
+If homologous sequences to the target sequence are available,
+(({centroid_homfold})) can predict secondary structures for the target
+sequence more accurately than (({centroid_fold})) using homologous
+sequence information with the probabilistic consistency transformation
+for base-pairing probabilities (Hamada et al, 2009).
+
+ centroid_homfold [options] seq
+
+ Options:
+   -H [ --homologous ] arg fasta file containing homologous sequences (REQUIRED)
+   --engine_s arg          specify the inference engine for secondary structures
+                           (default: "McCaskill")
+   --engine_a arg          specify the inference engine for pairwise alignments 
+                           (default: "CONTRAlign")
+   -g [ --gamma ] arg      weight of base pairs
+   --postscript arg        draw predicted secondary structures with the 
+                           postscript (PS) format
+
+You should give homologous sequences to the target sequence in the
+FASTA format by '-H' option.
+
+Example:
+ % centroid_homfold -g -1 -H RF00005.fa seq.fa 
+ >X12857.1/421-494
+ GCGGAUGUAGCCAAGUGGAUCAAGGCAGUGGAUUGUGAAUCCACCAUGCGCGGGUUCAAUUCCCGUCAUUCGCC
+ .......................................................................... (g=0.03125,th=0.969697,e=0)
+ .......................................................................... (g=0.0625,th=0.941176,e=0)
+ .......................................................................... (g=0.125,th=0.888889,e=0)
+ .......................................................................... (g=0.25,th=0.8,e=0)
+ .......................................................................... (g=0.5,th=0.666667,e=0)
+ .......................................................................... (g=1,th=0.5,e=0)
+ .(((((.............................................(((.......)))...))))).. (g=2,th=0.333333,e=-1.21)
+ (((((((...........................................((((.......)))).))))))). (g=4,th=0.2,e=-10.8)
+ (((((((.....................((((.......))))......(((((.......)))))))))))). (g=6,th=0.142857,e=-17.9)
+ (((((((...(.............)..(((((.......))))).....(((((.......)))))))))))). (g=8,th=0.111111,e=-17.22)
+ (((((((..(((...........))).(((((.......))))).....(((((.......)))))))))))). (g=16,th=0.0588235,e=-23.8)
+ (((((((..((((.........))))(((((((.....))))))..)..((((((....).)))))))))))). (g=32,th=0.030303,e=-13.3)
+ (((((((..((((.(....)..))))((((((((...)))))))..)..((((((....).)))))))))))). (g=64,th=0.0153846,e=-8.9)
+ (((((((..((((((....)).))))((((((((...)))))))..)..((((((....).)))))))))))). (g=128,th=0.00775194,e=-10.6)
+ (((((((..((((((....)).))))((((((((...)))))))..)..((((((....).)))))))))))). (g=256,th=0.00389105,e=-10.6)
+ (((((((.(((((((....)).))))((((((((...)))))))..).)((((((....).)))))))))))). (g=512,th=0.00194932,e=-4.9)
+ (((((((.(((((((....)).))))((((((((...)))))))..).)((((((....).)))))))))))). (g=1024,th=0.00097561,e=-4.9)
+
+
 == References
 
 * Centroid estimators
-  * Carvalho, L. E. and Lawrence, C. E.: Centroid estimation in
+  * Carvalho, L.E. and Lawrence, C.E.: Centroid estimation in
     discrete high-dimensional spaces with applications in
     biology. Proc Natl Sci USA, 105:3209-3214, 2008.
-  * Ding, Y., Chan, C. Y., and Lawrence, C. E.: RNA secondary
+  * Ding, Y., Chan, C. Y., and Lawrence, C.E.: RNA secondary
     structure prediction by centroids in a Boltzmann weighted
     ensemble, RNA, 11:1157-1166, 2005
   * Hamada, M., Kiryu, H., Sato, K., Mituyama, T. and Asai, K.:
     Predictions of RNA secondary structure using generalized centroid
     estimators, Bioinformatics, 25:465-473, 2009
-  * Hamada, M., Sato, K., Asai, K.: CentroidAlifold: secondary
+  * Hamada, M., Sato, K., Kiryu, H., Mituyama, T. and Asai, K.:
+    Predictions of RNA secondary structures by combining homologous
+    sequence information, Bioinformatics, 23:i330-338, 2009.
+  * Hamada, M., Sato, K., and Asai, K.: CentroidAlifold: secondary
     structure prediction for aligned RNA sequences by maximizing 
-    expected accuracy, submitted, 2010.
+    expected accuracy, Nucleic Acids Res, in press, 2010.
 * The CONTRAfold model and MEA estimators
-  * Do, C. B., Woods, D. A. and Batzoglou, S.: CONTRAfold: RNA
+  * Do, C.B., Woods, D.A. and Batzoglou, S.: CONTRAfold: RNA
     secondary structure prediction without physics-based
     models. Bioinformatics, 22:e90-e98, 2006.
 * The McCaskill model
-  * McCaskill, J. S.: The equilibrium partition function and base pair
+  * McCaskill, J.S.: The equilibrium partition function and base pair
     binding probabilities for RNA secondary structure. Biopolymers,
     29, 1105-1119, 1990.
-  * Hofacker, I. L.: Vienna RNA secondary structure server. Nucleic
+  * Hofacker, I.L.: Vienna RNA secondary structure server. Nucleic
     Acids Res, 31:3429-3431, 2003.
 * The RNAalifold model
-  * Bernahart, S., Hofacker, I.L., Will, S., Gruber, A.R., Stadler,
-    P.F.: RNAalifold: improved consensus structure prediction for RNA
-    alignments, BMC Bioinformatics, 9:474, 2008.
+  * Bernahart, S., Hofacker, I.L., Will, S., Gruber, A.R., and
+    Stadler, P.F.: RNAalifold: improved consensus structure prediction
+    for RNA alignments, BMC Bioinformatics, 9:474, 2008.
 * The pfold model
-  * Knudsen, B., Hein, J.: Using stochastic context free grammars and
-    molecular evolution to predict RNA secondary
-    structure. Bioinformatics, 15, 446-454, 1999.
-  * Knudsen, B., Hein, J.: Pfold: RNA secondary structure prediction
-    using stochastic context-free grammars. Nucleic Acids Research,
-    31, 3423-3428, 2003.
+  * Knudsen, B., and Hein, J.: Using stochastic context free grammars
+    and molecular evolution to predict RNA secondary
+    structure. Bioinformatics, 15:446-454, 1999.
+  * Knudsen, B., and Hein, J.: Pfold: RNA secondary structure
+    prediction using stochastic context-free grammars. Nucleic Acids
+    Res, 31:3423-3428, 2003.
+* Boltzmann likelihood parameters
+  * Andronescu, M., Condon, A., Hoos, H.H., Mathews, D.H., and Murphy,
+    K.P.: Computational approaches for RNA energy parameter
+    estimation. RNA, 16:2304-18, 2010
 * Others
   * Freyhult, E., Moulton, V., and Gardner, PP.: Predicting RNA
     structure using mutual information. Appl Bioinformatics. 4:53-59,
