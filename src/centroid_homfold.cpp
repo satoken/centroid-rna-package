@@ -77,7 +77,7 @@ centroid_homfold(int argc, char* argv[])
      "specify the inference engine for secondary structures (default: \"CONTRAfold\")")
 #endif
     ("engine_a", po::value<std::vector<std::string> >(&engine_a),
-     "specify the inference engine for pairwise alignments (default: \"ProbCons\")")
+     "specify the inference engine for pairwise alignments (default: \"CONTRAlign\")")
     //("mixture,w", po::value<std::vector<float> >(&mix_w), "mixture weights of inference engines")
     ("gamma,g", po::value<std::vector<float> >(&gamma), "weight of base pairs")
     ("threshold,t", po::value<std::vector<float> >(&th),

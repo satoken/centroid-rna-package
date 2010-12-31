@@ -14,7 +14,7 @@ centroid_homfold_LDADD = libcentroid.a contrafold/libcontrafold.a contralign/lib
 
 libcentroid_a_SOURCES = \
 	folding_engine.cpp folding_engine.h centroid.cpp centroid.h \
-	mea.cpp mea.h bp.cpp bp.h cyktable.h \
+	mea.cpp mea.h bp.cpp bp.h cyktable.h rule.h util.h\
 	fa.cpp fa.h aln.cpp aln.h \
 	engine/aux.cpp engine/aux.h \
 	engine/alifold.cpp engine/alifold.h \

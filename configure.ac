@@ -44,7 +44,7 @@ if test "$enable_mersenne_twister" == "no"; then
 fi
 
 # boost libraries
-AX_BOOST_BASE(1.40, , AC_MSG_ERROR("the boost library is unavailable"))
+AX_BOOST_BASE(1.34, , AC_MSG_ERROR("the boost library is unavailable"))
 if test "x$BOOST_CPPFLAGS" != x; then
   CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
 fi
