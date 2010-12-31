@@ -42,9 +42,7 @@
 
 #include "engine/contrafold.h"
 #include "engine/contrafoldm.h"
-#include "engine/contrafoldhom.h"
 #include "engine/mccaskill.h"
-#include "engine/mccaskillhom.h"
 #include "engine/alifold.h"
 #include "engine/pfold.h"
 #include "engine/averaged.h"
@@ -228,14 +226,16 @@ centroid_alifold(int argc, char* argv[])
     {
       if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
       src_list[i] = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist,
-                                       param.c_str(), seed, vm.count("mea"));
+                                       param.empty() ? NULL : param.c_str(),
+                                       seed, vm.count("mea"));
       cf_list[i] = new AveragedModel(src_list[i], max_bp_dist, vm.count("mea"));
     }
     else if (engine[i]=="Alifold")
     {
       if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
       cf_list[i] = new AliFoldModel(!vm.count("noncanonical"), max_bp_dist,
-                                    param.c_str(), seed, vm.count("mea"));
+                                    param.empty() ? NULL : param.c_str(),
+                                    seed, vm.count("mea"));
     }
 #endif
     else if (engine[i]=="pfold")

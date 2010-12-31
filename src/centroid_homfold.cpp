@@ -40,16 +40,8 @@
 #include "fa.h"
 #include "aln.h"
 
-#include "engine/contrafold.h"
-#include "engine/contrafoldm.h"
 #include "engine/contrafoldhom.h"
-#include "engine/mccaskill.h"
 #include "engine/mccaskillhom.h"
-#include "engine/alifold.h"
-#include "engine/pfold.h"
-#include "engine/averaged.h"
-#include "engine/mixture.h"
-#include "engine/aux.h"
 
 namespace po = boost::program_options;
 
@@ -229,7 +221,8 @@ centroid_homfold(int argc, char* argv[])
     {
       if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
       cf_list[i] = new McCaskillHomModel(engine_a[0], !vm.count("noncanonical"), max_bp_dist,
-					 param.c_str(), seed, vm.count("mea"));
+					 param.empty() ? NULL : param.c_str(),
+                                         seed, vm.count("mea"));
     }
 #endif
 //     else if (engine[i]=="pfold")
