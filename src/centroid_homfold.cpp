@@ -69,8 +69,13 @@ centroid_homfold(int argc, char* argv[])
   desc.add_options()
     ("homologous,H", po::value<std::string>(&hom_seqs), "fasta file containing homologous sequences (REQUIRED)")
     ("help,h", "show this message")
+#ifdef HAVE_LIBRNA
+    ("engine_s", po::value<std::vector<std::string> >(&engine),
+     "specify the inference engine for secondary structures (default: \"McCaskill\")")
+#else
     ("engine_s", po::value<std::vector<std::string> >(&engine),
      "specify the inference engine for secondary structures (default: \"CONTRAfold\")")
+#endif
     ("engine_a", po::value<std::vector<std::string> >(&engine_a),
      "specify the inference engine for pairwise alignments (default: \"ProbCons\")")
     //("mixture,w", po::value<std::vector<float> >(&mix_w), "mixture weights of inference engines")
@@ -94,41 +99,16 @@ centroid_homfold(int argc, char* argv[])
      "draw predicted secondary structures with the postscript (PS) format")
     ("params", po::value<std::string>(&param), "use the parameter file");
 
-  po::options_description opts_contrafold("Options for CONTRAfold model");
-//   opts_contrafold.add_options()
-// #if 0 // HAVE_LIBRNA // move to hidden options
-//     ("pf_fold", "use pf_fold base-pairing probabilities rather than those of CONTRAfold model")
-// #endif
-//     ("max-dist,d", po::value<uint>(&max_bp_dist)->default_value(0),
-//      "the maximum distance of base-pairs");
-
-//   po::options_description opts_sampling("Options for sampling");
-//   opts_sampling.add_options()
-//     ("sampling,s", 
-//      po::value<uint>(&num_samples),
-//      "specify the number of samples to be generated for each sequence")
-//     ("max-clusters,c",
-//      po::value<uint>(&max_clusters)->default_value(10),
-//      "the maximum number of clusters for the stochastic sampling algorithm")
-//     ("seed",
-//      po::value<uint>(&seed)->default_value(0),
-//      "specify the seed for the random number generator (set this automatically if seed=0)");
-  
-
-
   po::options_description opts("Options");
   opts.add_options()
 #ifdef HAVE_LIBRNA
     ("pf_fold", "use pf_fold base-pairing probabilities rather than those of CONTRAfold model")
 #endif
-    ("aux", "use auxiliary base-pairing probabilities")
     ("monochrome", "draw the postscript with monochrome")
     ("seq-file", po::value<std::string>(&input), "training sequence filename")
     ("model-file", po::value<std::vector<std::string> >(&model), "model filename");
 
   opts.add(desc);
-  //  opts.add(opts_contrafold);
-  //  opts.add(opts_sampling);
   po::positional_options_description pd;
   pd.add("seq-file", 1); pd.add("model-file", -1);
   po::variables_map vm;
@@ -149,8 +129,6 @@ centroid_homfold(int argc, char* argv[])
 #ifdef HAVE_LIBRNA
     features += ", McCaskill";
 #endif
-    //features += ", pfold";
-    //features += ", AUX";
 
     std::cout << "CentroidHomfold v" << VERSION 
 	      << " for predicting RNA secondary structures" << std::endl
@@ -159,8 +137,6 @@ centroid_homfold(int argc, char* argv[])
 	      << " " << argv[0]
 	      << " [options] seq [bp_matrix ...]\n\n"
 	      << desc << std::endl;
-      //<< opts_contrafold << std::endl;
-      //<< opts_sampling << std::endl;
     return 1;
   }
 
@@ -186,7 +162,11 @@ centroid_homfold(int argc, char* argv[])
     std::copy(boost::begin(g), boost::end(g), gamma.begin());
   }
 
+#ifdef HAVE_LIBRNA
+  if (engine.empty()) engine.push_back("McCaskill");
+#else
   if (engine.empty()) engine.push_back("CONTRAfold");
+#endif
   if (vm.count("pf_fold")) { engine.resize(1); engine[0]="McCaskill"; }
   if (vm.count("aux")) { engine.resize(1); engine[0]="AUX"; }
 
@@ -225,19 +205,6 @@ centroid_homfold(int argc, char* argv[])
                                          seed, vm.count("mea"));
     }
 #endif
-//     else if (engine[i]=="pfold")
-//     {
-//       if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
-//       std::string pfold_bin_dir(getenv("PFOLD_BIN_DIR") ? getenv("PFOLD_BIN_DIR") : ".");
-//       std::string awk_bin(getenv("AWK_BIN") ? getenv("AWK_BIN") : "mawk");
-//       std::string sed_bin(getenv("SED_BIN") ? getenv("SED_BIN") : "sed");
-//       cf_list[i] = new PfoldModel<std::string>(pfold_bin_dir, awk_bin, sed_bin, vm.count("mea"));
-//     }
-//     else if (engine[i]=="AUX")
-//     {
-//       if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
-//       cf_list[i] = new AuxModel(model, vm.count("mea"));
-//     }
     else
     {
       std::cerr << engine[i] << std::endl;
@@ -247,19 +214,6 @@ centroid_homfold(int argc, char* argv[])
 
   if (engine.size()==1)
     cf=cf_list[0];
-//   else
-//   {
-//     if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
-//     std::vector<std::pair<FoldingEngine<std::string>*,float> > models;
-//     for (uint i=0; i!=engine.size(); ++i)
-//     {
-//       if (engine.size()!=mix_w.size())
-//         models.push_back(std::make_pair(cf_list[i], 1.0));
-//       else
-//         models.push_back(std::make_pair(cf_list[i], mix_w[i]));
-//     }
-//     cf = new MixtureModel<std::string>(models, vm.count("mea"));
-//   }
 
   std::ostream* out = &std::cout;
   if (vm.count("output"))
@@ -306,22 +260,6 @@ centroid_homfold(int argc, char* argv[])
         cf->set_constraint(str);
       }
     }
-    /*
-    if (num_samples>0)
-    {
-      if (max_clusters>0)
-        cf->stochastic_fold(fa.name(), fa.seq(), num_samples, gamma, max_clusters, *out, p_outname, p_th);
-      else
-        cf->stochastic_fold(fa.seq(), num_samples, *out);
-      continue;
-    }
-
-    if (max_mcc>0)
-    {
-      cf->max_mcc_fold (fa.name(), fa.seq(), *out, max_mcc);
-      continue;
-    }
-    */
 
     if (vm.count("ea"))
       cf->centroid_fold(fa.name(), TH (fa.seq(), homs), gamma, *out, 0);
