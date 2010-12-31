@@ -41,13 +41,8 @@
 #include "aln.h"
 
 #include "engine/contrafold.h"
-#include "engine/contrafoldm.h"
-#include "engine/contrafoldhom.h"
 #include "engine/mccaskill.h"
-#include "engine/mccaskillhom.h"
-#include "engine/alifold.h"
 #include "engine/pfold.h"
-#include "engine/averaged.h"
 #include "engine/mixture.h"
 #include "engine/aux.h"
 
@@ -195,7 +190,11 @@ centroid_fold(int argc, char* argv[])
     std::copy(boost::begin(g), boost::end(g), gamma.begin());
   }
 
-  if (engine.empty()) engine.push_back("CONTRAfold");
+#ifdef HAVE_LIBRNA
+  if (engine.empty()) engine.push_back("McCaskill");
+#else
+  if (engine.empty()) engine.push_back("CONTRAfold");  
+#endif
   if (vm.count("pf_fold")) { engine.resize(1); engine[0]="McCaskill"; }
   if (vm.count("aux")) { engine.resize(1); engine[0]="AUX"; }
 
@@ -213,7 +212,8 @@ centroid_fold(int argc, char* argv[])
     {
       if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
       cf_list[i] = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist,
-                                      param.c_str(), seed, vm.count("mea"));
+                                      param.empty() ? NULL : param.c_str(),
+                                      seed, vm.count("mea"));
     }
 #endif
     else if (engine[i]=="pfold")
