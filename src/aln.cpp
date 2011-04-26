@@ -41,6 +41,7 @@ extern "C" {
 #include <ViennaRNA/PS_dot.h>
 #include <ViennaRNA/aln_util.h>
 #include <ViennaRNA/alifold.h>
+#include <ViennaRNA/fold_vars.h>
   extern int eos_debug;
 };
 };

@@ -173,7 +173,7 @@ csci(const SEQ& seq, float gamma_a, float gamma_s)
   decode_structure(gamma_a, paren);
   float cs;
   float e = calc_energy(seq, paren, cs);
-  e += cs;
+  e -= cs;
 
   if (e_sum>0.0) e_sum=0.0;
   if (e>0.0) e=0.0;
