@@ -349,7 +349,12 @@ centroid_alifold(int argc, char* argv[])
     if (num_ea_samples>=0)
       cf->centroid_fold(aln.name().front(), aln, gamma, *out, num_ea_samples);
     else
+    {
       cf->centroid_fold(aln.name().front(), aln, gamma, *out);
+      std::cout << cf->csci(aln, 1.0, 1.0) << std::endl;
+      std::cout << cf->cbpd_pairwise(aln, 1.0) << std::endl;
+      std::cout << cf->cbpd_consensus(aln, 1.0, 1.0) << std::endl;
+    }
 
     if (vm.count("posteriors")) cf->get_bp().save(*p_out, aln.consensus(), p_th);
 

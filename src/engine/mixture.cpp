@@ -72,6 +72,26 @@ calculate_posterior(const SEQ& seq)
   inside_traverse(0, bp_.size()-1, div);
 }
 
+template <class SEQ>
+void
+MixtureModel<SEQ>::
+calculate_all_energy_of_struct(float gamma, const SEQ& seq,
+                               std::vector<std::vector<std::pair<float,std::string> > >& ret)
+{
+  float sum_w=0.0;
+  bp_.resize(seq.size());
+  typename std::vector<std::pair<FoldingEngine<SEQ>*,float> >::iterator x;
+  for (x=models_.begin(); x!=models_.end(); ++x)
+  {
+    x->first->calculate_all_energy_of_struct(gamma, seq, ret);
+    MulAdd ma(bp_, x->second, x->first->get_bp());
+    inside_traverse(0, bp_.size()-1, ma);
+    sum_w+=x->second;
+  }
+  Div div(bp_, sum_w);
+  inside_traverse(0, bp_.size()-1, div);
+}
+
 // instantiation
 template class MixtureModel<std::string>;
 template class MixtureModel<Aln>;

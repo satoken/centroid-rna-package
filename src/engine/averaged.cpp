@@ -29,6 +29,21 @@
 #include <stack>
 #include <cmath>
 
+#ifdef HAVE_LIBRNA
+#ifndef __INC_LIBRNA_H
+#define __INC_LIBRNA_H
+namespace Vienna {
+extern "C" {
+#include <ViennaRNA/fold.h>
+#include <ViennaRNA/PS_dot.h>
+#include <ViennaRNA/aln_util.h>
+#include <ViennaRNA/alifold.h>
+  extern int eos_debug;
+};
+};
+#endif
+#endif
+
 static
 void
 remove_gaps(const std::string& seq_in, std::string& seq_out, std::vector<uint>& idx)
@@ -328,6 +343,45 @@ calculate_posterior(const Aln& aln)
     else
       cf_->set_constraint(remove_gaps(*s, seq, idx, paren_));
     cf_->calculate_posterior(seq);
+
+    BPTablePtr bpi(new BPTable(cf_->get_bp()));
+    bps.push_back(bpi);
+    idxmaps.push_back(idx);
+  }
+  bp_.resize(idxmaps.front().size(), max_bp_dist_);
+  AverageBP avg(bp_, bps, idxmaps, max_bp_dist_);
+  avg.make();
+}
+
+void
+AveragedModel::
+calculate_all_energy_of_struct(float gamma, const Aln& aln,
+                               std::vector<std::vector<std::pair<float,std::string> > >& ret)
+{
+  ret.resize(aln.num_aln());
+
+  std::list<BPTablePtr> bps;
+  std::list<std::vector<uint> > idxmaps;
+  std::list<std::string>::const_iterator s;
+  uint k=0;
+  for (s=aln.seq().begin(); s!=aln.seq().end(); ++s)
+  {
+    std::string seq;
+    std::vector<uint> idx;
+    if (paren_.empty())
+      remove_gaps(*s, seq, idx);
+    else
+      cf_->set_constraint(remove_gaps(*s, seq, idx, paren_));
+    cf_->calculate_posterior(seq);
+
+    std::string paren;
+    cf_->decode_structure(gamma, paren);
+    float e = Vienna::energy_of_struct(seq.c_str(), paren.c_str());
+    std::string paren2(idx.size(), '-');
+    for (uint i=0, j=0; i!=idx.size(); ++i)
+      if (idx[i]!=-1u) paren2[i]=paren[j++];
+    ret[k++].push_back(std::make_pair(e, paren2));
+
     BPTablePtr bpi(new BPTable(cf_->get_bp()));
     bps.push_back(bpi);
     idxmaps.push_back(idx);

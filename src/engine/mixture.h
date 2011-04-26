@@ -35,6 +35,8 @@ public:
 
   // interface implementations
   virtual void calculate_posterior(const SEQ& seq);
+  virtual void calculate_all_energy_of_struct(float gamma, const SEQ& seq,
+                                              std::vector<std::vector<std::pair<float,std::string> > >& ret);
 
 private:
   std::vector<std::pair<FoldingEngine<SEQ>*,float> > models_;
