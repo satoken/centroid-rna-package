@@ -66,7 +66,12 @@ public:
   unsigned int num_aln() const { return name_.size(); }
   std::string consensus() const;
 #ifdef HAVE_LIBRNA
-  float energy_of_struct(const std::string& paren) const;
+  float energy_of_struct(const std::string& paren, float& cs) const;
+  float energy_of_struct(const std::string& paren) const
+  {
+    float cs;
+    return energy_of_struct(paren, cs);
+  }
 #endif
 
   static

@@ -40,6 +40,7 @@ extern "C" {
 #include <ViennaRNA/fold.h>
 #include <ViennaRNA/PS_dot.h>
 #include <ViennaRNA/aln_util.h>
+#include <ViennaRNA/alifold.h>
   extern int eos_debug;
 };
 };
@@ -227,8 +228,8 @@ consensus() const
   }
 
   // make a consensus string
-  //char *cons = Vienna::consensus((const char**)seqs);
-  char *cons = Vienna::consens_mis((const char**)seqs);
+  char *cons = Vienna::consensus((const char**)seqs);
+  //char *cons = Vienna::consens_mis((const char**)seqs);
   std::string ret(cons);
 
   // destroy the alignment
@@ -245,29 +246,33 @@ consensus() const
 #ifdef HAVE_LIBRNA
 float
 Aln::
-energy_of_struct(const std::string& paren) const
+energy_of_struct(const std::string& paren, float& cs) const
 {
+#if 0
+  cs=0.0;
+  std::vector<unsigned int> ppos(paren.size(), -1u);
+  std::stack<unsigned int> st;
+  for (unsigned int i=0; i!=paren.size(); ++i)
+  {
+    switch (paren[i])
+    {
+      case '(':
+        st.push(i);
+        break;
+      case ')':
+        ppos[i] = st.top();
+        ppos[st.top()] = i;
+        st.pop();
+        break;
+      default:
+        break;
+    }            
+  }
+
   float e=0.0;
   std::list<std::string>::const_iterator seq;
-  for (seq=seq_.begin(); seq!=seq_.end(); ++seq) {
-    std::vector<unsigned int> ppos(paren.size(), -1u);
-    std::stack<unsigned int> st;
-    for (unsigned int i=0; i!=paren.size(); ++i)
-    {
-      switch (paren[i])
-      {
-        case '(':
-          st.push(i);
-          break;
-        case ')':
-          ppos[i] = st.top();
-          ppos[st.top()] = i;
-          st.pop();
-          break;
-        default:
-          break;
-      }            
-    }
+  for (seq=seq_.begin(); seq!=seq_.end(); ++seq)
+  {
     std::string s(*seq);
     std::string p(paren);
     for (unsigned int i=0; i!=s.size(); ++i)
@@ -276,7 +281,7 @@ energy_of_struct(const std::string& paren) const
       {
         p[i]='-';
         if (ppos[i]!=-1u) {
-          if (ppos[i]>i || p[ppos[i]]!='-') p[ppos[i]]=' ';
+          if (ppos[i]>i || p[ppos[i]]!='-') p[ppos[i]]='.';
         }
       }
     }
@@ -285,5 +290,26 @@ energy_of_struct(const std::string& paren) const
     e += Vienna::energy_of_struct(s.c_str(), p.c_str());
   }
   return e/num_aln();
+#else
+  unsigned int length = seq_.front().size();
+  char **seqs = new char*[seq_.size()+1];
+  seqs[seq_.size()] = NULL;
+  std::list<std::string>::const_iterator x;
+  unsigned int i=0;
+  for (x=seq_.begin(); x!=seq_.end(); ++x) {
+    assert(x->size()==length);
+    seqs[i] = new char[length+1];
+    strcpy(seqs[i], x->c_str());
+    boost::to_upper(seqs[i++]);
+  }
+
+  float e = Vienna::energy_of_alistruct(seqs, paren.c_str(), seq_.size(), &cs);
+
+  // destroy the alignment
+  for (unsigned int i=0; seqs[i]!=NULL; ++i) delete[] seqs[i];
+  delete[] seqs;
+
+  return e;
+#endif
 }
 #endif

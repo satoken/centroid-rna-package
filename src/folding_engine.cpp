@@ -45,6 +45,7 @@ extern "C" {
 #include <ViennaRNA/fold.h>
 #include <ViennaRNA/fold_vars.h>
 #include <ViennaRNA/PS_dot.h>
+#include <ViennaRNA/utils.h>
   extern int eos_debug;
 };
 };
@@ -56,7 +57,7 @@ const std::string& get_seq(const std::string& t) { return t; }
 
 #ifdef HAVE_LIBRNA
 static
-float calc_energy(const std::string& t, const std::string& s)
+float calc_energy(const std::string& t, const std::string& s, float& cs)
 {
   Vienna::eos_debug = -1;
   return Vienna::energy_of_struct(t.c_str(), s.c_str());
@@ -71,16 +72,16 @@ std::string get_seq (const TH& th) { return th.first; }
 
 #ifdef HAVE_LIBRNA
 static
-float calc_energy(const Aln& aln, const std::string& s)
+float calc_energy(const Aln& aln, const std::string& s, float& cs)
 {
   Vienna::eos_debug = -1;
-  return aln.energy_of_struct(s);
+  return aln.energy_of_struct(s, cs);
 }
 #endif
 
 #ifdef HAVE_LIBRNA
 static
-float calc_energy(const TH& t, const std::string& s)
+float calc_energy(const TH& t, const std::string& s, float& cs)
 {
   Vienna::eos_debug = -1;
   return Vienna::energy_of_struct(t.first.c_str(), s.c_str());
@@ -130,7 +131,8 @@ centroid_fold(const std::string& name, const SEQ& seq,
     float p = decode_structure(*g, paren);
     out << paren;
 #ifdef HAVE_LIBRNA
-    float e = calc_energy(seq, paren.c_str());
+    float cs;
+    float e = calc_energy(seq, paren.c_str(), cs);
 #endif
     if (!mea_) {
       out << " (g=" << *g << ",th=" << (1.0/(1.0+*g));
@@ -147,6 +149,87 @@ centroid_fold(const std::string& name, const SEQ& seq,
     }
     out << std::endl;
   }
+}
+
+template < class SEQ >
+float
+FoldingEngine<SEQ>::
+csci(const SEQ& seq, float gamma_a, float gamma_s)
+{
+#ifdef HAVE_LIBRNA
+  Vienna::eos_debug = -1;
+#endif
+
+  std::vector<std::vector<std::pair<float,std::string> > > ret;
+  calculate_all_energy_of_struct(gamma_s, seq, ret);
+  if (ret.empty() || ret[0].empty())
+    throw std::logic_error("no alignment is given.");
+  float e_sum=0.0;
+  for (uint i=0; i!=ret.size(); ++i)
+    e_sum += ret[i][0].first;
+
+  std::string paren;
+  calculate_posterior(seq);
+  decode_structure(gamma_a, paren);
+  float cs;
+  float e = calc_energy(seq, paren, cs);
+  e += cs;
+
+  if (e_sum>0.0) e_sum=0.0;
+  if (e>0.0) e=0.0;
+  return e_sum==0.0 ? 0.0 : e/(e_sum/ret.size());
+}
+
+template < class SEQ >
+float
+FoldingEngine<SEQ>::
+cbpd_consensus(const SEQ& seq, float gamma_a, float gamma_s)
+{
+#ifdef HAVE_LIBRNA
+  Vienna::eos_debug = -1;
+#endif
+
+  std::vector<std::vector<std::pair<float,std::string> > > ret;
+  calculate_all_energy_of_struct(gamma_s, seq, ret);
+  if (ret.empty() || ret[0].empty())
+    throw std::logic_error("no alignment is given.");
+
+  std::string paren;
+  calculate_posterior(seq);
+  decode_structure(gamma_a, paren);
+
+  float v=0.0;
+  for (uint i=0; i!=ret.size(); ++i)
+    v += Vienna::bp_distance(paren.c_str(), ret[i][0].second.c_str());
+
+  uint L=ret[0][0].second.size();
+  return v/ret.size()/(L*(L-1)/2);
+}
+
+template < class SEQ >
+float
+FoldingEngine<SEQ>::
+cbpd_pairwise(const SEQ& seq, float gamma_s)
+{
+#ifdef HAVE_LIBRNA
+  Vienna::eos_debug = -1;
+#endif
+
+  std::vector<std::vector<std::pair<float,std::string> > > ret;
+  calculate_all_energy_of_struct(gamma_s, seq, ret);
+  if (ret.empty() || ret[0].empty())
+    throw std::logic_error("no alignment is given.");
+
+  uint n=0;
+  float v=0.0;
+  for (uint i=0; i<ret.size(); ++i)
+    for (uint j=i+1; j<ret.size(); ++j)
+    {
+      n++;
+      v += Vienna::bp_distance(ret[i][0].second.c_str(), ret[j][0].second.c_str());
+    }
+  uint L=ret[0][0].second.size();
+  return v/n/(L*(L-1)/2);
 }
 
 struct Result
@@ -198,7 +281,8 @@ centroid_fold(const std::string& name, const SEQ& seq,
       compute_expected_accuracy(paren, sen, ppv, mcc);
     float e=0;
 #ifdef HAVE_LIBRNA
-    e = calc_energy(seq, paren.c_str());
+    float cs;
+    e = calc_energy(seq, paren.c_str(), cs);
 #endif
     res.push_back(Result(*g, sen, ppv, mcc, p, e, paren));
   }
@@ -350,7 +434,8 @@ stochastic_fold(const std::string& name, const SEQ& seq, uint num_samples,
         Centroid::execute(count_bp.table, paren, *g);
         out << paren << " (g=" << *g << ",th=" << (1.0/(1.0+*g));
 #ifdef HAVE_LIBRNA
-        out << ",e=" << calc_energy(seq, paren);
+        float cs;
+        out << ",e=" << calc_energy(seq, paren, cs);
 #endif
         out << ")" << std::endl;
       }
@@ -377,7 +462,8 @@ stochastic_fold(const std::string& name, const SEQ& seq, uint num_samples,
       Centroid::execute(count_bp.table, paren, *g);
       out << paren << " (g=" << *g << ",th=" << (1.0/(1.0+*g));
 #ifdef HAVE_LIBRNA
-      out << ",e=" << calc_energy(seq, paren);
+      float cs;
+      out << ",e=" << calc_energy(seq, paren, cs);
 #endif
       out << ")" << std::endl;
     }
@@ -620,6 +706,15 @@ FoldingEngine<SEQ>::
 clean_stochastic_traceback(const SEQ& seq)
 {
   throw std::logic_error("unsupported method: clean_stochastic_traceback()");
+}
+
+template < class SEQ >
+void
+FoldingEngine<SEQ>::
+calculate_all_energy_of_struct(float gamma, const SEQ& seq,
+                               std::vector<std::vector<std::pair<float,std::string> > >& ret)
+{
+  calculate_posterior(seq);
 }
 
 // instantiation
