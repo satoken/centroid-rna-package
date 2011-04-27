@@ -180,6 +180,16 @@ csci(const SEQ& seq, float gamma_a, float gamma_s)
   return e_sum==0.0 ? 0.0 : e/(e_sum/ret.size());
 }
 
+float
+normalized_bp_distance(const char* s1, const char* s2)
+{
+  int bpd=Vienna::bp_distance(s1, s2);
+  int c1=0, c2=0;
+  for (uint i=0; s1[i]!=0; ++i) if (s1[i]=='(') c1++;
+  for (uint i=0; s2[i]!=0; ++i) if (s2[i]=='(') c1++;
+  return (float)bpd/((c1+c2+bpd)/2);
+}
+
 template < class SEQ >
 float
 FoldingEngine<SEQ>::
@@ -200,10 +210,9 @@ cbpd_consensus(const SEQ& seq, float gamma_a, float gamma_s)
 
   float v=0.0;
   for (uint i=0; i!=ret.size(); ++i)
-    v += Vienna::bp_distance(paren.c_str(), ret[i][0].second.c_str());
+    v += normalized_bp_distance(paren.c_str(), ret[i][0].second.c_str());
 
-  uint L=ret[0][0].second.size();
-  return v/ret.size()/(L*(L-1)/2);
+  return v/ret.size();
 }
 
 template < class SEQ >
@@ -226,10 +235,9 @@ cbpd_pairwise(const SEQ& seq, float gamma_s)
     for (uint j=i+1; j<ret.size(); ++j)
     {
       n++;
-      v += Vienna::bp_distance(ret[i][0].second.c_str(), ret[j][0].second.c_str());
+      v += normalized_bp_distance(ret[i][0].second.c_str(), ret[j][0].second.c_str());
     }
-  uint L=ret[0][0].second.size();
-  return v/n/(L*(L-1)/2);
+  return v/n;
 }
 
 struct Result
