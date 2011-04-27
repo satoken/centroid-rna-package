@@ -180,14 +180,15 @@ csci(const SEQ& seq, float gamma_a, float gamma_s)
   return e_sum==0.0 ? 0.0 : e/(e_sum/ret.size());
 }
 
+static
 float
 normalized_bp_distance(const char* s1, const char* s2)
 {
   int bpd=Vienna::bp_distance(s1, s2);
-  int c1=0, c2=0;
-  for (uint i=0; s1[i]!=0; ++i) if (s1[i]=='(') c1++;
-  for (uint i=0; s2[i]!=0; ++i) if (s2[i]=='(') c1++;
-  return (float)bpd/((c1+c2+bpd)/2);
+  int c=0;
+  for (uint i=0; s1[i]!=0; ++i) if (s1[i]=='(') c++;
+  for (uint i=0; s2[i]!=0; ++i) if (s2[i]=='(') c++;
+  return (float)bpd/((c+bpd)/2);
 }
 
 template < class SEQ >
