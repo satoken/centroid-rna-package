@@ -156,10 +156,7 @@ float
 FoldingEngine<SEQ>::
 csci(const SEQ& seq, float gamma_a, float gamma_s)
 {
-#ifdef HAVE_LIBRNA
   Vienna::eos_debug = -1;
-#endif
-
   std::vector<std::vector<std::pair<float,std::string> > > ret;
   calculate_all_energy_of_struct(gamma_s, seq, ret);
   if (ret.empty() || ret[0].empty())
@@ -167,13 +164,16 @@ csci(const SEQ& seq, float gamma_a, float gamma_s)
   float e_sum=0.0;
   for (uint i=0; i!=ret.size(); ++i)
     e_sum += ret[i][0].first;
+  //std::cout << e_sum << std::endl;
 
   std::string paren;
   calculate_posterior(seq);
   decode_structure(gamma_a, paren);
   float cs;
   float e = calc_energy(seq, paren, cs);
-  e -= cs;
+  //std::cout << paren << std::endl;
+  //std::cout << e << " " << cs  << std::endl;
+  e += cs;
 
   if (e_sum>0.0) e_sum=0.0;
   if (e>0.0) e=0.0;

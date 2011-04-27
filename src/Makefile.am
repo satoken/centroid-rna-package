@@ -1,5 +1,5 @@
 SUBDIRS = contrafold probconsRNA contralign
-bin_PROGRAMS = centroid_fold centroid_alifold centroid_homfold
+bin_PROGRAMS = centroid_fold centroid_alifold centroid_homfold csci cbpd
 noinst_LIBRARIES = libcentroid.a
 dist_bin_SCRIPTS = contrafold.rb simfold.rb
 
@@ -11,6 +11,12 @@ centroid_alifold_LDADD = libcentroid.a contrafold/libcontrafold.a
 
 centroid_homfold_SOURCES = centroid_homfold.cpp
 centroid_homfold_LDADD = libcentroid.a contrafold/libcontrafold.a contralign/libcontralign.a probconsRNA/libprobcons.a
+
+csci_SOURCES = csci.cpp
+csci_LDADD = libcentroid.a contrafold/libcontrafold.a
+
+cbpd_SOURCES = cbpd.cpp
+cbpd_LDADD = libcentroid.a contrafold/libcontrafold.a
 
 libcentroid_a_SOURCES = \
 	folding_engine.cpp folding_engine.h centroid.cpp centroid.h \

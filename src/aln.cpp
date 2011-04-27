@@ -249,8 +249,8 @@ float
 Aln::
 energy_of_struct(const std::string& paren, float& cs) const
 {
-#if 0
   cs=0.0;
+#if 0
   std::vector<unsigned int> ppos(paren.size(), -1u);
   std::stack<unsigned int> st;
   for (unsigned int i=0; i!=paren.size(); ++i)
@@ -304,13 +304,20 @@ energy_of_struct(const std::string& paren, float& cs) const
     boost::to_upper(seqs[i++]);
   }
 
-  float e = Vienna::energy_of_alistruct(seqs, paren.c_str(), seq_.size(), &cs);
+  float real_e = Vienna::energy_of_alistruct(seqs, paren.c_str(), seq_.size(), &cs);
+  char* str = new char[paren.size()+1];
+  strcpy(str, paren.c_str());
+  Vienna::fold_constrained = 1;
+  float e = Vienna::alifold(seqs, str);
+  delete[] str;
+  Vienna::fold_constrained = 0;
+  cs = e - real_e;
 
   // destroy the alignment
   for (unsigned int i=0; seqs[i]!=NULL; ++i) delete[] seqs[i];
   delete[] seqs;
 
-  return e;
+  return real_e;
 #endif
 }
 #endif
