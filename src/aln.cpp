@@ -307,6 +307,7 @@ energy_of_struct(const std::string& paren, float& cs) const
   float real_e = Vienna::energy_of_alistruct(seqs, paren.c_str(), seq_.size(), &cs);
   char* str = new char[paren.size()+1];
   strcpy(str, paren.c_str());
+  for (uint i=0; str[i]!=0; ++i) if (str[i]=='.') str[i]='x';
   Vienna::fold_constrained = 1;
   float e = Vienna::alifold(seqs, str);
   delete[] str;
