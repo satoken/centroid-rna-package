@@ -68,8 +68,11 @@ calculate_posterior(const SEQ& seq)
     inside_traverse(0, bp_.size()-1, ma);
     sum_w+=x->second;
   }
-  Div div(bp_, sum_w);
-  inside_traverse(0, bp_.size()-1, div);
+  if (sum_w!=0.0)
+  {
+    Div div(bp_, sum_w);
+    inside_traverse(0, bp_.size()-1, div);
+  }
 }
 
 template <class SEQ>
@@ -88,8 +91,11 @@ calculate_all_energy_of_struct(float gamma, const SEQ& seq,
     inside_traverse(0, bp_.size()-1, ma);
     sum_w+=x->second;
   }
-  Div div(bp_, sum_w);
-  inside_traverse(0, bp_.size()-1, div);
+  if (sum_w!=0.0)
+  {
+    Div div(bp_, sum_w);
+    inside_traverse(0, bp_.size()-1, div);
+  }
 }
 
 // instantiation

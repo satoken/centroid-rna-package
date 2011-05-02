@@ -56,7 +56,7 @@ extern "C" {
 };
 
 McCaskillModel::
-McCaskillModel(bool canonical_only, uint max_bp_dist,
+McCaskillModel(bool canonical_only, uint max_bp_dist, bool use_bl_param /*=true*/,
                const char* param /*=NULL*/, uint seed /*=0*/, bool run_as_mea /*=false*/)
   : FoldingEngine<std::string>(run_as_mea, max_bp_dist),
     canonical_only_(canonical_only), bk_st_back_(Vienna::st_back), str_()
@@ -80,7 +80,7 @@ McCaskillModel(bool canonical_only, uint max_bp_dist,
     xsubi[2] += (unsigned short) ((unsigned)seed >> 12);
   }
 
-  copy_new_parameters();
+  if (use_bl_param) copy_new_parameters();
   if (param) Vienna::read_parameter_file(param);
 }
 

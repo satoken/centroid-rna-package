@@ -30,7 +30,7 @@
 class AliFoldModel : public FoldingEngine<Aln>
 {
 public:
-  AliFoldModel(bool canonical_only, uint max_bp_dist,
+  AliFoldModel(bool canonical_only, uint max_bp_dist, bool use_bl_param=true,
                const char* param=NULL, uint seed=0, bool run_as_mea=false);
   virtual ~AliFoldModel() { }
 
