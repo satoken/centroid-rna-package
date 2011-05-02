@@ -355,7 +355,7 @@ calculate_posterior(const Aln& aln)
 
 void
 AveragedModel::
-calculate_all_energy_of_struct(float gamma, const Aln& aln,
+calculate_all_energy_of_struct(const std::vector<float>& gamma, const Aln& aln,
                                std::vector<std::vector<std::pair<float,std::string> > >& ret)
 {
   ret.resize(aln.num_aln());
@@ -374,13 +374,17 @@ calculate_all_energy_of_struct(float gamma, const Aln& aln,
       cf_->set_constraint(remove_gaps(*s, seq, idx, paren_));
     cf_->calculate_posterior(seq);
 
-    std::string paren;
-    cf_->decode_structure(gamma, paren);
-    float e = Vienna::energy_of_struct(seq.c_str(), paren.c_str());
-    std::string paren2(idx.size(), '-');
-    for (uint i=0, j=0; i!=idx.size(); ++i)
-      if (idx[i]!=-1u) paren2[i]=paren[j++];
-    ret[k++].push_back(std::make_pair(e, paren2));
+    for (std::vector<float>::const_iterator g=gamma.begin(); g!=gamma.end(); ++g)
+    {
+      std::string paren;
+      cf_->decode_structure(*g, paren);
+      float e = Vienna::energy_of_struct(seq.c_str(), paren.c_str());
+      std::string paren2(idx.size(), '-');
+      for (uint i=0, j=0; i!=idx.size(); ++i)
+        if (idx[i]!=-1u) paren2[i]=paren[j++];
+      ret[k].push_back(std::make_pair(e, paren2));
+    }
+    k++;
 
     BPTablePtr bpi(new BPTable(cf_->get_bp()));
     bps.push_back(bpi);

@@ -83,9 +83,9 @@ public:
   void svg_plot(const std::string& name, const SEQ& seq, float g) const;
 #endif
 
-  float csci(const SEQ& seq, float gamma_a, float gamma_s);
-  float cbpd_pairwise(const SEQ& seq, float gamma_s);
-  float cbpd_consensus(const SEQ& seq, float gamma_a, float gamma_s);
+  std::vector<float> csci(const SEQ& seq, const std::vector<float>& gamma_a, const std::vector<float>& gamma_s);
+  std::vector<float> cbpd_pairwise(const SEQ& seq, const std::vector<float>& gamma_s);
+  std::vector<float> cbpd_consensus(const SEQ& seq, const std::vector<float>& gamma_a, const std::vector<float>& gamma_s);
 
   // interfaces
   virtual void set_constraint(const std::string& str);
@@ -93,7 +93,8 @@ public:
   virtual void prepare_stochastic_traceback(const SEQ& seq);
   virtual std::vector<int> stochastic_traceback(const SEQ& seq);
   virtual void clean_stochastic_traceback(const SEQ& seq);
-  virtual void calculate_all_energy_of_struct(float gamma, const SEQ& seq, std::vector<std::vector<std::pair<float,std::string> > >& ret);
+  virtual void calculate_all_energy_of_struct(const std::vector<float>& gamma, const SEQ& seq,
+                                              std::vector<std::vector<std::pair<float,std::string> > >& ret);
 
 protected:
   bool mea_;
