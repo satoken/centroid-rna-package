@@ -152,32 +152,40 @@ centroid_fold(const std::string& name, const SEQ& seq,
 }
 
 template < class SEQ >
-float
+std::vector<float>
 FoldingEngine<SEQ>::
-csci(const SEQ& seq, float gamma_a, float gamma_s)
+csci(const SEQ& seq, const std::vector<float>& gamma_a, const std::vector<float>& gamma_s)
 {
+  std::vector<float> r;
   Vienna::eos_debug = -1;
   std::vector<std::vector<std::pair<float,std::string> > > ret;
   calculate_all_energy_of_struct(gamma_s, seq, ret);
   if (ret.empty() || ret[0].empty())
     throw std::logic_error("no alignment is given.");
-  float e_sum=0.0;
-  for (uint i=0; i!=ret.size(); ++i)
-    e_sum += ret[i][0].first;
-  //std::cout << e_sum << std::endl;
+  if (ret[0].size()!=gamma_s.size())
+    throw std::logic_error("probably unsupported mixture mode.");
 
-  std::string paren;
   calculate_posterior(seq);
-  decode_structure(gamma_a, paren);
-  float cs;
-  float e = calc_energy(seq, paren, cs);
-  //std::cout << paren << std::endl;
-  //std::cout << e << " " << cs  << std::endl;
-  e += cs;
 
-  if (e_sum>0.0) e_sum=0.0;
-  if (e>0.0) e=0.0;
-  return e_sum==0.0 ? 0.0 : e/(e_sum/ret.size());
+  for (uint i=0; i!=gamma_a.size(); ++i)
+  {
+    std::string paren;
+    decode_structure(gamma_a[i], paren);
+    float cs;
+    float e = calc_energy(seq, paren, cs);
+    e += cs;
+    if (e>0.0) e=0.0;
+
+    for (uint j=0; j!=gamma_s.size(); ++j)
+    {
+      float e_sum=0.0;
+      for (uint k=0; k!=ret.size(); ++k)
+        e_sum += ret[k][j].first;
+      if (e_sum>0.0) e_sum=0.0;
+      r.push_back(e_sum==0.0 ? 0.0 : e/(e_sum/ret.size()));
+    }
+  }
+  return r;
 }
 
 static
@@ -188,57 +196,70 @@ normalized_bp_distance(const char* s1, const char* s2)
   int c=0;
   for (uint i=0; s1[i]!=0; ++i) if (s1[i]=='(') c++;
   for (uint i=0; s2[i]!=0; ++i) if (s2[i]=='(') c++;
-  return (float)bpd/((c+bpd)/2);
+  return c+bpd==0.0 ? 0.0 : (float)bpd/((c+bpd)/2);
 }
 
 template < class SEQ >
-float
+std::vector<float>
 FoldingEngine<SEQ>::
-cbpd_consensus(const SEQ& seq, float gamma_a, float gamma_s)
+cbpd_consensus(const SEQ& seq, const std::vector<float>& gamma_a, const std::vector<float>& gamma_s)
 {
-#ifdef HAVE_LIBRNA
+  std::vector<float> r;
   Vienna::eos_debug = -1;
-#endif
-
   std::vector<std::vector<std::pair<float,std::string> > > ret;
   calculate_all_energy_of_struct(gamma_s, seq, ret);
   if (ret.empty() || ret[0].empty())
     throw std::logic_error("no alignment is given.");
+  if (ret[0].size()!=gamma_s.size())
+    throw std::logic_error("probably unsupported mixture mode.");
 
-  std::string paren;
   calculate_posterior(seq);
-  decode_structure(gamma_a, paren);
 
-  float v=0.0;
-  for (uint i=0; i!=ret.size(); ++i)
-    v += normalized_bp_distance(paren.c_str(), ret[i][0].second.c_str());
+  for (uint i=0; i!=gamma_a.size(); ++i)
+  {
+    std::string paren;
+    decode_structure(gamma_a[i], paren);
 
-  return v/ret.size();
+    for (uint j=0; j!=gamma_s.size(); ++j)
+    {
+      float v=0.0;
+      for (uint k=0; k!=ret.size(); ++k)
+        v += normalized_bp_distance(paren.c_str(), ret[k][j].second.c_str());
+      r.push_back(v/ret.size());
+    }
+  }
+
+  return r;
 }
 
 template < class SEQ >
-float
+std::vector<float>
 FoldingEngine<SEQ>::
-cbpd_pairwise(const SEQ& seq, float gamma_s)
+cbpd_pairwise(const SEQ& seq, const std::vector<float>& gamma_s)
 {
-#ifdef HAVE_LIBRNA
+  std::vector<float> r;
   Vienna::eos_debug = -1;
-#endif
 
   std::vector<std::vector<std::pair<float,std::string> > > ret;
   calculate_all_energy_of_struct(gamma_s, seq, ret);
   if (ret.empty() || ret[0].empty())
     throw std::logic_error("no alignment is given.");
+  if (ret[0].size()!=gamma_s.size())
+    throw std::logic_error("probably unsupported mixture mode.");
 
-  uint n=0;
-  float v=0.0;
-  for (uint i=0; i<ret.size(); ++i)
-    for (uint j=i+1; j<ret.size(); ++j)
-    {
-      n++;
-      v += normalized_bp_distance(ret[i][0].second.c_str(), ret[j][0].second.c_str());
-    }
-  return v/n;
+  for (uint k=0; k!=gamma_s.size(); ++k)
+  {
+    uint n=0;
+    float v=0.0;
+    for (uint i=0; i<ret.size(); ++i)
+      for (uint j=i+1; j<ret.size(); ++j)
+      {
+        n++;
+        v += normalized_bp_distance(ret[i][k].second.c_str(), ret[j][k].second.c_str());
+      }
+    r.push_back(v/n);
+  }
+  return r;
 }
 
 struct Result
@@ -720,7 +741,7 @@ clean_stochastic_traceback(const SEQ& seq)
 template < class SEQ >
 void
 FoldingEngine<SEQ>::
-calculate_all_energy_of_struct(float gamma, const SEQ& seq,
+calculate_all_energy_of_struct(const std::vector<float>& gamma, const SEQ& seq,
                                std::vector<std::vector<std::pair<float,std::string> > >& ret)
 {
   calculate_posterior(seq);

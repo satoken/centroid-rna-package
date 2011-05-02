@@ -54,7 +54,7 @@ namespace po = boost::program_options;
 int
 cbpd(int argc, char* argv[])
 {
-  float gamma1=1.0, gamma2=1.0;
+  std::vector<float> gamma_a, gamma_s;
   std::vector<std::string> engine;
   std::vector<float> mix_w;
   std::string input;
@@ -75,8 +75,8 @@ cbpd(int argc, char* argv[])
      "specify the inference engine (default: \"CONTRAfold\")")
 #endif
     ("mixture,w", po::value<std::vector<float> >(&mix_w), "mixture weights of inference engines")
-    ("gamma1", po::value<float>(&gamma1), "weight of base pairs for alignments")
-    ("gamma2", po::value<float>(&gamma2), "weight of base pairs for individual sequences")
+    ("gamma_a", po::value<std::vector<float> >(&gamma_a), "weight of base pairs for alignments")
+    ("gamma_s", po::value<std::vector<float> >(&gamma_s), "weight of base pairs for individual sequences")
     //
     ("mea", "run as an MEA estimator")
     ("noncanonical", "allow non-canonical base-pairs")
@@ -221,6 +221,9 @@ cbpd(int argc, char* argv[])
     cf = new MixtureModel<Aln>(models, vm.count("mea"));
   }
   
+  if (gamma_a.empty()) gamma_a.push_back(1.0);
+  if (gamma_s.empty()) gamma_s.push_back(1.0);
+
   Aln aln;
   uint n=0;
   uint bytes=0;
@@ -238,9 +241,17 @@ cbpd(int argc, char* argv[])
     }
 
     if (vm.count("pairwise"))
-      std::cout << cf->cbpd_pairwise(aln, gamma2) << std::endl;
+    {
+      std::vector<float> r = cf->cbpd_pairwise(aln, gamma_s);
+      std::copy(r.begin(), r.end(), std::ostream_iterator<float>(std::cout, ","));
+      std::cout << std::endl;
+    }
     else
-      std::cout << cf->cbpd_consensus(aln, gamma1, gamma2) << std::endl;
+    {
+      std::vector<float> r = cf->cbpd_consensus(aln, gamma_a, gamma_s);
+      std::copy(r.begin(), r.end(), std::ostream_iterator<float>(std::cout, ","));
+      std::cout << std::endl;
+    }
   }
   if (fi!=fi.make_end())
     std::cout << "parse error after " << total_bytes << " bytes were loaded" << std::endl;

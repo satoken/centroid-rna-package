@@ -78,7 +78,7 @@ calculate_posterior(const SEQ& seq)
 template <class SEQ>
 void
 MixtureModel<SEQ>::
-calculate_all_energy_of_struct(float gamma, const SEQ& seq,
+calculate_all_energy_of_struct(const std::vector<float>& gamma, const SEQ& seq,
                                std::vector<std::vector<std::pair<float,std::string> > >& ret)
 {
   float sum_w=0.0;

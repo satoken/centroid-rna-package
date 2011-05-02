@@ -43,7 +43,7 @@ public:
   virtual void set_constraint(const std::string& str);
   virtual void calculate_posterior(const Aln& aln);
 
-  virtual void calculate_all_energy_of_struct(float gamma, const Aln& aln,
+  virtual void calculate_all_energy_of_struct(const std::vector<float>& gamma, const Aln& aln,
                                               std::vector<std::vector<std::pair<float,std::string> > >& ret);
 private:
   FoldingEngine<std::string>* cf_;
