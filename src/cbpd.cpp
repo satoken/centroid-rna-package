@@ -172,16 +172,18 @@ cbpd(int argc, char* argv[])
       cf_list[i] = new CONTRAfoldMultiModel(param, !vm.count("noncanonical"), max_bp_dist, 0, vm.count("mea"));
     }
 #ifdef HAVE_LIBRNA
-    else if (engine[i]=="McCaskill")
+    else if (engine[i]=="McCaskill" || engine[i]=="McCaskillVienna")
     {
       src_list[i] = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist,
+                                       engine[i]!="McCaskillVienna",
                                        param.empty() ? NULL : param.c_str(),
                                        0, vm.count("mea"));
       cf_list[i] = new AveragedModel(src_list[i], max_bp_dist, vm.count("mea"));
     }
-    else if (engine[i]=="Alifold")
+    else if (engine[i]=="Alifold" || engine[i]=="AlifoldVienna")
     {
       cf_list[i] = new AliFoldModel(!vm.count("noncanonical"), max_bp_dist,
+                                    engine[i]!="AlifoldVienna",
                                     param.empty() ? NULL : param.c_str(),
                                     0, vm.count("mea"));
     }

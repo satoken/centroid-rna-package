@@ -30,7 +30,7 @@
 class McCaskillModel : public FoldingEngine<std::string>
 {
 public:
-  McCaskillModel(bool canonical_only, uint max_bp_dist,
+  McCaskillModel(bool canonical_only, uint max_bp_dist, bool use_bl_param=true,
                  const char* param=NULL, uint seed=0, bool run_as_mea=false);
   virtual ~McCaskillModel() { }
 

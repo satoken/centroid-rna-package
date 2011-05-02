@@ -213,10 +213,11 @@ centroid_fold(int argc, char* argv[])
       cf_list[i] = new CONTRAfoldModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
     }
 #ifdef HAVE_LIBRNA
-    else if (engine[i]=="McCaskill")
+    else if (engine[i]=="McCaskill" || engine[i]=="McCaskillVienna")
     {
       if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 1.0);
       cf_list[i] = new McCaskillModel(!vm.count("noncanonical"), max_bp_dist,
+                                      engine[i]!="McCaskillVienna",
                                       param.empty() ? NULL : param.c_str(),
                                       seed, vm.count("mea"));
     }
