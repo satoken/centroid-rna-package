@@ -221,6 +221,20 @@ cbpd(int argc, char* argv[])
     cf = new MixtureModel<Aln>(models, vm.count("mea"));
   }
   
+  if (gamma_a.size()==1 && gamma_a[0]<0.0)
+  {
+    float g[] = { 0.03125, 0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 6.0,
+                  8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0 };
+    gamma_a.resize(boost::size(g));
+    std::copy(boost::begin(g), boost::end(g), gamma_a.begin());
+  }
+  if (gamma_s.size()==1 && gamma_s[0]<0.0)
+  {
+    float g[] = { 0.03125, 0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 6.0,
+                  8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0 };
+    gamma_s.resize(boost::size(g));
+    std::copy(boost::begin(g), boost::end(g), gamma_s.begin());
+  }
   if (gamma_a.empty()) gamma_a.push_back(1.0);
   if (gamma_s.empty()) gamma_s.push_back(1.0);
 
