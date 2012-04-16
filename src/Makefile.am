@@ -30,4 +30,4 @@ libcentroid_a_SOURCES = \
         probconsRNA/probcons.h \
 	contralign/contralign.h \
         diana.cpp diana.h ps_plot.cpp ps_plot.h naview.c \
-	engine/new_param.h engine/new_param.c
+	engine/boltzmann_param.h engine/boltzmann_param.c

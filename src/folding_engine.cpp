@@ -58,8 +58,12 @@ const std::string& get_seq(const std::string& t) { return t; }
 static
 float calc_energy(const std::string& t, const std::string& s)
 {
+#ifdef HAVE_VIENNA20
+  return Vienna::energy_of_structure(t.c_str(), s.c_str(), -1);
+#else
   Vienna::eos_debug = -1;
   return Vienna::energy_of_struct(t.c_str(), s.c_str());
+#endif
 }
 #endif
 
@@ -82,8 +86,12 @@ float calc_energy(const Aln& aln, const std::string& s)
 static
 float calc_energy(const TH& t, const std::string& s)
 {
+#ifdef HAVE_VIENNA20
+  return Vienna::energy_of_structure(t.first.c_str(), s.c_str(), -1);
+#else
   Vienna::eos_debug = -1;
   return Vienna::energy_of_struct(t.first.c_str(), s.c_str());
+#endif
 }
 #endif
 

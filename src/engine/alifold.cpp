@@ -49,7 +49,7 @@ extern "C" {
 };
 
 extern "C" {
-#include "engine/new_param.h"
+#include "engine/boltzmann_param.h"
 };
 
 AliFoldModel::
@@ -76,7 +76,7 @@ AliFoldModel(bool canonical_only, uint max_bp_dist,
     xsubi[2] += (unsigned short) ((unsigned)seed >> 12);
   }
 
-  copy_new_parameters();
+  copy_boltzmann_parameters();
   if (param) Vienna::read_parameter_file(param);
 }
 
@@ -126,7 +126,11 @@ calculate_posterior(const Aln& aln)
     strcpy(str2, str_.c_str());
   }
   // scaling parameters to avoid overflow
+#ifdef HAVE_VIENNA20
+  double min_en = Vienna::alifold((const char**)seqs, str2);
+#else
   double min_en = Vienna::alifold(seqs, str2);
+#endif
   double kT = (Vienna::temperature+273.15)*1.98717/1000.; /* in Kcal */
   Vienna::pf_scale = exp(-(1.07*min_en)/kT/aln.size());
   Vienna::free_alifold_arrays();
@@ -137,7 +141,11 @@ calculate_posterior(const Aln& aln)
   Vienna::pair_info* pi;
 #endif
   if (!str_.empty()) strcpy(str2, str_.c_str());
+#ifdef HAVE_VIENNA20
+  Vienna::alipf_fold((const char**)seqs, str2, &pi);
+#else
   Vienna::alipf_fold(seqs, str2, &pi);
+#endif
   for (uint k=0; pi[k].i!=0; ++k)
     bp_.update(pi[k].i-1, pi[k].j-1, pi[k].p);
   free(pi);
@@ -162,7 +170,11 @@ prepare_stochastic_traceback(const Aln& aln)
     strcpy(str2, str_.c_str());
   }
   // scaling parameters to avoid overflow
+#ifdef HAVE_VIENNA20
+  double min_en = Vienna::alifold((const char**)seqs, str2);
+#else
   double min_en = Vienna::alifold(seqs, str2);
+#endif
   double kT = (Vienna::temperature+273.15)*1.98717/1000.; /* in Kcal */
   Vienna::pf_scale = exp(-(1.07*min_en)/kT/aln.size());
   Vienna::free_alifold_arrays();
@@ -173,7 +185,11 @@ prepare_stochastic_traceback(const Aln& aln)
   Vienna::pair_info* pi;
 #endif
   if (!str_.empty()) strcpy(str2, str_.c_str());
+#ifdef HAVE_VIENNA20
+  Vienna::alipf_fold((const char**)seqs, str2, &pi);
+#else
   Vienna::alipf_fold(seqs, str2, &pi);
+#endif
 
   if (str2) delete[] str2;
   free_aln(seqs);
