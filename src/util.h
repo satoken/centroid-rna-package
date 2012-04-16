@@ -102,7 +102,9 @@ pf_fold(CONTRALIGN::SparseMatrix<T>*& bp, const std::string& seq, const std::str
   //if (param) Vienna::read_parameter_file (param);
   if (bp!=NULL) delete bp;
   Vienna::pf_scale = -1;
+#ifndef HAVE_VIENNA20
   Vienna::init_pf_fold(seq.size());
+#endif
   if (str.empty()) {
     Vienna::pf_fold(const_cast<char*>(seq.c_str()), NULL);
   } else {

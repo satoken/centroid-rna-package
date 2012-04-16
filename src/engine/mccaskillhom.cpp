@@ -132,7 +132,9 @@ calculate_posterior(const TH& th)
 
   bp_.resize(seq.size());
   Vienna::pf_scale = -1;
+#ifndef HAVE_VIENNA20
   Vienna::init_pf_fold(seq.size());
+#endif
   if (str_.empty()) {
     Vienna::pf_fold(const_cast<char*>(seq.c_str()), NULL);
   } else {
