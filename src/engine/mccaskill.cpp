@@ -115,7 +115,14 @@ calculate_posterior(const std::string& seq)
   }
   for (uint j=2; j!=bp_.size()+1; ++j) {
     for (uint i=j-1; ; --i) {
-      bp_.update(i-1, j-1, Vienna::pr[Vienna::iindx[i]-j]);
+#ifdef HAVE_VIENNA20
+      FLT_OR_DBL* pr = export_bppm();
+      int* iindx = get_iindx(seq.size());
+#else
+      FLT_OR_DBL* pr = Vienna::pr;
+      int* iindx = Vienna::iindx;
+#endif
+      bp_.update(i-1, j-1, pr[iindx[i]-j]);
       if (i==1) break;
     }
   }
