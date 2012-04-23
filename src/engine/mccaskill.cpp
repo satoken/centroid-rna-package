@@ -116,8 +116,8 @@ calculate_posterior(const std::string& seq)
   for (uint j=2; j!=bp_.size()+1; ++j) {
     for (uint i=j-1; ; --i) {
 #ifdef HAVE_VIENNA20
-      FLT_OR_DBL* pr = export_bppm();
-      int* iindx = get_iindx(seq.size());
+      FLT_OR_DBL* pr = Vienna::export_bppm();
+      int* iindx = Vienna::get_iindx(seq.size());
 #else
       FLT_OR_DBL* pr = Vienna::pr;
       int* iindx = Vienna::iindx;
