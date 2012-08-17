@@ -99,19 +99,27 @@ calculate_posterior(const std::string& seq)
 {
   bp_.resize(seq.size());
   Vienna::pf_scale = -1;
+  char *str2 = new char[seq.size()+1];
+  int bk = Vienna::fold_constrained;
+  if (!str_.empty())
+  {
+    Vienna::fold_constrained = 1;
+    strcpy(str2, str_.c_str());
+  }
+  if (seq.size()>1600)
+  {
+    double min_en = Vienna::fold(seq.c_str(), str2);
+    double kT = (Vienna::temperature+273.15)*1.98717/1000.; /* in Kcal */
+    Vienna::pf_scale = exp(-(1.07*min_en)/kT/seq.size());
+  }
 #ifndef HAVE_VIENNA20
   Vienna::init_pf_fold(seq.size());
 #endif
   if (str_.empty()) {
     Vienna::pf_fold(const_cast<char*>(seq.c_str()), NULL);
   } else {
-    char *str2 = new char[str_.size()+1];
     strcpy(str2, str_.c_str());
-    int bk = Vienna::fold_constrained;
-    Vienna::fold_constrained = 1;
     Vienna::pf_fold(const_cast<char*>(seq.c_str()), str2);
-    delete[] str2;
-    Vienna::fold_constrained = bk;
   }
   for (uint j=2; j!=bp_.size()+1; ++j) {
     for (uint i=j-1; ; --i) {
@@ -127,6 +135,8 @@ calculate_posterior(const std::string& seq)
     }
   }
   Vienna::free_pf_arrays();
+  Vienna::fold_constrained = bk;
+  if (str2) delete[] str2;
 }  
 
 void
@@ -136,20 +146,30 @@ prepare_stochastic_traceback(const std::string& seq)
   bk_st_back_=Vienna::st_back;
   Vienna::st_back=1;
   Vienna::pf_scale = -1;
+  char *str2 = new char[seq.size()+1];
+  int bk = Vienna::fold_constrained;
+  if (!str_.empty())
+  {
+    Vienna::fold_constrained = 1;
+    strcpy(str2, str_.c_str());
+  }
+  if (seq.size()>1600)
+  {
+    double min_en = Vienna::fold(seq.c_str(), str2);
+    double kT = (Vienna::temperature+273.15)*1.98717/1000.; /* in Kcal */
+    Vienna::pf_scale = exp(-(1.07*min_en)/kT/seq.size());
+  }
 #ifndef HAVE_VIENNA20
   Vienna::init_pf_fold(seq.size());
 #endif
   if (str_.empty()) {
     Vienna::pf_fold(const_cast<char*>(seq.c_str()), NULL);
   } else {
-    char *str2 = new char[str_.size()+1];
     strcpy(str2, str_.c_str());
-    int bk = Vienna::fold_constrained;
-    Vienna::fold_constrained = 1;
     Vienna::pf_fold(const_cast<char*>(seq.c_str()), str2);
-    delete[] str2;
-    Vienna::fold_constrained = bk;
   }
+  Vienna::fold_constrained = bk;
+  if (str2) delete[] str2;
 }  
 
 std::vector<int>
