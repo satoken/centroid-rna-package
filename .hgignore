@@ -1,0 +1,23 @@
+syntax: glob
+*~
+.hgignore
+*.o
+*.Po
+*.Tpo
+*.a
+examples/*
+autom4te.cache/*
+Makefile
+Makefile.in
+aclocal.m4
+config.h
+config.h.in
+config.log
+config.status
+configure
+depcomp
+install-sh
+missing
+stamp-h1
+COPYING
+INSTALL
