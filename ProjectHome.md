@@ -1,0 +1,1 @@
+Centroid RNA package consists of several programs based on generalized centroid estimators.
