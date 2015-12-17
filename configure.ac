@@ -16,6 +16,7 @@ AC_PROG_RANLIB
 AC_PROG_LN_S
 AC_PROG_AWK
 AC_PROG_SED
+AM_PROG_AR
 
 dnl # Memory Resevation
 dnl AC_ARG_WITH([reserve], AS_HELP_STRING([--with-reserve],[the length of seqeunces for reserved memory (default: 500)]),
@@ -64,6 +65,15 @@ if test "x$BOOST_PROGRAM_OPTIONS_LIB" != x; then
 else
   AC_MSG_ERROR("the Boost::Program_Options library is unavailable")  
 fi
+
+AX_BOOST_SYSTEM
+if test "x$BOOST_SYSTEM_LIB" != x; then
+  LIBS="$LIBS $BOOST_SYSTEM_LIB"
+else
+  AC_MSG_ERROR("the Boost::Program_Options library is unavailable")  
+fi
+
+
 
 # Checks for libraries.
 AC_ARG_WITH([vienna-rna], AS_HELP_STRING([--with-vienna-rna], [support Vienna RNA package]),

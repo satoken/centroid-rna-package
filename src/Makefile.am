@@ -1,3 +1,5 @@
+AUTOMAKE_OPTIONS = subdir-objects
+
 SUBDIRS = contrafold probconsRNA contralign
 bin_PROGRAMS = centroid_fold centroid_alifold centroid_homfold
 noinst_LIBRARIES = libcentroid.a
