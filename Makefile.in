@@ -162,8 +162,8 @@ CTAGS = ctags
 CSCOPE = cscope
 DIST_SUBDIRS = $(SUBDIRS)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in AUTHORS \
-	COPYING ChangeLog ar-lib compile config.guess config.sub \
-	depcomp install-sh missing
+	COPYING ar-lib compile config.guess config.sub depcomp \
+	install-sh missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -315,7 +315,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = src
-EXTRA_DIST = ChangeLog README.rd README.html 
+EXTRA_DIST = README.md
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -791,9 +791,6 @@ uninstall-am:
 # 	perl/README.rd perl/centroid_fold_wrap.cxx perl/centroid_fold.i perl/Makefile.PL perl/test.pl \
 # 	python/README.rd python/centroid_fold_wrap.cxx python/centroid_fold.i python/setup.py python/test.py
 
-README.html: README.rd
-	rd2 README.rd > README.html
-
 ruby/centroid_fold_wrap.cxx: ruby/centroid_fold.i
 	( cd ruby; swig -c++ -ruby centroid_fold.i )
 
@@ -802,9 +799,6 @@ perl/centroid_fold_wrap.cxx: perl/centroid_fold.i
 
 python/centroid_fold_wrap.cxx: python/centroid_fold.i
 	( cd python; swig -c++ -python centroid_fold.i )
-
-ChangeLog:
-	svn2cl
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
