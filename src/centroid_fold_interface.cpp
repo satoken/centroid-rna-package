@@ -39,7 +39,7 @@
 #include "mea.h"
 
 CentroidFold::
-CentroidFold(int engine,
+CentroidFold(int engine /*=BOLTZMANN_ALIPFFOLD*/,
              bool run_as_mea /*=false*/,
 	     int num_ea_samples /*=-1*/,
              int reserved_size /*=0*/,
@@ -61,8 +61,22 @@ CentroidFold(int engine,
   {
     default:
 #ifdef HAVE_LIBRNA
-    case PFFOLD:
+    case BOLTZMANN_ALIPFFOLD:
       cf_single_ = new McCaskillModel(canonical_only_, max_bp_dist_, NULL, seed_, mea_);
+      cf_list_.push_back(new AveragedModel(cf_single_, max_bp_dist_, mea_));
+      cf_list_.push_back(new AliFoldModel(canonical_only_, max_bp_dist_, NULL, seed_, mea_));
+      break;
+    case PFFOLD_ALIPFFOLD:
+      cf_single_ = new McCaskillModel(canonical_only_, max_bp_dist_, "default", seed_, mea_);
+      cf_list_.push_back(new AveragedModel(cf_single_, max_bp_dist_, mea_));
+      cf_list_.push_back(new AliFoldModel(canonical_only_, max_bp_dist_, NULL, seed_, mea_));
+      break;
+    case BOLTZMANN:
+      cf_single_ = new McCaskillModel(canonical_only_, max_bp_dist_, NULL, seed_, mea_);
+      cf_list_.push_back(new AveragedModel(cf_single_, max_bp_dist_, mea_));
+      break;
+    case PFFOLD:
+      cf_single_ = new McCaskillModel(canonical_only_, max_bp_dist_, "default", seed_, mea_);
       cf_list_.push_back(new AveragedModel(cf_single_, max_bp_dist_, mea_));
       break;
     case ALIPFFOLD:

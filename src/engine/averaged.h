@@ -49,3 +49,7 @@ private:
 };
 
 #endif  //  __INC_ENGINE_AVERAGED_H__
+
+// Local Variables:
+// mode: C++
+// End:

@@ -29,6 +29,8 @@
 #define REQUESTSIZE 1024 * 10
 #define MAXREADSIZE 1024 * 1024 * 8
 #define MSGSIZE 1024 * 5
+#define GAMMA 4.0
+#define RESERVED_LENGTH 1000
 
 /*
  * clienterror - returns an error message to the client
@@ -320,7 +322,7 @@ int main(int argc, char **argv) {
         for (i=0; i<querylen; i++) {
           query[i] = toupper(query[i]);
         }
-        r = centroidfold(query, result, 1.0);
+        r = centroidfold(query, result, GAMMA);
         if (r) {
           strcpy(result, "ERROR : CentroidFold failed to execute this request.");
         }
@@ -543,7 +545,7 @@ int main(int argc, char **argv) {
           }
           query[querylen] = '\0';
           if (strlen(result) == 0) {
-            r = centroidfold(query, result, 1.0);
+            r = centroidfold(query, result, GAMMA);
             if (r) {
               strcpy(result, "ERROR : CentroidFold failed to execute this request.");
             }

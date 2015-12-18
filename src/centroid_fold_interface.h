@@ -40,11 +40,14 @@ public:
     AUX,
     PFFOLD,
     CONTRAFOLD,
-    ALIPFFOLD
+    ALIPFFOLD,
+    BOLTZMANN,
+    PFFOLD_ALIPFFOLD,
+    BOLTZMANN_ALIPFFOLD
   };
   
 public:
-  CentroidFold(int engine,
+  CentroidFold(int engine=BOLTZMANN_ALIPFFOLD,
                bool run_as_mea=false,
 	       int num_ea_samples=-1,
 	       int reserved_size=0,
@@ -135,3 +138,7 @@ private:
 };
 
 #endif	// #ifndef __INC_CENTROID_FOLD_H__
+
+// Local Variables:
+// mode: C++
+// End:

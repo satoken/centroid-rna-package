@@ -43,3 +43,7 @@ private:
 };
 
 #endif  //  __INC_ENGINE_MIXTURE_H__
+
+// Local Variables:
+// mode: C++
+// End:

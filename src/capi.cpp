@@ -8,14 +8,14 @@
 #include <new>
 #include <stdexcept>
 #include "capi.h"
-#include "centroid_fold.h"
+#include "centroid_fold_interface.h"
 
 class CFWrapper
 {
 public:
   CFWrapper()
   {
-    impl_ = new CentroidFold(CentroidFold::CONTRAFOLD);
+    impl_ = new CentroidFold();
   }
 
   ~CFWrapper()

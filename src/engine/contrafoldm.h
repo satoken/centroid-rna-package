@@ -49,3 +49,7 @@ private:
 };
 
 #endif  //  __INC_ENGINE_CONTRAFOLDM_H__
+
+// Local Variables:
+// mode: C++
+// End:

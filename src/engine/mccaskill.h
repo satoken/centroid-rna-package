@@ -49,3 +49,7 @@ private:
 #endif
 
 #endif  //  __INC_ENGINE_MCCASKILL_H__
+
+// Local Variables:
+// mode: C++
+// End:
