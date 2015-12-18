@@ -36,7 +36,7 @@ template < class RealT > class CONTRAfoldM;
 class CONTRAfoldModel : public FoldingEngine<std::string>
 {
 public:
-  CONTRAfoldModel(const std::string& model, bool canonical_only, uint max_bp_dist,
+  CONTRAfoldModel(bool canonical_only, uint max_bp_dist, const std::string& model="", 
                   uint seed=0, bool run_as_mea=false);
   virtual ~CONTRAfoldModel();
 

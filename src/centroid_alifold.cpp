@@ -222,7 +222,7 @@ centroid_alifold(int argc, char* argv[])
     if (engine[i]=="CONTRAfold")
     {
       if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 4.0);
-      src_list[i] = new CONTRAfoldModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+      src_list[i] = new CONTRAfoldModel(!vm.count("noncanonical"), max_bp_dist, param, seed, vm.count("mea"));
       cf_list[i] = new AveragedModel(src_list[i], max_bp_dist, vm.count("mea"));
     }
     else if (engine[i]=="CONTRAfoldM")

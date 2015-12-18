@@ -231,7 +231,7 @@ centroid_fold(const std::string& name, const SEQ& seq,
 #endif
         out << ")";
       }
-      if (num_ea_samples>=0) {
+      if (num_ea_samples>0) {
         out << " [" << "SEN=" << r->sen << ",PPV=" << r->ppv <<  ",MCC=" << r->mcc << "]";
       }
       out << std::endl;

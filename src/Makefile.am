@@ -3,7 +3,6 @@ AUTOMAKE_OPTIONS = subdir-objects
 SUBDIRS = contrafold probconsRNA contralign
 bin_PROGRAMS = centroid_fold centroid_alifold centroid_homfold
 noinst_LIBRARIES = libcentroid.a
-dist_bin_SCRIPTS = contrafold.rb simfold.rb
 
 centroid_fold_SOURCES = centroid_fold.cpp 
 centroid_fold_LDADD = libcentroid.a contrafold/libcontrafold.a
@@ -17,6 +16,7 @@ centroid_homfold_LDADD = libcentroid.a contrafold/libcontrafold.a contralign/lib
 libcentroid_a_SOURCES = \
 	folding_engine.cpp folding_engine.h centroid.cpp centroid.h \
 	mea.cpp mea.h bp.cpp bp.h cyktable.h rule.h util.h\
+	centroid_fold_interface.h centroid_fold_interface.cpp \
 	fa.cpp fa.h aln.cpp aln.h \
 	engine/aux.cpp engine/aux.h \
 	engine/alifold.cpp engine/alifold.h \

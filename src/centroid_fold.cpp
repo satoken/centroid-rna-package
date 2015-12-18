@@ -210,7 +210,7 @@ centroid_fold(int argc, char* argv[])
     if (engine[i]=="CONTRAfold")
     {
       if (gamma.empty()) gamma.push_back(vm.count("mea") ? 6.0 : 2.0);
-      cf_list[i] = new CONTRAfoldModel(param, !vm.count("noncanonical"), max_bp_dist, seed, vm.count("mea"));
+      cf_list[i] = new CONTRAfoldModel(!vm.count("noncanonical"), max_bp_dist, param, seed, vm.count("mea"));
     }
 #ifdef HAVE_LIBRNA
     else if (engine[i]=="McCaskill")

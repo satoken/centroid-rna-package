@@ -35,7 +35,7 @@ CONTRAfoldMultiModel(const std::string& model, bool canonical_only, uint max_bp_
   : FoldingEngine<Aln>(run_as_mea, max_bp_dist),
     contrafold_(NULL), contrafoldm_(NULL), avg_(NULL)
 {
-  contrafold_ = new CONTRAfoldModel(model, canonical_only, max_bp_dist, seed, run_as_mea);
+  contrafold_ = new CONTRAfoldModel(canonical_only, max_bp_dist, model, seed, run_as_mea);
 
   contrafoldm_ = new CONTRAfoldM<float>(canonical_only, max_bp_dist);
   if (seed==0)

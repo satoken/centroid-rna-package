@@ -96,36 +96,38 @@ protected:
   uint max_bp_dist_;
 
 protected:
-  struct EncodeBP
-  {
-    EncodeBP()
-      : t_(NULL), vec_(), p_(0)
-    {}
-
-    BPvecPtr execute(const CYKTable<uint>& t)
-    {
-      t_ = &t;
-      p_ = 0;
-      vec_ = BPvecPtr(new BPvec(t_->table_size(), false));
-      inside_traverse(0, t_->size()-1, *this);
-      t_ = NULL;
-      return vec_;
-    }
-
-    void operator()(uint i, uint j)
-    {
-      if (i!=j && (*t_)(i,j)>0) (*vec_)[p_]=true;
-      p_++;
-    }
-
-  private:
-    const CYKTable<uint>* t_;
-    BPvecPtr vec_;
-    uint p_;
-  };
-
   static
   void get_TP_TN_FP_FN (const BPvec& ref, const BPvec& pre, 
                         double& TP, double& TN, double& FP, double& FN);
 };
+
+struct EncodeBP
+{
+  EncodeBP()
+    : t_(NULL), vec_(), p_(0)
+  {}
+
+  BPvecPtr execute(const CYKTable<uint>& t)
+  {
+    t_ = &t;
+    p_ = 0;
+    vec_ = BPvecPtr(new BPvec(t_->table_size(), false));
+    inside_traverse(0, t_->size()-1, *this);
+    t_ = NULL;
+    return vec_;
+  }
+
+  void operator()(uint i, uint j)
+  {
+    if (i!=j && (*t_)(i,j)>0) (*vec_)[p_]=true;
+    p_++;
+  }
+
+private:
+  const CYKTable<uint>* t_;
+  BPvecPtr vec_;
+  uint p_;
+};
+
+
 #endif	// #ifndef FOLDING_ENGINE_H__

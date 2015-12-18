@@ -8,3 +8,13 @@ config.h
 config.log
 config.status
 src/ractip
+*.a
+*.pyc
+*.so
+*.bak
+src/centroid_fold
+src/centroid_alifold
+src/centroid_homfold
+*.deps
+*.dirstamp
+python/build
