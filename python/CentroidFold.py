@@ -164,9 +164,12 @@ class CentroidFold(_object):
     PFFOLD = _CentroidFold.CentroidFold_PFFOLD
     CONTRAFOLD = _CentroidFold.CentroidFold_CONTRAFOLD
     ALIPFFOLD = _CentroidFold.CentroidFold_ALIPFFOLD
+    BOLTZMANN = _CentroidFold.CentroidFold_BOLTZMANN
+    PFFOLD_ALIPFFOLD = _CentroidFold.CentroidFold_PFFOLD_ALIPFFOLD
+    BOLTZMANN_ALIPFFOLD = _CentroidFold.CentroidFold_BOLTZMANN_ALIPFFOLD
 
-    def __init__(self, engine, run_as_mea=False, num_ea_samples=-1, reserved_size=0, seed=0):
-        this = _CentroidFold.new_CentroidFold(engine, run_as_mea, num_ea_samples, reserved_size, seed)
+    def __init__(self, *args):
+        this = _CentroidFold.new_CentroidFold(*args)
         try:
             self.this.append(this)
         except:

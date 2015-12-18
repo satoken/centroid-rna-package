@@ -30,3 +30,7 @@ private:
 #endif
 
 #endif  //  __INC_ENGINE_MCCASKILLHOM_H__
+
+// Local Variables:
+// mode: C++
+// End:

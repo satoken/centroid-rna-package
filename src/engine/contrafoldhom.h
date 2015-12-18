@@ -28,3 +28,7 @@ private:
 };
 
 #endif  //  __INC_ENGINE_CONTRAFOLDHOM_H__
+
+// Local Variables:
+// mode: C++
+// End:

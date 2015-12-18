@@ -41,3 +41,7 @@ private:
 };
 
 #endif  //  __INC_ENGINE_AUX_H__
+
+// Local Variables:
+// mode: C++
+// End:

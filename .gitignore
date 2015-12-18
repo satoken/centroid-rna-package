@@ -18,3 +18,10 @@ src/centroid_homfold
 *.deps
 *.dirstamp
 python/build
+perl/blib
+perl/CentroidFold.bs
+perl/CentroidFold.pm
+perl/MYMETA.json
+perl/MYMETA.yml
+perl/pm_to_blib
+ruby/CentroidFold.bundle

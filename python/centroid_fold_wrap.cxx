@@ -5931,6 +5931,19 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_new_CentroidFold__SWIG_5(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  CentroidFold *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)":new_CentroidFold")) SWIG_fail;
+  result = (CentroidFold *)new CentroidFold();
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_CentroidFold, SWIG_POINTER_NEW |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_new_CentroidFold(PyObject *self, PyObject *args) {
   int argc;
   PyObject *argv[6] = {
@@ -5942,6 +5955,9 @@ SWIGINTERN PyObject *_wrap_new_CentroidFold(PyObject *self, PyObject *args) {
   argc = args ? (int)PyObject_Length(args) : 0;
   for (ii = 0; (ii < 5) && (ii < argc); ii++) {
     argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 0) {
+    return _wrap_new_CentroidFold__SWIG_5(self, args);
   }
   if (argc == 1) {
     int _v;
@@ -6061,7 +6077,8 @@ fail:
     "    CentroidFold::CentroidFold(int,bool,int,int)\n"
     "    CentroidFold::CentroidFold(int,bool,int)\n"
     "    CentroidFold::CentroidFold(int,bool)\n"
-    "    CentroidFold::CentroidFold(int)\n");
+    "    CentroidFold::CentroidFold(int)\n"
+    "    CentroidFold::CentroidFold()\n");
   return 0;
 }
 
@@ -7487,6 +7504,9 @@ SWIG_init(void) {
   SWIG_Python_SetConstant(d, "CentroidFold_PFFOLD",SWIG_From_int(static_cast< int >(CentroidFold::PFFOLD)));
   SWIG_Python_SetConstant(d, "CentroidFold_CONTRAFOLD",SWIG_From_int(static_cast< int >(CentroidFold::CONTRAFOLD)));
   SWIG_Python_SetConstant(d, "CentroidFold_ALIPFFOLD",SWIG_From_int(static_cast< int >(CentroidFold::ALIPFFOLD)));
+  SWIG_Python_SetConstant(d, "CentroidFold_BOLTZMANN",SWIG_From_int(static_cast< int >(CentroidFold::BOLTZMANN)));
+  SWIG_Python_SetConstant(d, "CentroidFold_PFFOLD_ALIPFFOLD",SWIG_From_int(static_cast< int >(CentroidFold::PFFOLD_ALIPFFOLD)));
+  SWIG_Python_SetConstant(d, "CentroidFold_BOLTZMANN_ALIPFFOLD",SWIG_From_int(static_cast< int >(CentroidFold::BOLTZMANN_ALIPFFOLD)));
 #if PY_VERSION_HEX >= 0x03000000
   return m;
 #else

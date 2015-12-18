@@ -48,3 +48,7 @@ private:
 };
 
 #endif  //  __INC_ENGINE_PFOLD_H__
+
+// Local Variables:
+// mode: C++
+// End:
