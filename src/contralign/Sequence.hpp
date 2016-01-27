@@ -23,8 +23,8 @@ public:
     enum CompressGaps { COMPRESS_GAPS };
     enum InsertGaps { INSERT_GAPS };
 
-    static const int UNKNOWN;
-    static const int UNALIGNED;
+    static const int UnKnown;
+    static const int UnAligned;
     
     Sequence(const std::string &data, const std::string &name, int id);
     Sequence(const Sequence &rhs);

@@ -503,11 +503,11 @@ std::pair<std::vector<int>, std::vector<int> > MultiSequence::GetAlignedTo() con
     Assert(x.length() == y.length(), "Length mismatch.");
 
 #if !FORCE_UNIQUE_PARSES
-    std::vector<int> aligned_to_x(sequences[0]->GetCompressedLength() + 1, Sequence::UNKNOWN);
-    std::vector<int> aligned_to_y(sequences[1]->GetCompressedLength() + 1, Sequence::UNKNOWN);
+    std::vector<int> aligned_to_x(sequences[0]->GetCompressedLength() + 1, Sequence::UnKnown);
+    std::vector<int> aligned_to_y(sequences[1]->GetCompressedLength() + 1, Sequence::UnKnown);
 #else
-    std::vector<int> aligned_to_x(sequences[0]->GetCompressedLength() + 1, Sequence::UNALIGNED);
-    std::vector<int> aligned_to_y(sequences[1]->GetCompressedLength() + 1, Sequence::UNALIGNED);
+    std::vector<int> aligned_to_x(sequences[0]->GetCompressedLength() + 1, Sequence::UnAligned);
+    std::vector<int> aligned_to_y(sequences[1]->GetCompressedLength() + 1, Sequence::UnAligned);
 #endif
     
     int i = 0;

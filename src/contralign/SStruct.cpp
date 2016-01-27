@@ -12,7 +12,7 @@ enum FileFormat
 };                  
 
 const int SStruct::UNPAIRED = 0;
-const int SStruct::UNKNOWN = -1;
+const int SStruct::UnKnown = -1;
 
 //////////////////////////////////////////////////////////////////////
 // SStruct::SStruct()
@@ -183,7 +183,7 @@ void SStruct::LoadFASTA(const std::string &filename)
     // supply empty mapping if none found
     if (!consensus_found)
     {
-        mapping = std::vector<int>(sequences[0].length(), UNKNOWN);
+        mapping = std::vector<int>(sequences[0].length(), UnKnown);
     }
 }
 
@@ -224,7 +224,7 @@ void SStruct::LoadRAW(const std::string &filename)
     if (sequences[0].length() == 1) Error("Zero-length sequence read.");
 
     // initialize empty secondary structure
-    mapping.resize(sequences[0].length(), UNKNOWN);
+    mapping.resize(sequences[0].length(), UnKnown);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -247,7 +247,7 @@ void SStruct::LoadBPSEQ(const std::string &filename)
     // initialize
     names.push_back(filename);
     sequences.push_back("@");
-    mapping.push_back(UNKNOWN);
+    mapping.push_back(UnKnown);
 
     // open file
     std::ifstream data(filename.c_str());
@@ -388,7 +388,7 @@ std::string SStruct::FilterParens(std::string sequence) const
 
 std::vector<int> SStruct::ConvertParensToMapping(const std::string &parens) const
 {
-    std::vector<int> mapping(parens.length(), UNKNOWN);
+    std::vector<int> mapping(parens.length(), UnKnown);
     std::vector<int> stack;
    
     Assert(parens[0] == '@', "Invalid parenthesized string.");
@@ -428,7 +428,7 @@ std::string SStruct::ConvertMappingToParens(const std::vector<int> &mapping) con
 
     for (int i = 1; i < int(mapping.size()); i++)
     {
-        if (mapping[i] == UNKNOWN)
+        if (mapping[i] == UnKnown)
             parens += "?";
         else if (mapping[i] == UNPAIRED)
             parens += ".";
@@ -452,10 +452,10 @@ std::string SStruct::ConvertMappingToParens(const std::vector<int> &mapping) con
 
 void SStruct::ValidateMapping(const std::vector<int> &mapping) const
 {
-    if (mapping.size() == 0 || mapping[0] != UNKNOWN) Error("Invalid mapping.");
+    if (mapping.size() == 0 || mapping[0] != UnKnown) Error("Invalid mapping.");
     for (int i = 1; i < int(mapping.size()); i++)
     {
-        if (mapping[i] == UNPAIRED || mapping[i] == UNKNOWN)
+        if (mapping[i] == UNPAIRED || mapping[i] == UnKnown)
             continue;
         if (mapping[i] < 1 || mapping[i] >= int(mapping.size()))
             Error("Position %d of sequence maps to invalid position.", i);
@@ -478,7 +478,7 @@ bool SStruct::ContainsPseudoknots() const
 
     for (int i = 1; i < int(mapping.size()); i++)
     {
-        if (mapping[i] == UNPAIRED || mapping[i] == UNKNOWN)
+        if (mapping[i] == UNPAIRED || mapping[i] == UnKnown)
             continue;
         if (mapping[i] > i)
             stack.push_back(i);

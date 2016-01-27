@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include "engine/pfold.h"
 
+#ifndef HAVE_MKSTEMP
 /* Add mkstemp function for MinGW */
 #ifdef __MINGW32__
 #include <windows.h>
@@ -48,6 +49,7 @@ static int mkstemp(char* temp)
   }
   return -1;
 }
+#endif
 #endif
 
 static

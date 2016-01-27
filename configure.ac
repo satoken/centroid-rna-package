@@ -82,7 +82,14 @@ AC_ARG_WITH([vienna-rna], AS_HELP_STRING([--with-vienna-rna], [support Vienna RN
      LDFLAGS="-L${with_vienna_rna}/lib $LDFLAGS"
   fi
 )
-AC_CHECK_LIB(RNA, pf_fold)
+AC_CHECK_LIB([RNA], [pf_fold], [],
+[
+  AC_MSG_NOTICE([try '-fopenmp'])
+  CXXFLAGS_BAK=${CXXFLAGS}
+  CXXFLAGS="-fopenmp ${CXXFLAGS}"
+  unset ac_cv_lib_RNA_pf_fold
+  AC_CHECK_LIB([RNA], [pf_fold], [], [ CXXFLAGS=${CXXFLAGS_BAK} ])
+])
 
 AC_CHECK_FUNC(energy_of_structure,
 	      [AC_DEFINE([HAVE_VIENNA20], [], [have the Vienna RNA package version 1.8 or above])])
@@ -90,6 +97,9 @@ AC_CHECK_FUNC(energy_of_structure,
 # Checks for header files.
 AC_CHECK_HEADER([ViennaRNA/ribo.h],
 		[AC_DEFINE([HAVE_VIENNA18], [], [have the Vienna RNA package version 2.0 or above])])
+
+AC_CHECK_FUNC([mkstemp],
+	      [AC_DEFINE([HAVE_MKSTEMP], [], [have mkstemp() in the standard library])])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL

@@ -52,7 +52,7 @@ public:
     // integer constants used to identify nucleotides which are either
     // unpaired or whose pairing is not known
     static const int UNPAIRED;
-    static const int UNKNOWN;
+    static const int UnKnown;
 
     // constructor and destructor
     SStruct();

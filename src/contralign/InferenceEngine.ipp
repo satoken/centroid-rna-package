@@ -307,10 +307,10 @@ void InferenceEngine<RealT>::LoadSequences(const MultiSequence &seqs)
     // allocate memory
     x.clear();                     x.resize(LX+1);
     y.clear();                     y.resize(LY+1);
-    aligned_to_x.clear();          aligned_to_x.resize(LX+1, Sequence::UNKNOWN);
-    aligned_to_y.clear();          aligned_to_y.resize(LY+1, Sequence::UNKNOWN);
-    true_aligned_to_x.clear();     true_aligned_to_x.resize(LX+1, Sequence::UNKNOWN);
-    true_aligned_to_y.clear();     true_aligned_to_y.resize(LY+1, Sequence::UNKNOWN);
+    aligned_to_x.clear();          aligned_to_x.resize(LX+1, Sequence::UnKnown);
+    aligned_to_y.clear();          aligned_to_y.resize(LY+1, Sequence::UnKnown);
+    true_aligned_to_x.clear();     true_aligned_to_x.resize(LX+1, Sequence::UnKnown);
+    true_aligned_to_y.clear();     true_aligned_to_y.resize(LY+1, Sequence::UnKnown);
 
     // convert sequences
     const std::string &sx = seqX.GetData();
@@ -413,9 +413,9 @@ void InferenceEngine<RealT>::UseLoss(const std::pair<std::vector<int>, std::vect
     
     int count = 0;
     for (int i = 1; i <= LX; i++)
-        if (true_aligned_to_x[i] != Sequence::UNKNOWN && true_aligned_to_x[i] != Sequence::UNALIGNED) count++;
+        if (true_aligned_to_x[i] != Sequence::UnKnown && true_aligned_to_x[i] != Sequence::UnAligned) count++;
     for (int i = 1; i <= LY; i++)
-        if (true_aligned_to_y[i] != Sequence::UNKNOWN && true_aligned_to_y[i] != Sequence::UNALIGNED) count++;
+        if (true_aligned_to_y[i] != Sequence::UnKnown && true_aligned_to_y[i] != Sequence::UnAligned) count++;
 
     per_position_loss = example_loss / RealT(count);
 }
@@ -449,14 +449,14 @@ inline RealT InferenceEngine<RealT>::ScoreMatch(int i, int j, int s) const
     Assert(0 < i && i <= LX && 0 < j && j <= LY, "Invalid indices.");
     Assert(0 <= s && s < K, "Invalid state.");
     
-    if ((aligned_to_x[i] != Sequence::UNKNOWN && aligned_to_x[i] != j) ||
-        (aligned_to_y[j] != Sequence::UNKNOWN && aligned_to_y[j] != i))
+    if ((aligned_to_x[i] != Sequence::UnKnown && aligned_to_x[i] != j) ||
+        (aligned_to_y[j] != Sequence::UnKnown && aligned_to_y[j] != i))
         return RealT(NEG_INF);
     
     return RealT(0)
 #if defined(HAMMING_LOSS)
-        + ((true_aligned_to_x[i] == Sequence::UNKNOWN || true_aligned_to_x[i] == Sequence::UNALIGNED || true_aligned_to_x[i] == j) ? RealT(0) : per_position_loss)
-        + ((true_aligned_to_y[j] == Sequence::UNKNOWN || true_aligned_to_y[j] == Sequence::UNALIGNED || true_aligned_to_y[j] == i) ? RealT(0) : per_position_loss)
+        + ((true_aligned_to_x[i] == Sequence::UnKnown || true_aligned_to_x[i] == Sequence::UnAligned || true_aligned_to_x[i] == j) ? RealT(0) : per_position_loss)
+        + ((true_aligned_to_y[j] == Sequence::UnKnown || true_aligned_to_y[j] == Sequence::UnAligned || true_aligned_to_y[j] == i) ? RealT(0) : per_position_loss)
 #endif
 #if PARAMS_MATCH
         + score_match[x[i]][y[j]].first
@@ -487,8 +487,8 @@ inline void InferenceEngine<RealT>::CountMatch(int i, int j, int s, RealT value)
     Assert(0 < i && i <= LX && 0 < j && j <= LY, "Invalid indices.");
     Assert(0 <= s && s < K, "Invalid state.");
     
-    if ((aligned_to_x[i] != Sequence::UNKNOWN && aligned_to_x[i] != j) ||
-        (aligned_to_y[j] != Sequence::UNKNOWN && aligned_to_y[j] != i))
+    if ((aligned_to_x[i] != Sequence::UnKnown && aligned_to_x[i] != j) ||
+        (aligned_to_y[j] != Sequence::UnKnown && aligned_to_y[j] != i))
         return;
     
 #if PARAMS_MATCH
@@ -526,12 +526,12 @@ inline RealT InferenceEngine<RealT>::ScoreInsertX(int i, int j, int s) const
     Assert(0 < i && i <= LX && 0 <= j && j <= LY, "Invalid indices.");
     Assert(0 <= s && s < K, "Invalid state.");
     
-    if (aligned_to_x[i] != Sequence::UNKNOWN && aligned_to_x[i] != Sequence::UNALIGNED)
+    if (aligned_to_x[i] != Sequence::UnKnown && aligned_to_x[i] != Sequence::UnAligned)
         return RealT(NEG_INF);
     
     return RealT(0)
 #if defined(HAMMING_LOSS)
-        + ((true_aligned_to_x[i] == Sequence::UNKNOWN || true_aligned_to_x[i] == Sequence::UNALIGNED) ? RealT(0) : per_position_loss)
+        + ((true_aligned_to_x[i] == Sequence::UnKnown || true_aligned_to_x[i] == Sequence::UnAligned) ? RealT(0) : per_position_loss)
 #endif
 #if PARAMS_INSERT
         + score_insert[x[i]].first
@@ -562,7 +562,7 @@ inline void InferenceEngine<RealT>::CountInsertX(int i, int j, int s, RealT valu
     Assert(0 < i && i <= LX && 0 <= j && j <= LY, "Invalid indices.");
     Assert(0 <= s && s < K, "Invalid state.");
     
-    if (aligned_to_x[i] != Sequence::UNKNOWN && aligned_to_x[i] != Sequence::UNALIGNED)
+    if (aligned_to_x[i] != Sequence::UnKnown && aligned_to_x[i] != Sequence::UnAligned)
         return;
     
 #if PARAMS_INSERT
@@ -601,12 +601,12 @@ inline RealT InferenceEngine<RealT>::ScoreInsert2X(int i, int j, int s) const
     Assert(0 < i && i <= LX && 0 <= j && j <= LY, "Invalid indices.");
     Assert(0 <= s && s < K, "Invalid state.");
     
-    if (aligned_to_x[i] != Sequence::UNKNOWN && aligned_to_x[i] != Sequence::UNALIGNED)
+    if (aligned_to_x[i] != Sequence::UnKnown && aligned_to_x[i] != Sequence::UnAligned)
         return RealT(NEG_INF);
     
     return RealT(0)
 #if defined(HAMMING_LOSS)
-        + ((true_aligned_to_x[i] == Sequence::UNKNOWN || true_aligned_to_x[i] == Sequence::UNALIGNED) ? RealT(0) : per_position_loss)
+        + ((true_aligned_to_x[i] == Sequence::UnKnown || true_aligned_to_x[i] == Sequence::UnAligned) ? RealT(0) : per_position_loss)
 #endif
 #if PARAMS_INSERT
         + score_insert[x[i]].first
@@ -637,7 +637,7 @@ inline void InferenceEngine<RealT>::CountInsert2X(int i, int j, int s, RealT val
     Assert(0 < i && i <= LX && 0 <= j && j <= LY, "Invalid indices.");
     Assert(0 <= s && s < K, "Invalid state.");
     
-    if (aligned_to_x[i] != Sequence::UNKNOWN && aligned_to_x[i] != Sequence::UNALIGNED)
+    if (aligned_to_x[i] != Sequence::UnKnown && aligned_to_x[i] != Sequence::UnAligned)
         return;
     
 #if PARAMS_INSERT
@@ -676,12 +676,12 @@ inline RealT InferenceEngine<RealT>::ScoreInsertY(int i, int j, int s) const
     Assert(0 <= i && i <= LX && 0 < j && j <= LY, "Invalid indices.");
     Assert(0 <= s && s < K, "Invalid state.");
     
-    if (aligned_to_y[j] != Sequence::UNKNOWN && aligned_to_y[j] != Sequence::UNALIGNED)
+    if (aligned_to_y[j] != Sequence::UnKnown && aligned_to_y[j] != Sequence::UnAligned)
         return RealT(NEG_INF);
     
     return RealT(0)
 #if defined(HAMMING_LOSS)
-        + ((true_aligned_to_y[j] == Sequence::UNKNOWN || true_aligned_to_y[j] == Sequence::UNALIGNED) ? RealT(0) : per_position_loss)
+        + ((true_aligned_to_y[j] == Sequence::UnKnown || true_aligned_to_y[j] == Sequence::UnAligned) ? RealT(0) : per_position_loss)
 #endif
 #if PARAMS_INSERT
         + score_insert[y[j]].first
@@ -712,7 +712,7 @@ inline void InferenceEngine<RealT>::CountInsertY(int i, int j, int s, RealT valu
     Assert(0 <= i && i <= LX && 0 < j && j <= LY, "Invalid indices.");
     Assert(0 <= s && s < K, "Invalid state.");
     
-    if (aligned_to_y[j] != Sequence::UNKNOWN && aligned_to_y[j] != Sequence::UNALIGNED)
+    if (aligned_to_y[j] != Sequence::UnKnown && aligned_to_y[j] != Sequence::UnAligned)
         return;
     
 #if PARAMS_INSERT
@@ -751,12 +751,12 @@ inline RealT InferenceEngine<RealT>::ScoreInsert2Y(int i, int j, int s) const
     Assert(0 <= i && i <= LX && 0 < j && j <= LY, "Invalid indices.");
     Assert(0 <= s && s < K, "Invalid state.");
     
-    if (aligned_to_y[j] != Sequence::UNKNOWN && aligned_to_y[j] != Sequence::UNALIGNED)
+    if (aligned_to_y[j] != Sequence::UnKnown && aligned_to_y[j] != Sequence::UnAligned)
         return RealT(NEG_INF);
     
     return RealT(0)
 #if defined(HAMMING_LOSS)
-        + ((true_aligned_to_y[j] == Sequence::UNKNOWN || true_aligned_to_y[j] == Sequence::UNALIGNED) ? RealT(0) : per_position_loss)
+        + ((true_aligned_to_y[j] == Sequence::UnKnown || true_aligned_to_y[j] == Sequence::UnAligned) ? RealT(0) : per_position_loss)
 #endif
 #if PARAMS_INSERT
         + score_insert[y[j]].first
@@ -787,7 +787,7 @@ inline void InferenceEngine<RealT>::CountInsert2Y(int i, int j, int s, RealT val
     Assert(0 <= i && i <= LX && 0 < j && j <= LY, "Invalid indices.");
     Assert(0 <= s && s < K, "Invalid state.");
     
-    if (aligned_to_y[j] != Sequence::UNKNOWN && aligned_to_y[j] != Sequence::UNALIGNED)
+    if (aligned_to_y[j] != Sequence::UnKnown && aligned_to_y[j] != Sequence::UnAligned)
         return;
     
 #if PARAMS_INSERT

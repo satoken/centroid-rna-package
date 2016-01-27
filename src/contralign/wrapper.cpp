@@ -66,8 +66,8 @@ namespace CONTRALIGN
   ComputePosterior (const std::string& seq1, const std::string& seq2, float th)
   {
     MultiSequence seqs;
-    seqs.AddSequence (new Sequence ('@'+seq1, "unkown", Sequence::UNKNOWN)); 
-    seqs.AddSequence (new Sequence ('@'+seq2, "unkown", Sequence::UNKNOWN));     
+    seqs.AddSequence (new Sequence ('@'+seq1, "unkown", Sequence::UnKnown)); 
+    seqs.AddSequence (new Sequence ('@'+seq2, "unkown", Sequence::UnKnown));     
 
     inference_engine.LoadSequences (seqs);
 
@@ -84,8 +84,8 @@ namespace CONTRALIGN
   ComputePosterior (const std::string& seq1, const std::string& seq2, std::vector<T>& p, float th)
   {
     MultiSequence seqs;
-    seqs.AddSequence (new Sequence ('@'+seq1, "unkown", Sequence::UNKNOWN)); 
-    seqs.AddSequence (new Sequence ('@'+seq2, "unkown", Sequence::UNKNOWN));     
+    seqs.AddSequence (new Sequence ('@'+seq1, "unkown", Sequence::UnKnown)); 
+    seqs.AddSequence (new Sequence ('@'+seq2, "unkown", Sequence::UnKnown));     
 
     inference_engine.LoadSequences (seqs);
 

@@ -18,6 +18,9 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* have mkstemp() in the standard library */
+#undef HAVE_MKSTEMP
+
 /* define if the compiler implements namespaces */
 #undef HAVE_NAMESPACES
 

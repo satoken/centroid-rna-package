@@ -5,8 +5,8 @@
 #include "Sequence.hpp"
 
 namespace CONTRALIGN {
-const int Sequence::UNKNOWN = -1;
-const int Sequence::UNALIGNED = 0;
+const int Sequence::UnKnown = -1;
+const int Sequence::UnAligned = 0;
 
 /////////////////////////////////////////////////////////////////
 // Sequence::Sequence()
