@@ -252,9 +252,9 @@ References
   * Hamada, M., Sato, K., Kiryu, H., Mituyama, T. and Asai, K.:
     Predictions of RNA secondary structures by combining homologous
     sequence information, *Bioinformatics*, 23:i330-338, 2009.
-  * Hamada, M., Sato, K., and Asai, K.: CentroidAlifold: secondary
-    structure prediction for aligned RNA sequences by maximizing 
-    expected accuracy, *Nucleic Acids Res*, in press, 2010.
+  * Hamada, M., Sato, K., and Asai, K.: Improving the accuracy of
+    predicting secondary structure for aligned RNA sequences, 
+	*Nucleic Acids Res*, 39:393–402, 2011.
 * The CONTRAfold model and MEA estimators
   * Do, C.B., Woods, D.A. and Batzoglou, S.: CONTRAfold: RNA
     secondary structure prediction without physics-based
