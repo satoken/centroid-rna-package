@@ -40,7 +40,7 @@ Install
 If the Vienna RNA package has been installed at the non-standard
 directory, specify the location like:
 
-	./configure --with-vienna-rna=/somewhere/to/vienna-rna
+	./configure --with-vienna-rna=/path/to/vienna-rna
 
 Usage
 -----
@@ -242,45 +242,45 @@ References
 * Centroid estimators
   * Carvalho, L.E. and Lawrence, C.E.: Centroid estimation in
     discrete high-dimensional spaces with applications in
-    biology. Proc Natl Sci USA, 105:3209-3214, 2008.
+    biology. *Proc Natl Sci USA*, 105:3209-3214, 2008.
   * Ding, Y., Chan, C. Y., and Lawrence, C.E.: RNA secondary
     structure prediction by centroids in a Boltzmann weighted
-    ensemble, RNA, 11:1157-1166, 2005
+    ensemble, *RNA*, 11:1157-1166, 2005
   * Hamada, M., Kiryu, H., Sato, K., Mituyama, T. and Asai, K.:
     Predictions of RNA secondary structure using generalized centroid
-    estimators, Bioinformatics, 25:465-473, 2009
+    estimators, *Bioinformatics*, 25:465-473, 2009
   * Hamada, M., Sato, K., Kiryu, H., Mituyama, T. and Asai, K.:
     Predictions of RNA secondary structures by combining homologous
-    sequence information, Bioinformatics, 23:i330-338, 2009.
+    sequence information, *Bioinformatics*, 23:i330-338, 2009.
   * Hamada, M., Sato, K., and Asai, K.: CentroidAlifold: secondary
     structure prediction for aligned RNA sequences by maximizing 
-    expected accuracy, Nucleic Acids Res, in press, 2010.
+    expected accuracy, *Nucleic Acids Res*, in press, 2010.
 * The CONTRAfold model and MEA estimators
   * Do, C.B., Woods, D.A. and Batzoglou, S.: CONTRAfold: RNA
     secondary structure prediction without physics-based
-    models. Bioinformatics, 22:e90-e98, 2006.
+    models. *Bioinformatics*, 22:e90-e98, 2006.
 * The McCaskill model
   * McCaskill, J.S.: The equilibrium partition function and base pair
-    binding probabilities for RNA secondary structure. Biopolymers,
+    binding probabilities for RNA secondary structure. *Biopolymers*,
     29, 1105-1119, 1990.
-  * Hofacker, I.L.: Vienna RNA secondary structure server. Nucleic
-    Acids Res, 31:3429-3431, 2003.
+  * Hofacker, I.L.: Vienna RNA secondary structure server. 
+    *Nucleic Acids Res*, 31:3429-3431, 2003.
 * The RNAalifold model
   * Bernahart, S., Hofacker, I.L., Will, S., Gruber, A.R., and
     Stadler, P.F.: RNAalifold: improved consensus structure prediction
-    for RNA alignments, BMC Bioinformatics, 9:474, 2008.
+    for RNA alignments, *BMC Bioinformatics*, 9:474, 2008.
 * The pfold model
   * Knudsen, B., and Hein, J.: Using stochastic context free grammars
     and molecular evolution to predict RNA secondary
-    structure. Bioinformatics, 15:446-454, 1999.
+    structure. *Bioinformatics*, 15:446-454, 1999.
   * Knudsen, B., and Hein, J.: Pfold: RNA secondary structure
-    prediction using stochastic context-free grammars. Nucleic Acids
-    Res, 31:3423-3428, 2003.
+    prediction using stochastic context-free grammars. 
+	*Nucleic Acids Res*, 31:3423-3428, 2003.
 * Boltzmann likelihood parameters
   * Andronescu, M., Condon, A., Hoos, H.H., Mathews, D.H., and Murphy,
     K.P.: Computational approaches for RNA energy parameter
-    estimation. RNA, 16:2304-18, 2010
+    estimation. *RNA*, 16:2304-18, 2010
 * Others
   * Freyhult, E., Moulton, V., and Gardner, PP.: Predicting RNA
-    structure using mutual information. Appl Bioinformatics. 4:53-59,
+    structure using mutual information. *Appl Bioinformatics*. 4:53-59,
     2004.
