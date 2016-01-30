@@ -49,6 +49,9 @@ extern "C" {
   extern void read_parameter_file(const char fname[]);
 };
 };
+#ifndef FLT_OR_DBL
+typedef Vienna::FLT_OR_DBL FLT_OR_DBL;
+#endif
 #endif
 
 extern "C" {

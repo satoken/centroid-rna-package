@@ -26,6 +26,9 @@ extern "C" {
 };
 };
 #endif //__INC_LIBRNA_H
+#ifndef FLT_OR_DBL
+typedef Vienna::FLT_OR_DBL FLT_OR_DBL;
+#endif
 #endif
 
 template < class T >
