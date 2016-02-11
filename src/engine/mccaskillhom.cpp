@@ -31,6 +31,10 @@ extern "C" {
 };
 #endif
 
+extern "C" {
+#include "engine/boltzmann_param.h"
+};
+
 McCaskillHomModel::
 McCaskillHomModel(const std::string& engine_a, bool canonical_only, uint max_bp_dist,
                const char* param /*=NULL*/, uint seed /*=0*/, bool run_as_mea /*=false*/)
@@ -56,7 +60,14 @@ McCaskillHomModel(const std::string& engine_a, bool canonical_only, uint max_bp_
     xsubi[2] += (unsigned short) ((unsigned)seed >> 12);
   }
   
-  if (param && std::string(param) != "") Vienna::read_parameter_file(param);
+  if (param)
+  {
+    if (strcmp(param, "default")!=0)
+      Vienna::read_parameter_file(param);
+  }
+  else
+    copy_boltzmann_parameters();
+
   param_ = param;
 
   engine_a_ = engine_a;

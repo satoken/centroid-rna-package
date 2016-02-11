@@ -76,8 +76,13 @@ AliFoldModel(bool canonical_only, uint max_bp_dist,
     xsubi[2] += (unsigned short) ((unsigned)seed >> 12);
   }
 
-  copy_boltzmann_parameters();
-  if (param) Vienna::read_parameter_file(param);
+  if (param)
+  {
+    if (strcmp(param, "default")!=0)
+      Vienna::read_parameter_file(param);
+  }
+  else
+    copy_boltzmann_parameters();
 }
 
 void
