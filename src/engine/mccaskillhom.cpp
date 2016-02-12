@@ -165,21 +165,24 @@ calculate_posterior(const TH& th)
     strcpy(str2, str_.c_str());
     Vienna::pf_fold(const_cast<char*>(seq.c_str()), str2);
   }
+#ifdef HAVE_VIENNA20
+  FLT_OR_DBL* pr = Vienna::export_bppm();
+  int* iindx = Vienna::get_iindx(seq.size());
+#else
+  FLT_OR_DBL* pr = Vienna::pr;
+  int* iindx = Vienna::iindx;
+#endif
   for (uint j=2; j!=bp_.size()+1; ++j) {
     for (uint i=j-1; ; --i) {
-#ifdef HAVE_VIENNA20
-      FLT_OR_DBL* pr = Vienna::export_bppm();
-      int* iindx = Vienna::get_iindx(seq.size());
-#else
-      FLT_OR_DBL* pr = Vienna::pr;
-      int* iindx = Vienna::iindx;
-#endif
       bp_.update(i-1, j-1, alpha * pr[iindx[i]-j] + (1-alpha) * tmp[i][j] / (float)hom.size());
       if (i==1) break;
     }
   }
   Vienna::free_pf_arrays();
   Vienna::fold_constrained = bk;
+#ifdef HAVE_VIENNA20
+  free(iindx);
+#endif
   if (str2) delete[] str2;
   delete pc; delete ca;
 }  

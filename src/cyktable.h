@@ -111,6 +111,8 @@ public:
   inline
   void put(uint i, uint j, const T& val)
   {
+    assert(i<size_);
+    assert(j<size_);
     assert(i<=j);
     assert(max_dist_==0 || j-i<=max_dist_);
     assert(ptr_[j]!=NULL);
@@ -126,6 +128,8 @@ public:
   inline
   const T& get(uint i, uint j) const
   {
+    assert(i<size_);
+    assert(j<size_);
     assert(i<=j);
     assert(max_dist_==0 || j-i<=max_dist_);
     assert(ptr_[i]!=NULL);
@@ -141,6 +145,8 @@ public:
   inline
   T& get(uint i, uint j)
   {
+    assert(i<size_);
+    assert(j<size_);
     assert(i<=j);
     assert(ptr_[i]!=NULL);
     return ptr_[i][j];

@@ -147,7 +147,7 @@ struct Updater
       q[j]-=bp_(i,j);
     }
   }
-  CYKTable<V> bp_;
+  const CYKTable<V>& bp_;
   std::vector<V> q;
 };
 
@@ -157,7 +157,7 @@ BPTableTmpl<V>::
 calc_nonbp_prob() const
 {
   Updater<V> updater(bp_, size_);
-  inside_traverse(0, size(), updater);
+  inside_traverse(0, size()-1, updater);
   return updater.q;
 }
 
