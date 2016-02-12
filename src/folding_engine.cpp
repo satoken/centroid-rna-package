@@ -450,7 +450,7 @@ compute_expected_accuracy(const std::string& paren,
     else if (c == ')') {
       int left = st.back();
       st.pop_back();
-      BP.push_back ( std::make_pair<int, int>(left, n) );
+      BP.push_back ( std::make_pair<int, int>((int)left, (int)n) );
     }
   }
   assert (st.size()==0);
