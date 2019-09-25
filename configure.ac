@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(centroid_fold, 0.0.15, no-define)
+AC_INIT(centroid_fold, 0.0.16, no-define)
 AM_INIT_AUTOMAKE([-Wall foreign])
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR([src/centroid_fold.cpp])
@@ -93,6 +93,9 @@ AC_CHECK_LIB([RNA], [pf_fold], [],
 
 AC_CHECK_FUNC(energy_of_structure,
 	      [AC_DEFINE([HAVE_VIENNA20], [], [have the Vienna RNA package version 1.8 or above])])
+
+AC_CHECK_FUNC(naview_xy_coordinates,
+	      [AC_DEFINE([HAVE_NAVIEW_XY_COORDINATES], [], [have naview_xy_coordinates() in libRNA.a])])
 
 # Checks for header files.
 AC_CHECK_HEADER([ViennaRNA/ribo.h],

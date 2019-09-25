@@ -33,6 +33,12 @@
 *   added ansi prototypes and fixed memory leaks.
 */
 
+#ifdef HAVE_CONFIG_H
+#include "../config.h"
+#endif
+
+#ifndef HAVE_NAVIEW_XY_COORDINATES
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1147,3 +1153,4 @@ static void find_center_for_arc(int n,double b,double *hp,double *thetap)
   *thetap = theta;
 }
 
+#endif

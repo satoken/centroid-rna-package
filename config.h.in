@@ -24,6 +24,9 @@
 /* define if the compiler implements namespaces */
 #undef HAVE_NAMESPACES
 
+/* have naview_xy_coordinates() in libRNA.a */
+#undef HAVE_NAVIEW_XY_COORDINATES
+
 /* Define to 1 if stdbool.h conforms to C99. */
 #undef HAVE_STDBOOL_H
 
