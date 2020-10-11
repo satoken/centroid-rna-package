@@ -39,7 +39,8 @@ RUN apt-get update \
         && chown -R $USER_UID:$USER_GID /home/$USERNAME; \
     fi \
     #
-    && apt -y install ./vienna*.deb ./python3-rna*.deb \
+    && apt -y install ./vienna*.deb \
+    # && apt -y install ./python3-rna*.deb \
     # Clean up
     && rm -f *.deb \
     && apt-get autoremove -y \
