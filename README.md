@@ -49,6 +49,11 @@ directory, specify the location like:
 	mkdir build && cd build
 	cmake .. && make
 
+### Using Docker
+
+	docker build . -t centroid_fold
+	docker run --rm -it -v $(pwd):/workspaces centroid_fold centroid_fold -g -1 RF00008_B.fa 
+
 
 Usage
 -----
