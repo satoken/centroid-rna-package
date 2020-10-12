@@ -167,7 +167,7 @@ centroid_alifold(int argc, char* argv[])
     features += ", pfold";
     features += ", AUX";
 
-    std::cout << "CentroidAlifold v" << VERSION 
+    std::cout << "CentroidAlifold v" << PACKAGE_VERSION 
 	      << " for predicting common RNA secondary structures" << std::endl
 	      << "  (available engines: " << features << ")" << std::endl
 	      << "Usage:" << std::endl

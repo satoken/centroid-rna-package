@@ -130,7 +130,7 @@ centroid_homfold(int argc, char* argv[])
     features += ", McCaskill";
 #endif
 
-    std::cout << "CentroidHomfold v" << VERSION 
+    std::cout << "CentroidHomfold v" << PACKAGE_VERSION 
 	      << " for predicting RNA secondary structures" << std::endl
 	      << "  (available engines: " << features << ")" << std::endl
 	      << "Usage:" << std::endl
