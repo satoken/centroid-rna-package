@@ -42,3 +42,7 @@ target_link_libraries(centroid_homfold
     centroid contrafold contralign probcons
     ${VIENNARNA_LDFLAGS}
     Boost::program_options Boost::random Boost::system)
+
+install(TARGETS centroid_fold RUNTIME DESTINATION bin)
+install(TARGETS centroid_alifold RUNTIME DESTINATION bin)
+install(TARGETS centroid_homfold RUNTIME DESTINATION bin)

@@ -35,12 +35,20 @@ Requirements
 Install
 -------
 
+### Using configure
+
 	./configure && make && make install
 
 If the Vienna RNA package has been installed at the non-standard
 directory, specify the location like:
 
 	./configure --with-vienna-rna=/path/to/vienna-rna
+
+### Using cmake
+
+	mkdir build && cd build
+	cmake .. && make
+
 
 Usage
 -----
