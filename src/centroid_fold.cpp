@@ -161,7 +161,7 @@ centroid_fold(int argc, char* argv[])
     features += ", pfold";
     features += ", AUX";
 
-    std::cout << "CentroidFold v" << VERSION 
+    std::cout << "CentroidFold v" << PACKAGE_VERSION 
 	      << " for predicting RNA secondary structures" << std::endl
 	      << "  (available engines: " << features << ")" << std::endl
 	      << "Usage:" << std::endl

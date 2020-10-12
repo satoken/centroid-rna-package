@@ -25,3 +25,4 @@ perl/MYMETA.json
 perl/MYMETA.yml
 perl/pm_to_blib
 ruby/CentroidFold.bundle
+build

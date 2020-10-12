@@ -1420,7 +1420,7 @@ RealT *InferenceEngine<RealT>::GetPosterior(const RealT posterior_cutoff) const
     RealT *ret = new RealT[SIZE];
     for (int i = 0; i < SIZE; i++){
         ret[i] = (posterior[i] >= posterior_cutoff ? posterior[i] : RealT(0));
-	assert (p[i]<=1);
+	assert (posterior[i]<=1);
     }
     return ret;
 }
@@ -1432,7 +1432,7 @@ RealT *InferenceEngine<RealT>::GetPosterior(const RealT posterior_cutoff,
     p.resize(SIZE);
     for (int i = 0; i < SIZE; i++){
         p[i] = (posterior[i] >= posterior_cutoff ? posterior[i] : RealT(0));
-	assert (p[i]<=1);
+	assert (posterior[i]<=1);
     }
     return &p[0];
 }
